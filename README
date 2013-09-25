@@ -1,0 +1,9 @@
+A wordpress pluguin.
+Usage:
+Download, zip and upload to your wordpress admin interface.
+Go to settings > Spark Donation Form
+Here, set your Stripe and Salesforce API keys.
+
+Now, a page with the slug 'new-donate-page' will have the form appear on it.
+In future versions, there will be the capability to select the pages to display the form through the admin interface.
+Good luck, and happy hunting.
