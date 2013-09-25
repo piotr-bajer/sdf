@@ -1,0 +1,49 @@
+/*
+styles.css
+Donate form custom layouts and styles
+Steve Avery
+September 2013
+*/
+
+.hidden {
+	display:none;
+}
+.membership-level {
+	background-color: pink;
+}
+form > label,
+#js-cc-fields label {
+	float: left;
+	text-align: right;
+	margin-right: 15px;
+	width: 150px;
+	clear:left;
+}
+fieldset {
+	border:none;
+	border-top:1px solid #C0C0C0;
+}
+legend {
+	font-weight: 700;
+	padding:0 0.5em;
+}
+input.amount {
+	margin:0 0.5em 0 1em;
+}
+.alert p {
+	display: block;
+	margin:1em 0;
+	padding:0 1em;
+	font-weight: 700;
+	text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+	border: 1px solid #fbeed5;
+	-webkit-border-radius: 4px;
+	-moz-border-radius: 4px;
+	border-radius: 4px;
+}
+p.success {
+	background-color: lightgreen;
+}
+p.error {
+	background-color: pink;
+}
