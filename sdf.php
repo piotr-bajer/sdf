@@ -41,10 +41,10 @@ function sdf_get_form() { ?>
 			<label for="hearabout">How did you hear about Spark?</label>
 			<select name="hearabout" id="hearabout">
 				<option value="">--</option>
-				<option value="renewal">Renewing Membership</option>
+				<option value="Renewing Membership">Renewing Membership</option>
 				<option value="friend" class="js-select-extra">Friend</option>
-				<option value="website">Website</option>
-				<option value="search">Search</option>
+				<option value="Website">Website</option>
+				<option value="Search">Search</option>
 				<option value="event" class="js-select-extra">Event</option>
 			</select>
 			<br>
@@ -56,14 +56,17 @@ function sdf_get_form() { ?>
 			<input type="text" id="inhonorof" name="inhonorof">
 			<hr>
 			<h3>A little about you:</h3>
-			<label for"name">Name:</label>
-			<input name="name" id="name" type="text" required>
+			<label for"first-name">Name:</label>
+			<input name="first-name" id="first-name" type="text" placeholder="First" required>
+			<input name="last-name" id="last-name" type="text" placeholder="Last" required>
 			<br>
 			<label for="company">Company:</label>
 			<input type="text" id="company" name="company">
 			<br>
-			<label for="age">Age:</label>
-			<input type="number" id="age" name="age">
+			<label for="birthday-month">Birthday:</label>
+			<input type="number" id="birthday-month" name="birthday-month" placeholder="Month">
+			<span id="bday-separator">/</span>
+			<input type="number" id="birthday-day" name="birthday-day" placeholder="Day">
 			<br>
 			<label for="gender">Gender:</label>
 			<select name="gender" id="gender">
@@ -104,9 +107,9 @@ function sdf_get_form() { ?>
 			<input type="text" id="cc-cvc" name="cc-cvc" required>
 			<br>
 			<label for="cc-exp-mo">Expiration Date:</label>
-			<input type="number" id="cc-exp-mo" name="cc-exp-mo" required>
+			<input type="number" id="cc-exp-mo" name="cc-exp-mo" placeholder="Month" required>
 			<span id="cc-exp-separator">/</span>
-			<input type="number" id="cc-exp-year" name="cc-exp-year" required>
+			<input type="number" id="cc-exp-year" name="cc-exp-year" placeholder="Year" required>
 			<hr>
 			<label for="copy-personal-info">Copy billing information from above?</label>
 			<input type="checkbox" id="copy-personal-info" class="js-copy-personal-info">
@@ -136,16 +139,6 @@ function sdf_get_form() { ?>
 		</form>
 	</div>
 <?php } // end function sdf_get_form
-
-function sdf_template() {
-	global $wp;
-	if(array_key_exists('pagename', $wp->query_vars)) {
-		if($wp->query_vars['pagename'] == 'new-donate-page') {
-			$return_template = 'templates/page_donation.php';
-			do_theme_redirect($return_template);
-		}
-	}	
-}
 
 function sdf_get_country_select($name_attr) { ?>
 	<select name="<?php echo $name_attr; ?>" id="<?php echo $name_attr; ?>" required>
@@ -393,6 +386,16 @@ function sdf_get_country_select($name_attr) { ?>
 	</select>
 <?php }
 
+function sdf_template() {
+	global $wp;
+	if(array_key_exists('pagename', $wp->query_vars)) {
+		if($wp->query_vars['pagename'] == 'new-donate-page') {
+			$return_template = 'templates/page_donation.php';
+			do_theme_redirect($return_template);
+		}
+	}	
+}
+
 function do_theme_redirect($url) {
 	global $post, $wp_query;
 	if (have_posts()) {
@@ -516,6 +519,7 @@ function sdf_print_salesforce_settings_form() { ?>
 <?php }
 
 function sdf_stripe_secret_sanitize($input) {
+	// XXX don't do anything if it's empty
 	sdf_include_stripe_api($input);
 	try {
 		$test_customer = Stripe_Customer::create(array('description' => 'test customer'));
@@ -560,54 +564,171 @@ function sdf_enqueue_admin_styles() {
 
 function sdf_parse() {
 	// stupid wordpress you should be more like your friend drupal.
-	$data = $_POST['data'] or die();
+	$data = $_POST['data']/* or die()*/;
+	$data['amount'] = sdf_get_amount(&$data);
+	$data['membership'] = sdf_get_membership(&$data);
+	sdf_do_salesforce(&$data);
+	//sdf_do_stripe(&$data);
+	die(); // prevent trailing 0 from admin-ajax.php
+}
 
-	if(array_key_exists('one-time', $data) && !empty($data['one-time'])) {
-		// we must create a one-time charge
-		$plan_amounts = array(
-			'annual-75' => 7500,
-			'annual-100' => 10000,
-			'annual-250' => 25000,
-			'annual-500' => 50000,
-			'annual-1000' => 100000,
-			'annual-2500' => 250000,
-			'monthly-5' => 500,
-			'monthly-10' => 1000,
-			'monthly-20' => 2000,
-			'monthly-50' => 5000,
-			'monthly-100' => 10000,
-			'monthly-200' => 20000
-		);
-		if(in_array($data['donation'], array_keys($plan_amounts))) {
-			$amount = $plan_amounts[$data['donation']];
-		} else {
-			// custom amount
-			$amount = $data[$data['donation']] * 100;
+function sdf_get_membership($data) {
+	$levels = array(
+		'annual' => array(
+			7500 => 'Friend',
+			10000 => 'Member',
+			25000 => 'Affiliate',
+			50000 => 'Sponsor',
+			100000 => 'Investor',
+			250000 => 'Benefactor',
+		),
+		'monthly' => array(
+			500 => 'Friend',
+			1000 => 'Member',
+			2000 => 'Affiliate',
+			5000 => 'Sponsor',
+			10000 => 'Investor',
+			20000 => 'Benefactor',
+		),
+	);
+	$amount = $data['amount'];
+	foreach($levels as $recurrence => $level) {
+		if(strpos($data['donation'], $recurrence) !== false) {
+			foreach($level as $plan_amount => $name) {
+				if($amount > $plan_amount) {
+					// don't underflow
+					if(prev($level) !== false) { // indicates we aren't at the first element
+						return current($level); // because we rewound in the if statement
+					} else {
+						return reset($level);
+					}
+				}
+			}
 		}
-		echo sdf_single_charge($amount, $data['stripe-token'], $data['email']);
+	}
+}
+
+function sdf_get_amount($data) {
+	$plan_amounts = array(
+		'annual-75' => 7500,
+		'annual-100' => 10000,
+		'annual-250' => 25000,
+		'annual-500' => 50000,
+		'annual-1000' => 100000,
+		'annual-2500' => 250000,
+		'monthly-5' => 500,
+		'monthly-10' => 1000,
+		'monthly-20' => 2000,
+		'monthly-50' => 5000,
+		'monthly-100' => 10000,
+		'monthly-200' => 20000
+	);
+	if(in_array($data['donation'], array_keys($plan_amounts))) {
+		$amount = $plan_amounts[$data['donation']];
 	} else {
-		// set people up with a plan.
-		if(strpos($data['donation'], 'custom') !== false) {
-			// we must create a new plan.
+		// custom amount
+		$amount = $data[$data['donation']] * 100;
+	}
+	return $amount;
+}
+
+function sdf_do_salesforce($data) {
+	$sforce = sdf_include_salesforce_api();
+	define('FRIEND_OF_SPARK', '00130000007qhRG');
+	define('SF_DATE_FORMAT', 'Y-m-d');
+
+	if(!empty($data['company'])) {
+		$sfcompany = new stdClass();
+		$sfcompany->Name = $data['company'];
+		$return = $sforce->upsert(
+			'Name', // key for matching
+			array($sfcompany), // data objects
+			'Company' // object type
+		);
+		$company_id = $return[0]->id;
+	} else {
+		$company_id = FRIEND_OF_SPARK;
+	}
+	// if(strpos($data['donation'], 'custom') {
+	// 	$donor_type = 'Donor';
+	// } else {
+	// 	$donor_type = 'Friend';
+	// }
+	/*
+	if strpos monthly donation
+		if amount is greater than 1000
+			$member = 1;
+		else
+			$member = 0;
+	else 
+		if amount is greater than 10000
+			$member = 1;
+		else
+			$member = 0
+	endif
+	*/
+
+	$address = (empty($data['address2'])) ? $data['address1'] : $data['address1'] . "\n" . $data['address2'];
+	$birthday = date(SF_DATE_FORMAT, strtotime(date('Y') . '-' . $data['birthday-month'] . '-' . $data['birthday-day']));
+	$amount = sprintf('%01.2f', $data['amount'] / 100);
+	$hear = $data['hearabout'] . (!empty($data['hearabout-extra']) ? ': ' . $data['hearabout-extra'] : '');
+	$renewal = $member ? date(SF_DATE_FORMAT, strtotime('+1 year')) : '';
+
+	$sfcontact = new stdClass();
+	$sfcontact->FirstName = $data['first-name'];
+	$sfcontact->LastName = $data['last-name'];
+	$sfcontact->Phone = $data['tel'];
+	$sfcontact->Email = $data['email'];
+	$sfcontact->AccountId = $company_id;
+	$sfcontact->MailingStreet = $address;
+	$sfcontact->MailingCity = $data['city'];
+	$sfcontact->MailingState = $data['state'];
+	$sfcontact->MailingPostalCode = $data['zip'];
+	$sfcontact->MailingCountry = $data['country'];
+	$sfcontact->Birthdate = $birthday;
+	// $sfcontact->Description; // possible overwrite?
+	// $sfcontact->Type__c = $donor_type;
+	$sfcontact->Paid__c = $amount;
+	$sfcontact->How_did_you_hear__c = $hear;
+	// $sfcontact->Active_Member__c = $member;
+	// $sfcontact->Membership_Start_Date__c = date(SF_DATE_FORMAT); // only if they are a member
+	// $sfcontact->Renewal_Date__c = $renewal;
+	$sfcontact->Member_Level__c = $data['membership'];
+	$sfcontact->Payment_Type__c = 'Credit Card';
+	// $sfcontact->First_Active_Date__c = // i don't want to overwrite this.
+	$sfcontact->Gender__c = ($data['gender'] == 'other') ? '' : $data['gender'];
+
+	ob_clean();
+	// print_r($sfcontact);
+	try {
+		$response = $sforce->upsert(
+			'Email', // field id for key to upsert on
+			array($sfcontact), // objects to send
+			'Contact' // object type
+		);
+	} catch(Exception $e) {
+		print_r($e);
+	}
+	print_r($response);
+}
+
+function sdf_do_stripe($data) {
+	if(array_key_exists('one-time', $data) && !empty($data['one-time'])) {
+		echo sdf_single_charge($data['amount'], $data['stripe-token'], $data['email']);
+	} else {
+		// recurring donations. Get the plan.
+		if(strpos($data['donation'], 'custom') !== false) { // it's a custom plan, potentially new.
 			if(strpos($data['donation'], 'annual') !== false) {
-				$plan = sdf_create_custom_stripe_plan('year', $data[$data['donation']] * 100);
+				$recurrence = 'year';
 			} elseif(strpos($data['donation'], 'monthly') !== false) {
-				$plan = sdf_create_custom_stripe_plan('month', $data[$data['donation']] * 100);
+				$recurrence = 'month';
 			}
-		} else {
-			// execute customer with regular plan
-			sdf_include_stripe_api();
-			try {
-				$plan = Stripe_Plan::retrieve($data['donation']);
-			} catch(Stripe_InvalidRequestError $e) {
-				$body = $e->getJsonBody();
-				echo $body['error']['message'];
-				die();
-			}
+			$plan = sdf_create_custom_stripe_plan($recurrence, $data['amount']);
+		} else { // default plans.
+			$plan = sdf_get_stripe_default_plan($data['donation']);
 		}
 		echo sdf_create_subscription($plan, sdf_create_stripe_customer($data));
 	}
-	die(); // prevent trailing 0 from admin-ajax.php
 }
 
 function sdf_create_stripe_customer($data) {
@@ -620,8 +741,20 @@ function sdf_create_stripe_customer($data) {
 	return Stripe_Customer::create($new_customer);
 }
 
+function sdf_get_stripe_default_plan($id) {
+	sdf_include_stripe_api();
+	try {
+		$plan = Stripe_Plan::retrieve($id);
+	} catch(Stripe_Error $e) {
+		$body = $e->getJsonBody();
+		echo $body['error']['message'];
+		die();
+	}
+	return $plan;
+}
+
 function sdf_create_custom_stripe_plan($recurrence, $amount) {
-	if($amount > 50) {
+	// if($amount > 50) {
 		sdf_include_stripe_api();
 		$plan_id_slug = array(
 			'year' => 'annual-',
@@ -649,11 +782,11 @@ function sdf_create_custom_stripe_plan($recurrence, $amount) {
 			}
 		}
 		return $plan;
-	} else {
-		ob_clean();
-		echo 'invalid_amount';
-		die();
-	}
+	// } else {
+	// 	ob_clean();
+	// 	echo 'invalid_amount';
+	// 	die();
+	// // }
 }
 
 function sdf_single_charge($amount, $token, $email) {
@@ -819,12 +952,9 @@ function sdf_include_stripe_api($input) {
 
 function sdf_include_salesforce_api() {
 	require_once(WP_PLUGIN_DIR . '/sdf/salesforce/soapclient/SforceEnterpriseClient.php');
-	ob_clean();
 	$sf_object = new SforceEnterpriseClient();
 	$sf_client = $sf_object->createConnection(WP_PLUGIN_DIR . '/sdf/salesforce/soapclient/enterprise.wsdl.xml');
-	print_r($sf_object->login(get_option('salesforce_username'), get_option('salesforce_password') . get_option('salesforce_token')));
-	exit(); // XXX
-	
+	$sf_object->login(get_option('salesforce_username'), get_option('salesforce_password') . get_option('salesforce_token'));
 	return $sf_object;
 }
 

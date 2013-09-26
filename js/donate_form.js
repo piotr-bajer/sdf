@@ -73,7 +73,8 @@ Provides client ajax functions for the donation form.
 		// 	});
 		// }
 		$.post(ajaxurl, {
-			action: 'sdf_parse'
+			action: 'sdf_parse',
+			data: $('#sdf_form form').serializeObject()
 		});
 		//callbacks['subscribe_success']();
 	};
@@ -141,6 +142,7 @@ Provides client ajax functions for the donation form.
 				$('#js-cc-fields input').each(function(k, v) {
 					$(v).val($('#' + $(v).attr('name').substr(3)).val());
 				});
+				$('#cc-name').val($('#first-name').val() + ' ' + $('#last-name').val());
 				$('#cc-country').val($('#country').val());
 				$('#js-cc-fields').fadeTo('fast', 0.5, function() {
 					$('#js-cc-fields input').each(function(k, v) {
