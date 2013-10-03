@@ -652,11 +652,15 @@ function sdf_do_salesforce($data) {
 		try {
 			$scustomer = $sforce->retrieve($fields, 'Contact', array($contact_id));
 		} catch(Exception $e) {}
-		extract(array_change_key_case($scustomer, CASE_LOWER));
+		$scustomer = array_pop($scustomer);
 	}
 
+	// ob_clean();
+	// print_r($scustomer);
+	// die();
+
 	// now we set up the company (AccountId)
-	if(!isset($accountid)) {
+	if(!isset($scustomer->AccountId)) {
 		if(!empty($data['company'])) {
 			$sfcompany = new stdClass();
 			$sfcompany->Name = $data['company'];
@@ -672,7 +676,7 @@ function sdf_do_salesforce($data) {
 			$company_id = FRIEND_OF_SPARK;
 		} 
 	} else {
-		$company_id = $accountid;
+		$company_id = $scustomer->AccountId;
 	}
 
 	// now let's do Description.
@@ -681,25 +685,25 @@ function sdf_do_salesforce($data) {
 	if(!empty($data['inhonorof'])) {
 		$transaction_description .= ' In honor of: ' . $data['inhonorof'];
 	}
-	if(isset($description)) {
-		$description .= "\n" . $transaction_description;
+	if(isset($scustomer->Description)) {
+		$updated_description = $scustomer->Description . "\n" . $transaction_description;
 	} else {
-		$description = $transaction_description;
+		$updated_description = $transaction_description;
 	}
 
 	// First_Active_Date__c
-	if(!isset($first_active_date__c)) {
+	if(!isset($scustomer->First_Active_Date__c)) {
 		// then it is today!
 		$first_active = date(SF_DATE_FORMAT);
 	} else {
-		$first_active = $first_active_date__c;
+		$first_active = $scustomer->First_Active_Date__c;
 	}
 
 	// how did you hear about us?
-	if(isset($how_did_you_hear__c)) {
-		$hear = $how_did_you_hear__c;
+	if(isset($scustomer->How_did_you_hear__c)) {
+		$hear = $scustomer->How_did_you_hear__c;
 	} else {
-		$hear = $data['hearabout'] . (!empty($data['hearabout-extra']) ? ': ' . $data['hearabout-extra'] : '');
+		$hear = $data['hearabout'] . (empty($data['hearabout-extra']) ? '' : ': ' . $data['hearabout-extra']);
 	}
 
 	// is the donor a member? when is the renewal date?
@@ -710,34 +714,42 @@ function sdf_do_salesforce($data) {
 		$qualifying_amount = ($data['amount'] >= 10000) ? 1 : 0;
 		$renewal = date(SF_DATE_FORMAT, strtotime('+1 year'));
 	}
-	if(isset($active_member__c) && $active_member__c) { // they have existing membership status
-		if(((time() - strtotime($renewal_date__c)) <= 0) && !$qualifying_amount) {
+	if(isset($scustomer->Active_Member__c) && $scustomer->Active_Member__c) { // they have existing membership status
+		if(((time() - strtotime($$scustomer->Renewal_Date__c)) <= 0) && !$qualifying_amount) {
 			// their existing membership has expired, and they didn't donate enough to renew.
 			$member = 0;
-			$renewal = $renewal_date__c;
+			$renewal = $$scustomer->Renewal_Date__c;
 		} else if(!$qualifying_amount) {
-			$member = $active_member__c;
-			$renewal = $renewal_date__c;
+			$member = $scustomer->Active_Member__c;
+			$renewal = $$scustomer->Renewal_Date__c;
 		}
 	} else {
 		$member = $qualifying_amount;
 	}
 
 	// finally, membership start date.
-	if(!isset($membership_start_date__c)) {
+	if(!isset($scustomer->Membership_Start_Date__c)) {
 		if($member) {
 			$member_start = date(SF_DATE_FORMAT);
 		} else {
 			$member_start = '';
 		}
 	} else {
-		$member_start = $membership_start_date__c;
+		$member_start = $scustomer->Membership_Start_Date__c;
 	}
 
 	// And additional fields.
 	$address = (empty($data['address2'])) ? $data['address1'] : $data['address1'] . "\n" . $data['address2'];
 	$birthday = date(SF_DATE_FORMAT, strtotime(date('Y') . '-' . $data['birthday-month'] . '-' . $data['birthday-day']));
-	//$amount = sprintf('%01.2f', $data['amount'] / 100);
+
+	/*
+	still needing attention:
+	we don't want to set a field if it's null!
+	birthdate
+	inhonorof
+	member level
+	gender
+	*/
 
 	$sfcontact = new stdClass();
 	$sfcontact->FirstName = $data['first-name'];
@@ -751,7 +763,7 @@ function sdf_do_salesforce($data) {
 	$sfcontact->MailingPostalCode = $data['zip'];
 	$sfcontact->MailingCountry = $data['country'];
 	$sfcontact->Birthdate = $birthday;
-	$sfcontact->Description = $description;
+	$sfcontact->Description = $updated_description;
 	$sfcontact->Paid__c = money_format('%n', ($data['amount'] / 100));
 	$sfcontact->How_did_you_hear__c = $hear;
 	$sfcontact->Active_Member__c = $member;
