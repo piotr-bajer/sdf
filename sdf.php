@@ -71,8 +71,8 @@ function sdf_get_form() { ?>
 			<label for="gender">Gender:</label>
 			<select name="gender" id="gender">
 				<option value="">--</option>
-				<option value="female">Female</option>
-				<option vale="male">Male</option>
+				<option value="Female">Female</option>
+				<option vale="Male">Male</option>
 				<option value="other">Other</option>
 			</select>
 			<br>
@@ -463,7 +463,7 @@ function sdf_register_settings() {
 	add_settings_section(
 		'sdf_salesforce_api',
 		'Salesforce',
-		'sdf_salesforce_section_print',
+		'sdf_salesforce_section_print', // XXX use getServerTimestamp to verify that the settings are correct
 		'spark-form-admin'
 	);
 }
@@ -591,11 +591,11 @@ function sdf_get_membership($data) {
 			20000 => 'Benefactor',
 		),
 	);
-	$amount = $data['amount'];
+	$amount = $data['amount']; // say its 10000
 	foreach($levels as $recurrence => $level) {
 		if(strpos($data['donation'], $recurrence) !== false) {
 			foreach($level as $plan_amount => $name) {
-				if($amount > $plan_amount) {
+				if($plan_amount > $amount) {
 					// don't underflow
 					if(prev($level) !== false) { // indicates we aren't at the first element
 						return current($level); // because we rewound in the if statement
@@ -636,43 +636,108 @@ function sdf_do_salesforce($data) {
 	$sforce = sdf_include_salesforce_api();
 	define('FRIEND_OF_SPARK', '00130000007qhRG');
 	define('SF_DATE_FORMAT', 'Y-m-d');
+	setlocale(LC_MONETARY, 'en_US'); // for money format
 
-	if(!empty($data['company'])) {
-		$sfcompany = new stdClass();
-		$sfcompany->Name = $data['company'];
-		$return = $sforce->upsert(
-			'Name', // key for matching
-			array($sfcompany), // data objects
-			'Company' // object type
-		);
-		$company_id = $return[0]->id;
-	} else {
-		$company_id = FRIEND_OF_SPARK;
+	// first, we check to see if a matching customer already exists.
+	$search_string = 'FIND {' . $data['email'] . '} IN EMAIL FIELDS ' .
+		'RETURNING CONTACT(ID)';
+	try {
+		$response = $sforce->search($search_string);
+	} catch(Exception $e) {}
+	if(count($response)) {
+		$contact_id = array_pop($response->searchRecords)->Id;
+		// we aren't guaranteed to get all these fields.
+		$fields = 'AccountId, Description, First_Active_Date__c, How_did_you_hear__c,' .
+			' Active_Member__c, Renewal_Date__c, Membership_Start_Date__c';
+		try {
+			$scustomer = $sforce->retrieve($fields, 'Contact', array($contact_id));
+		} catch(Exception $e) {}
+		extract(array_change_key_case($scustomer, CASE_LOWER));
 	}
-	// if(strpos($data['donation'], 'custom') {
-	// 	$donor_type = 'Donor';
-	// } else {
-	// 	$donor_type = 'Friend';
-	// }
-	/*
-	if strpos monthly donation
-		if amount is greater than 1000
-			$member = 1;
-		else
-			$member = 0;
-	else 
-		if amount is greater than 10000
-			$member = 1;
-		else
-			$member = 0
-	endif
-	*/
 
+	// now we set up the company (AccountId)
+	if(!isset($accountid)) {
+		if(!empty($data['company'])) {
+			$sfcompany = new stdClass();
+			$sfcompany->Name = $data['company'];
+			try {
+				$return = $sforce->upsert(
+					'Name', // key for matching
+					array($sfcompany), // data objects
+					'Company' // object type
+				);
+				$company_id = $return[0]->id;
+			} catch(Exception $e) {}	
+		} else {
+			$company_id = FRIEND_OF_SPARK;
+		} 
+	} else {
+		$company_id = $accountid;
+	}
+
+	// now let's do Description.
+	$transaction_description = money_format('%n', ($data['amount'] / 100)) .
+		' - ' . date('n/d/y') . ' - Online donation from ' . gethostname() . '.';
+	if(!empty($data['inhonorof'])) {
+		$transaction_description .= ' In honor of: ' . $data['inhonorof'];
+	}
+	if(isset($description)) {
+		$description .= "\n" . $transaction_description;
+	} else {
+		$description = $transaction_description;
+	}
+
+	// First_Active_Date__c
+	if(!isset($first_active_date__c)) {
+		// then it is today!
+		$first_active = date(SF_DATE_FORMAT);
+	} else {
+		$first_active = $first_active_date__c;
+	}
+
+	// how did you hear about us?
+	if(isset($how_did_you_hear__c)) {
+		$hear = $how_did_you_hear__c;
+	} else {
+		$hear = $data['hearabout'] . (!empty($data['hearabout-extra']) ? ': ' . $data['hearabout-extra'] : '');
+	}
+
+	// is the donor a member? when is the renewal date?
+	if(strpos($data['donation'], 'month') !== false) {
+		$qualifying_amount = ($data['amount'] >= 1000) ? 1 : 0;
+		$renewal = date(SF_DATE_FORMAT, strtotime('+1 month'));
+	} else if(strpos($data['donation'], 'annual') !== false) {
+		$qualifying_amount = ($data['amount'] >= 10000) ? 1 : 0;
+		$renewal = date(SF_DATE_FORMAT, strtotime('+1 year'));
+	}
+	if(isset($active_member__c) && $active_member__c) { // they have existing membership status
+		if(((time() - strtotime($renewal_date__c)) <= 0) && !$qualifying_amount) {
+			// their existing membership has expired, and they didn't donate enough to renew.
+			$member = 0;
+			$renewal = $renewal_date__c;
+		} else if(!$qualifying_amount) {
+			$member = $active_member__c;
+			$renewal = $renewal_date__c;
+		}
+	} else {
+		$member = $qualifying_amount;
+	}
+
+	// finally, membership start date.
+	if(!isset($membership_start_date__c)) {
+		if($member) {
+			$member_start = date(SF_DATE_FORMAT);
+		} else {
+			$member_start = '';
+		}
+	} else {
+		$member_start = $membership_start_date__c;
+	}
+
+	// And additional fields.
 	$address = (empty($data['address2'])) ? $data['address1'] : $data['address1'] . "\n" . $data['address2'];
 	$birthday = date(SF_DATE_FORMAT, strtotime(date('Y') . '-' . $data['birthday-month'] . '-' . $data['birthday-day']));
-	$amount = sprintf('%01.2f', $data['amount'] / 100);
-	$hear = $data['hearabout'] . (!empty($data['hearabout-extra']) ? ': ' . $data['hearabout-extra'] : '');
-	$renewal = $member ? date(SF_DATE_FORMAT, strtotime('+1 year')) : '';
+	//$amount = sprintf('%01.2f', $data['amount'] / 100);
 
 	$sfcontact = new stdClass();
 	$sfcontact->FirstName = $data['first-name'];
@@ -686,30 +751,39 @@ function sdf_do_salesforce($data) {
 	$sfcontact->MailingPostalCode = $data['zip'];
 	$sfcontact->MailingCountry = $data['country'];
 	$sfcontact->Birthdate = $birthday;
-	// $sfcontact->Description; // possible overwrite?
-	// $sfcontact->Type__c = $donor_type;
-	$sfcontact->Paid__c = $amount;
+	$sfcontact->Description = $description;
+	$sfcontact->Paid__c = money_format('%n', ($data['amount'] / 100));
 	$sfcontact->How_did_you_hear__c = $hear;
-	// $sfcontact->Active_Member__c = $member;
-	// $sfcontact->Membership_Start_Date__c = date(SF_DATE_FORMAT); // only if they are a member
-	// $sfcontact->Renewal_Date__c = $renewal;
+	$sfcontact->Active_Member__c = $member;
+	$sfcontact->Membership_Start_Date__c = $member_start;
+	$sfcontact->Renewal_Date__c = $renewal;
 	$sfcontact->Member_Level__c = $data['membership'];
 	$sfcontact->Payment_Type__c = 'Credit Card';
-	// $sfcontact->First_Active_Date__c = // i don't want to overwrite this.
+	$sfcontact->First_Active_Date__c = $first_active;
 	$sfcontact->Gender__c = ($data['gender'] == 'other') ? '' : $data['gender'];
+	$sfcontact->Board_Member_Contact_Owner__c = 'Amanda Brock';
 
 	ob_clean();
-	// print_r($sfcontact);
-	try {
-		$response = $sforce->upsert(
-			'Email', // field id for key to upsert on
-			array($sfcontact), // objects to send
-			'Contact' // object type
-		);
-	} catch(Exception $e) {
-		print_r($e);
-	}
-	print_r($response);
+	print_r($sfcontact);
+
+	// if(isset($id)) {
+	// 	// we have an existing customer!
+	// } else {
+	// 	// we are creating a new customer.
+	// }
+
+	// try {
+	// 	$response = $sforce->upsert(
+	// 		'Email', // field id for key to upsert on
+	// 		array($sfcontact), // objects to send
+	// 		'Contact' // object type
+	// 	);
+	// } catch(Exception $e) {
+	// 	print_r($e);
+	// }
+	// */
+	// ob_clean();
+	// print_r($response);
 }
 
 function sdf_do_stripe($data) {
