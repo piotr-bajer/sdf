@@ -7,3 +7,6 @@ Here, set your Stripe and Salesforce API keys.
 Now, a page with the slug 'new-donate-page' will have the form appear on it.
 In future versions, there will be the capability to select the pages to display the form through the admin interface.
 Good luck, and happy hunting.
+
+A note about Salesforce and custom objects.
+If you change the fields on the contact object, then the client won't know how to interact with those fields. Please update the wsdl file in salesforce > soapclient to reflect you contact object's fields.

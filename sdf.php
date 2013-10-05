@@ -651,24 +651,20 @@ function sdf_do_salesforce($data) {
 		'RETURNING CONTACT(ID)';
 	try {
 		$response = $sforce->search($search_string);
-	} catch(Exception $e) {}
+	} catch(Exception $e) {} // XXX
 	if(count($response)) {
 		$contact_id = array_pop($response->searchRecords)->Id;
 		// we aren't guaranteed to get all these fields.
 		$fields = 'AccountId, Description, First_Active_Date__c, How_did_you_hear__c,' .
 			' Active_Member__c, Renewal_Date__c, Membership_Start_Date__c';
 		try {
-			$scustomer = $sforce->retrieve($fields, 'Contact', array($contact_id));
-		} catch(Exception $e) {}
-		$scustomer = array_pop($scustomer);
+			$sf_existing_contact = $sforce->retrieve($fields, 'Contact', array($contact_id));
+		} catch(Exception $e) {} // XXX
+		$sf_existing_contact = array_pop($sf_existing_contact);
 	}
 
-	// ob_clean();
-	// print_r($scustomer);
-	// die();
-
 	// now we set up the company (AccountId)
-	if(!isset($scustomer->AccountId)) {
+	if(!isset($sf_existing_contact->AccountId)) {
 		if(!empty($data['company'])) {
 			$sfcompany = new stdClass();
 			$sfcompany->Name = $data['company'];
@@ -684,7 +680,7 @@ function sdf_do_salesforce($data) {
 			$company_id = FRIEND_OF_SPARK;
 		} 
 	} else {
-		$company_id = $scustomer->AccountId;
+		$company_id = $sf_existing_contact->AccountId;
 	}
 
 	// now let's do Description.
@@ -693,25 +689,29 @@ function sdf_do_salesforce($data) {
 	if(!empty($data['inhonorof'])) {
 		$transaction_description .= ' In honor of: ' . $data['inhonorof'];
 	}
-	if(isset($scustomer->Description)) {
-		$updated_description = $scustomer->Description . "\n" . $transaction_description;
+	if(isset($sf_existing_contact->Description)) {
+		$updated_description = $sf_existing_contact->Description . "\n" . $transaction_description;
 	} else {
 		$updated_description = $transaction_description;
 	}
 
 	// First_Active_Date__c
-	if(!isset($scustomer->First_Active_Date__c)) {
+	if(!isset($sf_existing_contact->First_Active_Date__c)) {
 		// then it is today!
 		$first_active = date(SF_DATE_FORMAT);
 	} else {
-		$first_active = $scustomer->First_Active_Date__c;
+		$first_active = $sf_existing_contact->First_Active_Date__c;
 	}
 
 	// how did you hear about us?
-	if(isset($scustomer->How_did_you_hear__c)) {
-		$hear = $scustomer->How_did_you_hear__c;
+	if(isset($sf_existing_contact->How_did_you_hear__c)) {
+		$hear = $sf_existing_contact->How_did_you_hear__c;
 	} else {
-		$hear = ucfirst($data['hearabout'] . (empty($data['hearabout-extra']) ? '' : ': ' . $data['hearabout-extra']));
+		if(!empty($data['hearabout'])) {
+			$hear = ucfirst($data['hearabout'] . (empty($data['hearabout-extra']) ? null : ': ' . $data['hearabout-extra']));
+		} else {
+			$hear = null;
+		}
 	}
 
 	// is the donor a member? when is the renewal date?
@@ -722,28 +722,31 @@ function sdf_do_salesforce($data) {
 		$qualifying_amount = ($data['amount'] >= 10000) ? 1 : 0;
 		$renewal = date(SF_DATE_FORMAT, strtotime('+1 year'));
 	}
-	if(isset($scustomer->Active_Member__c) && $scustomer->Active_Member__c) { // they have existing membership status
-		if(((time() - strtotime($$scustomer->Renewal_Date__c)) <= 0) && !$qualifying_amount) {
+	if(isset($sf_existing_contact->Active_Member__c) && $sf_existing_contact->Active_Member__c) { // they have existing membership status
+		if(((time() - strtotime($sf_existing_contact->Renewal_Date__c)) <= 0) && !$qualifying_amount) {
 			// their existing membership has expired, and they didn't donate enough to renew.
 			$member = 0;
-			$renewal = $$scustomer->Renewal_Date__c;
+			$renewal = $sf_existing_contact->Renewal_Date__c;
 		} else if(!$qualifying_amount) {
-			$member = $scustomer->Active_Member__c;
-			$renewal = $$scustomer->Renewal_Date__c;
+			$member = $sf_existing_contact->Active_Member__c;
+			$renewal = $sf_existing_contact->Renewal_Date__c;
 		}
 	} else {
 		$member = $qualifying_amount;
+		if(!$member) {
+			$renewal = null;
+		}
 	}
 
 	// finally, membership start date.
-	if(!isset($scustomer->Membership_Start_Date__c)) {
+	if(!isset($sf_existing_contact->Membership_Start_Date__c)) {
 		if($member) {
 			$member_start = date(SF_DATE_FORMAT);
 		} else {
 			$member_start = null;
 		}
 	} else {
-		$member_start = $scustomer->Membership_Start_Date__c;
+		$member_start = $sf_existing_contact->Membership_Start_Date__c;
 	}
 
 	// And additional fields.
@@ -760,67 +763,66 @@ function sdf_do_salesforce($data) {
 	// gender
 	if(!empty($data['gender'])) {
 		$gender = ($data['gender'] == 'other') ? null : $data['gender'];
+	} else {
+		$gender = null;
 	}
 
-	/*
-	member level
-	membership start date when the donation is monthly
-	renewal date should not be set when there isn't a membership to renew.
-	STILL NOT GETTING CUSTOM FIELD VALUES BACK???
-	*/
-
-	$sfcontact = new stdClass();
-	$sfcontact->FirstName = $data['first-name'];
-	$sfcontact->LastName = $data['last-name'];
-	$sfcontact->Phone = $data['tel'];
-	$sfcontact->Email = $data['email'];
-	$sfcontact->AccountId = $company_id;
-	$sfcontact->MailingStreet = $address;
-	$sfcontact->MailingCity = $data['city'];
-	$sfcontact->MailingState = $data['state'];
-	$sfcontact->MailingPostalCode = $data['zip'];
-	$sfcontact->MailingCountry = $data['country'];
-	$sfcontact->Birthdate = $birthday;
-	$sfcontact->Description = $updated_description;
-	$sfcontact->Paid__c = money_format('%n', ($data['amount'] / 100));
-	$sfcontact->How_did_you_hear__c = $hear;
-	$sfcontact->Active_Member__c = $member;
-	$sfcontact->Membership_Start_Date__c = $member_start;
-	$sfcontact->Renewal_Date__c = $renewal;
-	$sfcontact->Member_Level__c = $data['membership'];
-	$sfcontact->Payment_Type__c = 'Credit Card';
-	$sfcontact->First_Active_Date__c = $first_active;
-	$sfcontact->Gender__c = $gender;
-	$sfcontact->Board_Member_Contact_Owner__c = 'Amanda Brock';
+	// build the object.
+	$contact = new stdClass();
+	$contact->FirstName = $data['first-name'];
+	$contact->LastName = $data['last-name'];
+	$contact->Phone = $data['tel'];
+	$contact->Email = $data['email'];
+	$contact->AccountId = $company_id;
+	$contact->MailingStreet = $address;
+	$contact->MailingCity = $data['city'];
+	$contact->MailingState = $data['state'];
+	$contact->MailingPostalCode = $data['zip'];
+	$contact->MailingCountry = $data['country'];
+	$contact->Birthdate = $birthday;
+	$contact->Description = $updated_description;
+	$contact->Paid__c = ($data['amount'] / 100);
+	$contact->How_did_you_hear__c = $hear;
+	$contact->Active_Member__c = $member;
+	$contact->Membership_Start_Date__c = $member_start;
+	$contact->Renewal_Date__c = $renewal;
+	$contact->Member_Level__c = $data['membership'];
+	$contact->Payment_Type__c = 'Credit Card';
+	$contact->First_Active_Date__c = $first_active;
+	$contact->Gender__c = $gender;
+	$contact->Board_Member_Contact_Owner__c = 'Amanda Brock';
 
 	// remove null fields.
-	foreach($sfcontact as $property => $value) {
+	foreach($contact as $property => $value) {
 		if(is_null($value)) {
-			unset($sfcontact->$property);
+			unset($contact->$property);
+		}
+	}
+
+	if(isset($sf_existing_contact->Id)) {
+		// update on id.
+		$contact->Id = $sf_existing_contact->Id;
+		try {
+			$reponse = $sforce->update(array($contact), 'Contact');
+		} catch(Exception $e) {
+			// XXX
+		}
+	} else {
+		// create new contact.
+		try {
+			$response = $sforce->create(array($contact), 'Contact');
+		} catch(Exception $e) {
+			// XXX
 		}
 	}
 
 	ob_clean();
-	print_r($sfcontact);
-
-	// if(isset($id)) {
-	// 	// we have an existing customer!
-	// } else {
-	// 	// we are creating a new customer.
-	// }
-
-	// try {
-	// 	$response = $sforce->upsert(
-	// 		'Email', // field id for key to upsert on
-	// 		array($sfcontact), // objects to send
-	// 		'Contact' // object type
-	// 	);
-	// } catch(Exception $e) {
-	// 	print_r($e);
-	// }
-	// */
-	// ob_clean();
-	// print_r($response);
+	print_r($contact);
+	if(isset($e)) {
+		print_r($e);
+	} else {
+		print_r($response);
+	}
 }
 
 function sdf_do_stripe($data) {
@@ -1064,7 +1066,7 @@ function sdf_include_stripe_api($input) {
 function sdf_include_salesforce_api() {
 	require_once(WP_PLUGIN_DIR . '/sdf/salesforce/soapclient/SforceEnterpriseClient.php');
 	$sf_object = new SforceEnterpriseClient();
-	$sf_client = $sf_object->createConnection(WP_PLUGIN_DIR . '/sdf/salesforce/soapclient/enterprise.wsdl.xml');
+	$sf_client = $sf_object->createConnection(WP_PLUGIN_DIR . '/sdf/salesforce/soapclient/wsdl.jsp.xml');
 	$sf_object->login(get_option('salesforce_username'), get_option('salesforce_password') . get_option('salesforce_token'));
 	return $sf_object;
 }

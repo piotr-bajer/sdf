@@ -5,6 +5,7 @@ Date: September
 Provides client ajax functions for the donation form.
 */
 
+// XXX closing hearabout extra does not clear it's content.
 (function($) {
 	'use strict';
 	// http://stackoverflow.com/questions/1184624/convert-form-data-to-js-object-with-jquery/1186309#1186309
