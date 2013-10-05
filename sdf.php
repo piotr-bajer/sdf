@@ -575,32 +575,40 @@ function sdf_parse() {
 function sdf_get_membership($data) {
 	$levels = array(
 		'annual' => array(
-			7500 => 'Friend',
-			10000 => 'Member',
-			25000 => 'Affiliate',
-			50000 => 'Sponsor',
-			100000 => 'Investor',
-			250000 => 'Benefactor',
+			'Friend' => 7500,
+			'Member' => 10000,
+			'Affiliate' => 25000,
+			'Sponsor' => 50000,
+			'Investor' => 100000,
+			'Benefactor' => 250000,
 		),
 		'monthly' => array(
-			500 => 'Friend',
-			1000 => 'Member',
-			2000 => 'Affiliate',
-			5000 => 'Sponsor',
-			10000 => 'Investor',
-			20000 => 'Benefactor',
+			'Friend' => 500,
+			'Member' => 1000,
+			'Affiliate' => 2000,
+			'Sponsor' => 5000,
+			'Investor' => 10000,
+			'Benefactor' => 20000,
 		),
 	);
-	$amount = $data['amount']; // say its 10000
+	$amount = $data['amount'];
 	foreach($levels as $recurrence => $level) {
 		if(strpos($data['donation'], $recurrence) !== false) {
-			foreach($level as $plan_amount => $name) {
-				if($plan_amount > $amount) {
-					// don't underflow
-					if(prev($level) !== false) { // indicates we aren't at the first element
-						return current($level); // because we rewound in the if statement
-					} else {
-						return reset($level);
+			// IF THE DONATED AMOUNT EXISTS IN THE DEFAULT PLANS
+			if(array_search($amount, $level) !== false) {
+				// NOW WE CAN CHECK WHICH LEVEL IT IS.
+				return array_search($amount, $level);
+			} else {
+				// NOW WE CAN'T MESS UP THE POINTER IN THE ARRAY
+				// BUT FIRST, MAKE SURE IT'S MORE THAN THE MINIMUM.
+				if($amount < reset($level)) {
+					return key($level);
+				} else {
+					$array_keys = array_keys($level);
+					for($ii = 0; $ii < count($level); $ii++) {
+						if($amount > $level[$array_keys[$ii]] && $amount < $level[$array_keys[$ii + 1]]) {
+							return $array_keys[$ii];
+						}
 					}
 				}
 			}
@@ -703,7 +711,7 @@ function sdf_do_salesforce($data) {
 	if(isset($scustomer->How_did_you_hear__c)) {
 		$hear = $scustomer->How_did_you_hear__c;
 	} else {
-		$hear = $data['hearabout'] . (empty($data['hearabout-extra']) ? '' : ': ' . $data['hearabout-extra']);
+		$hear = ucfirst($data['hearabout'] . (empty($data['hearabout-extra']) ? '' : ': ' . $data['hearabout-extra']));
 	}
 
 	// is the donor a member? when is the renewal date?
@@ -732,7 +740,7 @@ function sdf_do_salesforce($data) {
 		if($member) {
 			$member_start = date(SF_DATE_FORMAT);
 		} else {
-			$member_start = '';
+			$member_start = null;
 		}
 	} else {
 		$member_start = $scustomer->Membership_Start_Date__c;
@@ -740,15 +748,25 @@ function sdf_do_salesforce($data) {
 
 	// And additional fields.
 	$address = (empty($data['address2'])) ? $data['address1'] : $data['address1'] . "\n" . $data['address2'];
-	$birthday = date(SF_DATE_FORMAT, strtotime(date('Y') . '-' . $data['birthday-month'] . '-' . $data['birthday-day']));
+	
+	// birthday
+	if(!empty($data['birthday-month']) && !empty($data['birthday-day'])) {
+		$birthday = date(SF_DATE_FORMAT, strtotime(date('Y') . '-'
+			. $data['birthday-month'] . '-' . $data['birthday-day']));
+	} else {
+		$birthday = null;
+	}
+
+	// gender
+	if(!empty($data['gender'])) {
+		$gender = ($data['gender'] == 'other') ? null : $data['gender'];
+	}
 
 	/*
-	still needing attention:
-	we don't want to set a field if it's null!
-	birthdate
-	inhonorof
 	member level
-	gender
+	membership start date when the donation is monthly
+	renewal date should not be set when there isn't a membership to renew.
+	STILL NOT GETTING CUSTOM FIELD VALUES BACK???
 	*/
 
 	$sfcontact = new stdClass();
@@ -772,8 +790,15 @@ function sdf_do_salesforce($data) {
 	$sfcontact->Member_Level__c = $data['membership'];
 	$sfcontact->Payment_Type__c = 'Credit Card';
 	$sfcontact->First_Active_Date__c = $first_active;
-	$sfcontact->Gender__c = ($data['gender'] == 'other') ? '' : $data['gender'];
+	$sfcontact->Gender__c = $gender;
 	$sfcontact->Board_Member_Contact_Owner__c = 'Amanda Brock';
+
+	// remove null fields.
+	foreach($sfcontact as $property => $value) {
+		if(is_null($value)) {
+			unset($sfcontact->$property);
+		}
+	}
 
 	ob_clean();
 	print_r($sfcontact);
