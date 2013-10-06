@@ -528,7 +528,7 @@ function sdf_stripe_secret_sanitize($input) {
 			$message = $e->getJsonBody();
 			$message = $message['error']['message'];
 			add_settings_error(
-				'stripe_api_secret_key', // id, or slug, depending on how you see things, of the pertinent setting
+				'stripe_api_secret_key', // id, or slug, of the pertinent setting
 				'stripe_api_secret_key_auth_error', // id or slug of the error itself
 				$message,
 				'error' // message type, since this function actually handles everything including updates
@@ -1110,7 +1110,7 @@ function sdf_deactivate() {
 	unregister_setting(
 		'sdf',
 		'salesforce_username',
-		'sdf_string_setting_sanitize' // XXX if you change the sanitization change it here too
+		'sdf_string_setting_sanitize'
 	);
 	unregister_setting(
 		'sdf',
@@ -1120,8 +1120,30 @@ function sdf_deactivate() {
 	unregister_setting(
 		'sdf',
 		'salesforce_token',
-		'sdf_string_setting_sanitize'
+		'sdf_salesforce_api_check'
 	);
+}
+
+function sdf_message_handler($type, $message) {
+	// we expect type to be one of: error, success, log
+	// log messages are written to a file in the plugin dir
+	// if we have write permissions
+	// success messages are passed as an object to the waiting js
+	// the data structure is json, and should be very simple.
+	// data.type = error | success
+	// data.message = message
+
+	// we may need to implement a queue of messages...
+	if($type != 'log') {
+		$data = array(
+			'type' => $type,
+			'message' => $message;
+		)
+		echo json_encode($data);
+	} else {
+		$logmessage = time() . ' - ' . $type . ' - ' . $message . "\n";
+		file_put_contents('sdf.log', $logmessage, FILE_APPEND);
+	}
 }
 
 if(is_admin()) {
