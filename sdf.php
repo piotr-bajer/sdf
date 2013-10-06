@@ -458,12 +458,12 @@ function sdf_register_settings() {
 	register_setting(
 		'sdf',
 		'salesforce_token',
-		'sdf_string_setting_sanitize'
+		'sdf_salesforce_api_check'
 	);
 	add_settings_section(
 		'sdf_salesforce_api',
 		'Salesforce',
-		'sdf_salesforce_section_print', // XXX use getServerTimestamp to verify that the settings are correct
+		'sdf_salesforce_section_print',
 		'spark-form-admin'
 	);
 }
@@ -495,6 +495,7 @@ function sdf_print_stripe_api_settings_form() { ?>
 </table>
 <?php }
 
+// XXX js for removing password from the DOM
 function sdf_print_salesforce_settings_form() { ?>
 <table class="form-table">
 	<tr valign="top">
@@ -519,23 +520,44 @@ function sdf_print_salesforce_settings_form() { ?>
 <?php }
 
 function sdf_stripe_secret_sanitize($input) {
-	// XXX don't do anything if it's empty
-	sdf_include_stripe_api($input);
-	try {
-		$test_customer = Stripe_Customer::create(array('description' => 'test customer'));
-	} catch(Stripe_Error $e) {
-		$message = $e->getJsonBody();
-		$message = $message['error']['message'];
-		add_settings_error(
-			'stripe_api_secret_key', // id, or slug, depending on how you see things, of the pertinent setting
-			'stripe_api_secret_key_auth_error', // id or slug of the error itself
-			$message,
-			'error' // message type, since this function actually handles everything including updates
-		);
+	if(strlen($input)) {
+		sdf_include_stripe_api($input);
+		try {
+			$test_customer = Stripe_Customer::create(array('description' => 'test customer'));
+		} catch(Stripe_Error $e) {
+			$message = $e->getJsonBody();
+			$message = $message['error']['message'];
+			add_settings_error(
+				'stripe_api_secret_key', // id, or slug, depending on how you see things, of the pertinent setting
+				'stripe_api_secret_key_auth_error', // id or slug of the error itself
+				$message,
+				'error' // message type, since this function actually handles everything including updates
+			);
+		}
+		if(isset($test_customer) && method_exists($test_customer, 'delete')) {
+			$test_customer->delete();
+			add_action('admin_enqueue_scripts', 'sdf_enqueue_admin_scripts'); // XXX
+		}
 	}
-	if(isset($test_customer) && method_exists($test_customer, 'delete')) {
-		$test_customer->delete();
-		add_action('admin_enqueue_scripts', 'sdf_enqueue_admin_scripts'); // XXX
+	return $input;
+}
+
+function sdf_salesforce_api_check($input) {
+	if(strlen($input)) {
+		$input = sdf_string_setting_sanitize($input);
+		if(get_option('salesforce_username') && get_option('salesforce_password')) {
+			try {
+				$sforce = sdf_include_salesforce_api($input);
+			} catch(Exception $e) {
+				$message = '<span id="source">Salesforce error:</span> ' . $e->faultstring;
+				add_settings_error(
+					'salesforce_token',
+					'salesforce_token_auth_error',
+					$message,
+					'error'
+				);
+			}
+		}
 	}
 	return $input;
 }
@@ -564,7 +586,7 @@ function sdf_enqueue_admin_styles() {
 
 function sdf_parse() {
 	// stupid wordpress you should be more like your friend drupal.
-	$data = $_POST['data']/* or die()*/;
+	$data = $_POST['data'] or die(); // XXX handle an error
 	$data['amount'] = sdf_get_amount(&$data);
 	$data['membership'] = sdf_get_membership(&$data);
 	sdf_do_salesforce(&$data);
@@ -599,8 +621,7 @@ function sdf_get_membership($data) {
 				// NOW WE CAN CHECK WHICH LEVEL IT IS.
 				return array_search($amount, $level);
 			} else {
-				// NOW WE CAN'T MESS UP THE POINTER IN THE ARRAY
-				// BUT FIRST, MAKE SURE IT'S MORE THAN THE MINIMUM.
+				// MAKE SURE IT'S MORE THAN THE MINIMUM.
 				if($amount < reset($level)) {
 					return key($level);
 				} else {
@@ -817,7 +838,6 @@ function sdf_do_salesforce($data) {
 	}
 
 	ob_clean();
-	print_r($contact);
 	if(isset($e)) {
 		print_r($e);
 	} else {
@@ -1053,7 +1073,7 @@ function sdf_create_subscription($plan, $customer) {
 	return 'subscribe_success';
 }
 
-function sdf_include_stripe_api($input) {
+function sdf_include_stripe_api($input = null) {
 	require_once(WP_PLUGIN_DIR . '/sdf/stripe/lib/Stripe.php');
 	if(!empty($input)) {
 		Stripe::setApiKey($input);
@@ -1063,11 +1083,16 @@ function sdf_include_stripe_api($input) {
 	Stripe::setApiVersion('2013-08-13');
 }
 
-function sdf_include_salesforce_api() {
+function sdf_include_salesforce_api($input = null) {
 	require_once(WP_PLUGIN_DIR . '/sdf/salesforce/soapclient/SforceEnterpriseClient.php');
 	$sf_object = new SforceEnterpriseClient();
 	$sf_client = $sf_object->createConnection(WP_PLUGIN_DIR . '/sdf/salesforce/soapclient/wsdl.jsp.xml');
-	$sf_object->login(get_option('salesforce_username'), get_option('salesforce_password') . get_option('salesforce_token'));
+	if(!empty($input)) {
+		// we expect the input to be a new token.
+		$sf_object->login(get_option('salesforce_username'), get_option('salesforce_password') . $input);
+	} else {
+		$sf_object->login(get_option('salesforce_username'), get_option('salesforce_password') . get_option('salesforce_token'));	
+	}
 	return $sf_object;
 }
 
@@ -1085,7 +1110,7 @@ function sdf_deactivate() {
 	unregister_setting(
 		'sdf',
 		'salesforce_username',
-		'sdf_string_setting_sanitize'
+		'sdf_string_setting_sanitize' // XXX if you change the sanitization change it here too
 	);
 	unregister_setting(
 		'sdf',

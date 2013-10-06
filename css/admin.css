@@ -4,3 +4,6 @@ SDF admin styles
 .sdf-wide {
 	width:240px;
 }
+#setting-error-salesforce_token_auth_error #source {
+	text-decoration: underline;
+}
