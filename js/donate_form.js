@@ -5,6 +5,14 @@ Date: September
 Provides client ajax functions for the donation form.
 */
 
+//XXX one bug with the custom amount boxes.
+// if you enter a number in one
+// and then click the other
+// you will lose the value in the first input
+// but the radio button wont switch
+// tabbing through works correctly.
+
+
 (function($) {
 	'use strict';
 	// http://stackoverflow.com/questions/1184624/convert-form-data-to-js-object-with-jquery/1186309#1186309
@@ -51,31 +59,31 @@ Provides client ajax functions for the donation form.
 		}, timeout);
 	},
 	stripeResponseHandler = function(status, response) {
-		// var data = {};
-		// response = typeof response !== 'undefined' ? response : {};
-		// if(response.error) {
-		// 	$('.alert').append('<p class="error">' + response.error.message + '</p>');
-		//	clear_notification();
-		// } else {
-		// 	$('#stripe-token').val(response.id);
-		// 	data = $('#sdf_form form').serializeObject();
-		// 	$.each(data, function(k, v) {
-		// 		if(k.substring(0, 3) === 'cc-') {
-		// 			delete data[k];
-		// 		}
-		// 	});
-		// 	$.post(ajaxurl, {
-		// 		action: 'sdf_parse',
-		// 		data: data, // XXX money format remove on the custom amounts fields
-		// 		// XXX don't allow below a certain value in the custom amounts.
-		// 	}, function(data) {
-		// 		callbacks[data]();
-		// 	});
-		// }
-		$.post(ajaxurl, {
-			action: 'sdf_parse',
-			data: $('#sdf_form form').serializeObject()
-		});
+		var data = {};
+		response = typeof response !== 'undefined' ? response : {};
+		if(response.error) {
+			$('.alert').append('<p class="error">' + response.error.message + '</p>');
+			clear_notification();
+		} else {
+			$('#stripe-token').val(response.id);
+			data = $('#sdf_form form').serializeObject();
+			$.each(data, function(k, v) {
+				if(k.substring(0, 3) === 'cc-') {
+					delete data[k];
+				}
+			});
+			$.post(ajaxurl, {
+				action: 'sdf_parse',
+				data: data, // XXX money format remove on the custom amounts fields
+				// XXX don't allow below a certain value in the custom amounts.
+			}, function(data) {
+				callbacks[data]();
+			});
+		}
+		// $.post(ajaxurl, {
+		// 	action: 'sdf_parse',
+		// 	data: $('#sdf_form form').serializeObject()
+		// });
 		//callbacks['subscribe_success']();
 	},
 	formValidity = function() {
@@ -90,6 +98,8 @@ Provides client ajax functions for the donation form.
 		$('.js-custom-amount').focus(function() {
 			// Also, when a custom amount has been entered, clear the custom amounts.
 			// if none of them have values...
+			// need to differentiate between clicks and tabbed focus.
+			// event.which 9 is tab 1 is click
 			var clicked = this,
 				all_empty = true;
 			$('.js-custom-amount').each(function(k, v) {
@@ -98,7 +108,7 @@ Provides client ajax functions for the donation form.
 				}
 			});
 			if(all_empty) { // XXX needs to work in firefox too, the behavior is okay but isn't exactly the same. focusing on an empty box when there is a full box will clear the other text box but won't move the radio selection.
-				$(clicked).prevAll('.js-custom-amount-click').prop('checked', 'checked');
+				$(clicked).prev('.js-custom-amount-click').prop('checked', 'checked');
 			}
 		}).keydown(function(event) {
 			// if it has a value, clear all others
@@ -166,7 +176,7 @@ Provides client ajax functions for the donation form.
 		});
 
 		$('#js-form-submit').click(function() {
-			// $('#js-form-submit').prop('disabled', true);
+			$('#js-form-submit').prop('disabled', true);
 			console.log('checking form validity'); // XXX
 			// do something to look like you're loading.
 			var cardData = {
@@ -182,8 +192,36 @@ Provides client ajax functions for the donation form.
 				address_zip: $('#cc-zip').val(),
 				address_country: $('#cc-country').val()
 			};
-		//	Stripe.card.createToken(cardData, stripeResponseHandler); // XXX
+			Stripe.card.createToken(cardData, stripeResponseHandler); // XXX
 			stripeResponseHandler();
 		});
 	});
 })(jQuery)
+
+	// XXX
+  // function hasPlaceholderSupport() {
+  //   var input = document.createElement('input');
+  //   return ('placeholder' in input);
+  // }
+
+  // if(!hasPlaceholderSupport()){
+  //   var inputs = document.getElementsByTagName('input');
+  //   for(var i=0,count=inputs.length;i<count;i++){
+  //     if(inputs[i].getAttribute('placeholder')){
+  //       inputs[i].style.cssText = "color:#939393;"
+  //       inputs[i].value = inputs[i].getAttribute("placeholder");
+  //       inputs[i].onclick = function(){
+  //         if(this.value == this.getAttribute("placeholder")){
+  //           this.value = '';
+  //           this.style.cssText = "color:#000;font-style:normal;"
+  //         }
+  //       }
+  //       inputs[i].onblur = function(){
+  //         if(this.value == ''){
+  //           this.value = this.getAttribute("placeholder");
+  //           this.style.cssText = "color:#939393;"
+  //         }
+  //       }
+  //     }
+  //   }
+  // }

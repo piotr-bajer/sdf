@@ -10,7 +10,6 @@ get_header(); ?>
 		<div class="alert"></div>
 		<?php if(have_posts()):
 			while(have_posts()): the_post(); ?>
-				<h1><?php the_title(); ?></h1>
 				<?php the_content(); ?>
 			<?php endwhile; ?>
 		<?php endif; ?>
@@ -19,7 +18,6 @@ get_header(); ?>
 		<?php endif; ?>
 	</div><!-- #left-content -->
 	<?php get_sidebar(); ?>
-	<a href="#">Contact us</a>
 </div><!-- #main -->
 <?php wp_enqueue_script('sdf_donate_form_js', plugins_url('/sdf/js/donate_form.js'), array('jquery')); ?>
 <script type="text/javascript">

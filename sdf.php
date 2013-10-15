@@ -13,7 +13,6 @@ function sdf_get_form() { ?>
 	<div id="sdf_form">
 		<form method="post">
 			<h3>Make A Donation:</h3>
-			<h4>Amount:</h4>
 			<fieldset>
 				<legend>Make an annual gift:</legend>
 				<input class="amount" type="radio" name="donation" id="annual-75" value="annual-75" required><label for="annual-75">$75</label>
@@ -22,19 +21,19 @@ function sdf_get_form() { ?>
 				<input class="amount" type="radio" name="donation" id="annual-500" value="annual-500" required><label for="annual-500">$500</label>
 				<input class="amount" type="radio" name="donation" id="annual-1000" value="annual-1000" required><label for="annual-1000">$1000</label>
 				<input class="amount" type="radio" name="donation" id="annual-2500" value="annual-2500" required><label for="annual-2500">$2500</label>
-				<input class="amount js-custom-amount-click" type="radio" name="donation" id="annual-custom" value="annual-custom-amount" required><label for="annual-custom-amount">Or, a custom amount:</label><input class="amount money-amount js-custom-amount" type="number" id="annual-custom-amount" name="annual-custom-amount" >
+				<input class="amount js-custom-amount-click" type="radio" name="donation" id="annual-custom" value="annual-custom-amount" required><label for="annual-custom-amount">Custom amount:</label><input class="amount money-amount js-custom-amount" type="number" id="annual-custom-amount" name="annual-custom-amount" >
 			</fieldset>
-			<span id="or">Or</span>
 			<fieldset>
-				<legend>Make an monthly gift:</legend>
+				<legend>Make a monthly gift:</legend>
 				<input class="amount" type="radio" name="donation" id="monthly-5" value="monthly-5" required><label for="monthly-5">$5</label>
 				<input class="amount" type="radio" name="donation" id="monthly-10" value="monthly-10" required><label for="monthly-10"><span class="membership-level">$10</span></label>
 				<input class="amount" type="radio" name="donation" id="monthly-20" value="monthly-20" required><label for="monthly-20">$20</label>
 				<input class="amount" type="radio" name="donation" id="monthly-50" value="monthly-50" required><label for="monthly-50">$50</label>
 				<input class="amount" type="radio" name="donation" id="monthly-100" value="monthly-100" required><label for="monthly-100">$100</label>
 				<input class="amount" type="radio" name="donation" id="monthly-200" value="monthly-200" required><label for="monthly-200">$200</label>
-				<input class="amount js-custom-amount-click" type="radio" name="donation" id="monthly-custom" value="monthly-custom-amount" required><label for="monthly-custom-amount">Or, a custom amount:</label><input class="amount money-amount js-custom-amount" type="number" id="monthly-custom-amount" name="monthly-custom-amount" >
+				<input class="amount js-custom-amount-click" type="radio" name="donation" id="monthly-custom" value="monthly-custom-amount" required><label for="monthly-custom-amount">Custom amount:</label><input class="amount money-amount js-custom-amount" type="number" id="monthly-custom-amount" name="monthly-custom-amount" >
 			</fieldset>
+			<hr class="dashed-line">
 			<div class="wider">
 				<label for="one-time">No thanks, I only want to make a one-time gift of the amount above.</label>
 				<input type="checkbox" name="one-time" id="one-time">
@@ -49,14 +48,14 @@ function sdf_get_form() { ?>
 					<option value="event" class="js-select-extra">Event</option>
 				</select>
 				<br>
-				<div id="js-select-extra-input" class="hidden">
+				<div id="js-select-extra-input" class="hideme">
 					<label for="hearabout-extra">Name of <span id="js-select-extra-name"></span></label>
 					<input type="text" name="hearabout-extra" id="hearabout-extra">
 				</div>
 				<label for="inhonorof">Please make this donation in honor of:</label>
 				<input type="text" id="inhonorof" name="inhonorof">
 			</div>
-			<hr>
+			<hr class="dashed-line">
 			<h3>A little about you:</h3>
 			<label for"first-name">Name:</label>
 			<input name="first-name" id="first-name" type="text" placeholder="First" required>
@@ -99,14 +98,14 @@ function sdf_get_form() { ?>
 					<label for"state">State/Province:</label>
 					<input name="state" id="state" type="text" required>
 				</div>
-				<div>
+				<div class="last">
 					<label for"zip">ZIP/Postal Code:</label>
 					<input maxlength="10" name="zip" id="zip" type="text" required>
 				</div>
 			</div>
 			<label for="country">Country:</label>
 			<?php sdf_get_country_select('country'); ?>
-			<hr>
+			<hr class="dashed-line">
 			<h3>Billing Information:</h3>
 			<label for="cc-number">Credit Card Number:</label>
 			<input maxlength="16" type="text" id="cc-number" name="cc-number" required>
@@ -118,7 +117,7 @@ function sdf_get_form() { ?>
 			<input maxlength="2" type="number" id="cc-exp-mo" name="cc-exp-mo" placeholder="Month" required>
 			<span id="cc-exp-separator">/</span>
 			<input maxlength="4" type="number" id="cc-exp-year" name="cc-exp-year" placeholder="Year" required>
-			<hr>
+			<hr class="dashed-line">
 			<label id="copy-personal-info-label" for="copy-personal-info">Copy billing information from above?</label>
 			<input type="checkbox" id="copy-personal-info" class="js-copy-personal-info">
 			<div id="js-cc-fields">
@@ -140,7 +139,7 @@ function sdf_get_form() { ?>
 						<label for="cc-state">State / Province:</label>
 						<input type="text" id="cc-state" name="cc-state" required>
 					</div>
-					<div>
+					<div class="last">
 						<label for="cc-zip">ZIP / Postal Code:</label>
 						<input maxlength="10" type="text" id="cc-zip" name="cc-zip" required>
 					</div>
@@ -149,7 +148,15 @@ function sdf_get_form() { ?>
 				<?php sdf_get_country_select('cc-country'); ?>
 			</div>
 			<input type="hidden" name="stripe-token" id="stripe-token">
-			<input type="button" id="js-form-submit" value="Donate Now">
+			<div class="button-dark">
+				<a href="javascript:void(0);"id="js-form-submit">Donate Now</a>
+				<span>
+					<img src="/img/button-dark-tip.png">
+				</span>
+			</div>
+			<div id="contact">
+				<span>Questions? <a href="#">Contact us.</a></span>
+			</div>
 		</form>
 	</div>
 <?php } // end function sdf_get_form
@@ -611,7 +618,7 @@ function sdf_parse() {
 	$data['amount'] = sdf_get_amount(&$data);
 	$data['membership'] = sdf_get_membership(&$data);
 	sdf_do_salesforce(&$data);
-	//sdf_do_stripe(&$data);
+	sdf_do_stripe(&$data);
 	die(); // prevent trailing 0 from admin-ajax.php
 }
 

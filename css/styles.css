@@ -5,11 +5,20 @@ Steve Avery
 September 2013
 */
 
-.hidden {
+.hideme {
 	display:none;
 }
+input:invalid {
+	background-color: white;
+	color:inherit;
+}
 .membership-level {
-	background-color: pink;
+	background-color: #EF4AA8;
+	position:relative;
+	padding:10px;
+	-webkit-border-radius:10px;
+	-moz-border-radius:10px;
+	border-radius: 10px;
 }
 #sdf_form {
 	width:90%;
@@ -24,27 +33,36 @@ form > label,
 #js-cc-fields > label {
 	float: left;
 	text-align: right;
-	margin-right: 15px;
+	margin-right: 1em;
 	width: 150px;
 	clear:left;
 }
+div.wider {
+	margin-top: 1em;
+}
 .wider label {
-	width: 470px;
 	float: left;
 	text-align: right;
-	margin-right: 15px;
+	margin-right: 1em;
 	clear:left;
+	white-space: nowrap;
 }
 #copy-personal-info-label {
-	width:300px;
+	white-space: nowrap;
+	float: none;
 }
 fieldset {
-	border:none;
-	border-top:1px solid #C0C0C0;
+	margin-bottom: 1em;
+	background-image: url(/img/dashed-line.png);
+	background-repeat: repeat-x;
+	background-position: right top;
+	border: none;
 }
 legend {
 	font-weight: 700;
 	padding:0 0.5em;
+	margin-bottom: 12px;
+	background-color: white;
 }
 input.amount {
 	margin:0 0.5em 0 1em;
@@ -54,6 +72,10 @@ input.amount {
 }
 .address-padding div {
 	float:left;
+	padding-right: 2px;
+}
+.address-padding div.last {
+	width:145px;
 }
 select#country,
 select#cc-country {
@@ -63,21 +85,29 @@ select#cc-country {
 	display: block;
 }
 input.wider {
-	width:357px;
+	width:299px;
 }
 input#cc-cvc {
 	width:47px;
 }
 input[type="number"] {
-	width:78px;
+	width:60px;
 	margin-right: 0;
 }
-input#js-form-submit {
+#sdf_form div.button-dark {
 	clear:both;
 	display: block;
-	margin-left: 164px;
+	margin-left: 165px;
 }
-hr {
+#js-form-submit {
+	cursor: pointer;
+}
+#sdf_form div.button-dark a {
+	padding-top: 6px;
+}
+#sdf_form hr.dashed-line {
+	width:100%;
+	margin:0 0 1em;
 	clear:both;
 }
 .alert p {
@@ -109,3 +139,7 @@ p.error {
 .cf {
     *zoom: 1;
 }
+h3 {
+	text-transform: uppercase;
+}
+
