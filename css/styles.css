@@ -11,13 +11,32 @@ September 2013
 .membership-level {
 	background-color: pink;
 }
+#sdf_form {
+	width:90%;
+	margin:auto;
+}
+form input,
+form select {
+	margin-bottom:1em;
+	margin-right: 1em;
+}
 form > label,
-#js-cc-fields label {
+#js-cc-fields > label {
 	float: left;
 	text-align: right;
 	margin-right: 15px;
 	width: 150px;
 	clear:left;
+}
+.wider label {
+	width: 470px;
+	float: left;
+	text-align: right;
+	margin-right: 15px;
+	clear:left;
+}
+#copy-personal-info-label {
+	width:300px;
 }
 fieldset {
 	border:none;
@@ -29,6 +48,37 @@ legend {
 }
 input.amount {
 	margin:0 0.5em 0 1em;
+}
+.address-padding {
+	margin-left: 165px;
+}
+.address-padding div {
+	float:left;
+}
+select#country,
+select#cc-country {
+	float: left;
+}
+.address-padding input {
+	display: block;
+}
+input.wider {
+	width:357px;
+}
+input#cc-cvc {
+	width:47px;
+}
+input[type="number"] {
+	width:78px;
+	margin-right: 0;
+}
+input#js-form-submit {
+	clear:both;
+	display: block;
+	margin-left: 164px;
+}
+hr {
+	clear:both;
 }
 .alert p {
 	display: block;
@@ -46,4 +96,16 @@ p.success {
 }
 p.error {
 	background-color: pink;
+}
+/* clearfix rules */
+.cf:before,
+.cf:after {
+    content: " "; 
+    display: table;
+}
+.cf:after {
+    clear: both;
+}
+.cf {
+    *zoom: 1;
 }

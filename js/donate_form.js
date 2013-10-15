@@ -5,7 +5,6 @@ Date: September
 Provides client ajax functions for the donation form.
 */
 
-// XXX closing hearabout extra does not clear it's content.
 (function($) {
 	'use strict';
 	// http://stackoverflow.com/questions/1184624/convert-form-data-to-js-object-with-jquery/1186309#1186309
@@ -78,12 +77,15 @@ Provides client ajax functions for the donation form.
 			data: $('#sdf_form form').serializeObject()
 		});
 		//callbacks['subscribe_success']();
+	},
+	formValidity = function() {
+
 	};
 
 	$(document).ready(function() {
-		// $('input').blur(function(event) {
-		// 	event.target.checkValidity(); // XXX
-		// });
+		$('input').blur(function(event) {
+			event.target.checkValidity(); // XXX
+		});
 
 		$('.js-custom-amount').focus(function() {
 			// Also, when a custom amount has been entered, clear the custom amounts.
@@ -133,6 +135,7 @@ Provides client ajax functions for the donation form.
 				$('#js-select-extra-name').html(select.options[select.selectedIndex].value + ':');
 				$('#js-select-extra-input').show();
 			} else {
+				$('#hearabout-extra').val('');
 				$('#js-select-extra-input').hide();
 			}
 		});
@@ -179,7 +182,7 @@ Provides client ajax functions for the donation form.
 				address_zip: $('#cc-zip').val(),
 				address_country: $('#cc-country').val()
 			};
-		//	Stripe.card.createToken(cardData, stripeResponseHandler);
+		//	Stripe.card.createToken(cardData, stripeResponseHandler); // XXX
 			stripeResponseHandler();
 		});
 	});

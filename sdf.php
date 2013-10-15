@@ -35,25 +35,27 @@ function sdf_get_form() { ?>
 				<input class="amount" type="radio" name="donation" id="monthly-200" value="monthly-200" required><label for="monthly-200">$200</label>
 				<input class="amount js-custom-amount-click" type="radio" name="donation" id="monthly-custom" value="monthly-custom-amount" required><label for="monthly-custom-amount">Or, a custom amount:</label><input class="amount money-amount js-custom-amount" type="number" id="monthly-custom-amount" name="monthly-custom-amount" >
 			</fieldset>
-			<label for="one-time">No thanks, I only want to make a one-time gift of the amount above.</label>
-			<input type="checkbox" name="one-time" id="one-time">
-			<br>
-			<label for="hearabout">How did you hear about Spark?</label>
-			<select name="hearabout" id="hearabout">
-				<option value="">--</option>
-				<option value="Renewing Membership">Renewing Membership</option>
-				<option value="friend" class="js-select-extra">Friend</option>
-				<option value="Website">Website</option>
-				<option value="Search">Search</option>
-				<option value="event" class="js-select-extra">Event</option>
-			</select>
-			<br>
-			<div id="js-select-extra-input" class="hidden">
-				<label for="hearabout-extra">Name of <span id="js-select-extra-name"></span></label>
-				<input type="text" name="hearabout-extra" id="hearabout-extra">
+			<div class="wider">
+				<label for="one-time">No thanks, I only want to make a one-time gift of the amount above.</label>
+				<input type="checkbox" name="one-time" id="one-time">
+				<br>
+				<label for="hearabout">How did you hear about Spark?</label>
+				<select name="hearabout" id="hearabout">
+					<option value="">--</option>
+					<option value="Renewing Membership">Renewing Membership</option>
+					<option value="friend" class="js-select-extra">Friend</option>
+					<option value="Website">Website</option>
+					<option value="Search">Search</option>
+					<option value="event" class="js-select-extra">Event</option>
+				</select>
+				<br>
+				<div id="js-select-extra-input" class="hidden">
+					<label for="hearabout-extra">Name of <span id="js-select-extra-name"></span></label>
+					<input type="text" name="hearabout-extra" id="hearabout-extra">
+				</div>
+				<label for="inhonorof">Please make this donation in honor of:</label>
+				<input type="text" id="inhonorof" name="inhonorof">
 			</div>
-			<label for="inhonorof">Please make this donation in honor of:</label>
-			<input type="text" id="inhonorof" name="inhonorof">
 			<hr>
 			<h3>A little about you:</h3>
 			<label for"first-name">Name:</label>
@@ -61,12 +63,12 @@ function sdf_get_form() { ?>
 			<input name="last-name" id="last-name" type="text" placeholder="Last" required>
 			<br>
 			<label for="company">Company:</label>
-			<input type="text" id="company" name="company">
+			<input class="wider" type="text" id="company" name="company">
 			<br>
 			<label for="birthday-month">Birthday:</label>
-			<input type="number" id="birthday-month" name="birthday-month" placeholder="Month">
+			<input maxlength="2" type="number" id="birthday-month" name="birthday-month" placeholder="Month">
 			<span id="bday-separator">/</span>
-			<input type="number" id="birthday-day" name="birthday-day" placeholder="Day">
+			<input maxlength="2" type="number" id="birthday-day" name="birthday-day" placeholder="Day">
 			<br>
 			<label for="gender">Gender:</label>
 			<select name="gender" id="gender">
@@ -77,60 +79,72 @@ function sdf_get_form() { ?>
 			</select>
 			<br>
 			<label for"email">E-mail:</label>
-			<input name="email" id="email" type="email" required>
+			<input class="wider" name="email" id="email" type="email" required>
 			<br>
 			<label for"tel">Phone:</label>
-			<input name="tel" id="tel" type="text" required>
+			<input maxlength="15" name="tel" id="tel" type="text" required>
 			<br>
 			<label for"address1">Street Address:</label>
-			<input name="address1" id="address1" type="text" required>
+			<input class="wider" name="address1" id="address1" type="text" required>
 			<br>
 			<label for"address2">Address 2:</label>
-			<input name="address2" id="address2" type="text">
+			<input class="wider" name="address2" id="address2" type="text">
 			<br>
-			<label for"city">City:</label>
-			<label for"state">State/Province:</label>
-			<label for"zip">ZIP/Postal Code:</label>
-			<br>
-			<input name="city" id="city" type="text" required>
-			<input name="state" id="state" type="text" required>
-			<input name="zip" id="zip" type="text" required>
-			<br>
+			<div class="address-padding cf">
+				<div>
+					<label for"city">City:</label>
+					<input name="city" id="city" type="text" required>
+				</div>
+				<div>
+					<label for"state">State/Province:</label>
+					<input name="state" id="state" type="text" required>
+				</div>
+				<div>
+					<label for"zip">ZIP/Postal Code:</label>
+					<input maxlength="10" name="zip" id="zip" type="text" required>
+				</div>
+			</div>
 			<label for="country">Country:</label>
 			<?php sdf_get_country_select('country'); ?>
 			<hr>
 			<h3>Billing Information:</h3>
 			<label for="cc-number">Credit Card Number:</label>
-			<input type="text" id="cc-number" name="cc-number" required>
+			<input maxlength="16" type="text" id="cc-number" name="cc-number" required>
 			<br>
 			<label for="cc-cvc">Security Code:</label>
-			<input type="text" id="cc-cvc" name="cc-cvc" required>
+			<input maxlength="4" type="text" id="cc-cvc" name="cc-cvc" required>
 			<br>
 			<label for="cc-exp-mo">Expiration Date:</label>
-			<input type="number" id="cc-exp-mo" name="cc-exp-mo" placeholder="Month" required>
+			<input maxlength="2" type="number" id="cc-exp-mo" name="cc-exp-mo" placeholder="Month" required>
 			<span id="cc-exp-separator">/</span>
-			<input type="number" id="cc-exp-year" name="cc-exp-year" placeholder="Year" required>
+			<input maxlength="4" type="number" id="cc-exp-year" name="cc-exp-year" placeholder="Year" required>
 			<hr>
-			<label for="copy-personal-info">Copy billing information from above?</label>
+			<label id="copy-personal-info-label" for="copy-personal-info">Copy billing information from above?</label>
 			<input type="checkbox" id="copy-personal-info" class="js-copy-personal-info">
 			<div id="js-cc-fields">
 				<label for="cc-name">Name on Card:</label>
-				<input type="text" id="cc-name" name="cc-name" required>
+				<input class="wider" type="text" id="cc-name" name="cc-name" required>
 				<br>
 				<label for="cc-address1">Billing Address:</label>
-				<input type="text" id="cc-address1" name="cc-address1" required>
+				<input class="wider" type="text" id="cc-address1" name="cc-address1" required>
 				<br>
 				<label for="cc-address2">Address 2:</label>
-				<input type="text" id="cc-address2" name="cc-address2">
+				<input class="wider" type="text" id="cc-address2" name="cc-address2">
 				<br>
-				<label for="cc-city">City:</label>
-				<label for="cc-state">State / Province</label>
-				<label for="cc-zip">ZIP / Postal Code:</label>
-				<br>
-				<input type="text" id="cc-city" name="cc-city" required>
-				<input type="text" id="cc-state" name="cc-state" required>
-				<input type="text" id="cc-zip" name="cc-zip" required>
-				<br>
+				<div class="address-padding cf">
+					<div>
+						<label for="cc-city">City:</label>
+						<input type="text" id="cc-city" name="cc-city" required>
+					</div>
+					<div>
+						<label for="cc-state">State / Province:</label>
+						<input type="text" id="cc-state" name="cc-state" required>
+					</div>
+					<div>
+						<label for="cc-zip">ZIP / Postal Code:</label>
+						<input maxlength="10" type="text" id="cc-zip" name="cc-zip" required>
+					</div>
+				</div>
 				<label for="cc-country">Country:</label>
 				<?php sdf_get_country_select('cc-country'); ?>
 			</div>
@@ -586,7 +600,14 @@ function sdf_enqueue_admin_styles() {
 
 function sdf_parse() {
 	// stupid wordpress you should be more like your friend drupal.
-	$data = $_POST['data'] or die(); // XXX handle an error
+	if(!isset($_POST['data'])) {
+		sdf_message_handler('log', __FUNCTION__ . ' No data received');
+		ob_clean();
+		echo "found me";
+		die();
+	} else {
+		$data = $_POST['data'];
+	}
 	$data['amount'] = sdf_get_amount(&$data);
 	$data['membership'] = sdf_get_membership(&$data);
 	sdf_do_salesforce(&$data);
@@ -1137,12 +1158,12 @@ function sdf_message_handler($type, $message) {
 	if($type != 'log') {
 		$data = array(
 			'type' => $type,
-			'message' => $message;
-		)
+			'message' => $message
+		);
 		echo json_encode($data);
 	} else {
 		$logmessage = time() . ' - ' . $type . ' - ' . $message . "\n";
-		file_put_contents('sdf.log', $logmessage, FILE_APPEND);
+		file_put_contents(WP_PLUGIN_DIR . '/sdf/sdf.log', $logmessage, FILE_APPEND);
 	}
 }
 
