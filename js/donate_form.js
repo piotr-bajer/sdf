@@ -60,34 +60,31 @@ Provides client ajax functions for the donation form.
 	},
 	stripeResponseHandler = function(status, response) {
 		var data = {};
-		response = typeof response !== 'undefined' ? response : {};
+		response = (typeof response !== 'undefined') ? response : {};
 		if(response.error) {
 			$('.alert').append('<p class="error">' + response.error.message + '</p>');
 			clear_notification();
 		} else {
 			$('#stripe-token').val(response.id);
 			data = $('#sdf_form form').serializeObject();
+
+			// remove the card data before sending to our server.
 			$.each(data, function(k, v) {
 				if(k.substring(0, 3) === 'cc-') {
 					delete data[k];
 				}
 			});
+
 			$.post(ajaxurl, {
 				action: 'sdf_parse',
 				data: data, // XXX money format remove on the custom amounts fields
-				// XXX don't allow below a certain value in the custom amounts.
 			}, function(data) {
 				callbacks[data]();
 			});
 		}
-		// $.post(ajaxurl, {
-		// 	action: 'sdf_parse',
-		// 	data: $('#sdf_form form').serializeObject()
-		// });
-		//callbacks['subscribe_success']();
 	},
 	formValidity = function() {
-
+		// XXX don't allow below a certain value in the custom amounts.
 	};
 
 	$(document).ready(function() {
@@ -176,8 +173,8 @@ Provides client ajax functions for the donation form.
 		});
 
 		$('#js-form-submit').click(function() {
-			$('#js-form-submit').prop('disabled', true);
-			console.log('checking form validity'); // XXX
+			//$('#js-form-submit').prop('disabled', true); // XXX
+			// console.log('checking form validity'); // XXX
 			// do something to look like you're loading.
 			var cardData = {
 				number: $('#cc-number').val(),
@@ -192,8 +189,7 @@ Provides client ajax functions for the donation form.
 				address_zip: $('#cc-zip').val(),
 				address_country: $('#cc-country').val()
 			};
-			Stripe.card.createToken(cardData, stripeResponseHandler); // XXX
-			stripeResponseHandler();
+			Stripe.card.createToken(cardData, stripeResponseHandler);
 		});
 	});
 })(jQuery)

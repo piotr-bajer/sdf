@@ -7,7 +7,9 @@
 	Version: 0.1
 	Author URI: mailto:schavery@gmail.com
 */
-error_reporting(E_ALL); // XXX
+define('FRIEND_OF_SPARK', '00130000007qhRG');
+define('SF_DATE_FORMAT', 'Y-m-d');
+setlocale(LC_MONETARY, 'en_US'); // for money format
 
 function sdf_get_form() { ?>
 	<div id="sdf_form">
@@ -433,6 +435,11 @@ function sdf_ajaxurl() { ?>
 	</script>
 <?php }
 
+/*
+Would also like to include the following settings:
+page picker for the donate form plugin.
+page picker for landing page.
+*/
 function sdf_options_page() { ?>
 	<div class="wrap">
 		<?php screen_icon(); ?>
@@ -557,7 +564,7 @@ function sdf_stripe_secret_sanitize($input) {
 		}
 		if(isset($test_customer) && method_exists($test_customer, 'delete')) {
 			$test_customer->delete();
-			add_action('admin_enqueue_scripts', 'sdf_enqueue_admin_scripts'); // XXX
+			// add_action('admin_enqueue_scripts', 'sdf_enqueue_admin_scripts'); // see comment on line ~1046
 		}
 	}
 	return $input;
@@ -609,8 +616,6 @@ function sdf_parse() {
 	// stupid wordpress you should be more like your friend drupal.
 	if(!isset($_POST['data'])) {
 		sdf_message_handler('log', __FUNCTION__ . ' No data received');
-		ob_clean();
-		echo "found me";
 		die();
 	} else {
 		$data = $_POST['data'];
@@ -619,6 +624,7 @@ function sdf_parse() {
 	$data['membership'] = sdf_get_membership(&$data);
 	sdf_do_salesforce(&$data);
 	sdf_do_stripe(&$data);
+	sdf_message_handler('success', 'end'); // triggers the redirection.
 	die(); // prevent trailing 0 from admin-ajax.php
 }
 
@@ -642,6 +648,8 @@ function sdf_get_membership($data) {
 		),
 	);
 	$amount = $data['amount'];
+
+	// ugly ugly ugly
 	foreach($levels as $recurrence => $level) {
 		if(strpos($data['donation'], $recurrence) !== false) {
 			// IF THE DONATED AMOUNT EXISTS IN THE DEFAULT PLANS
@@ -689,131 +697,193 @@ function sdf_get_amount($data) {
 	return $amount;
 }
 
-function sdf_do_salesforce($data) {
+function sdf_get_existing_sf_contact($data) {
 	$sforce = sdf_include_salesforce_api();
-	define('FRIEND_OF_SPARK', '00130000007qhRG');
-	define('SF_DATE_FORMAT', 'Y-m-d');
-	setlocale(LC_MONETARY, 'en_US'); // for money format
-
-	// first, we check to see if a matching customer already exists.
 	$search_string = 'FIND {' . $data['email'] . '} IN EMAIL FIELDS ' .
 		'RETURNING CONTACT(ID)';
+
 	try {
 		$response = $sforce->search($search_string);
-	} catch(Exception $e) {} // XXX
+	} catch(Exception $e) {
+		sdf_message_handler('log', __FUNCTION__ . ' : ' . $e->faultstring);
+	}
+
 	if(count($response)) {
 		$contact_id = array_pop($response->searchRecords)->Id;
 		// we aren't guaranteed to get all these fields.
 		$fields = 'AccountId, Description, First_Active_Date__c, How_did_you_hear__c,' .
 			' Active_Member__c, Renewal_Date__c, Membership_Start_Date__c';
 		try {
-			$sf_existing_contact = $sforce->retrieve($fields, 'Contact', array($contact_id));
-		} catch(Exception $e) {} // XXX
-		$sf_existing_contact = array_pop($sf_existing_contact);
+			$contact = $sforce->retrieve($fields, 'Contact', array($contact_id));
+		} catch(Exception $e) {
+			sdf_message_handler('log', __FUNCTION__ . ' : ' . $e->faultstring);
+		}
+		$contact = array_pop($contact);
+	} else {
+		$contact = new stdClass();
 	}
 
-	// now we set up the company (AccountId)
-	if(!isset($sf_existing_contact->AccountId)) {
+	return $contact;
+}
+
+function sdf_sf_company($data, $contact) {
+	$sforce = sdf_include_salesforce_api();
+	if(!isset($contact->AccountId)) {
 		if(!empty($data['company'])) {
 			$sfcompany = new stdClass();
 			$sfcompany->Name = $data['company'];
+
 			try {
-				$return = $sforce->upsert(
+				$search = $sforce->upsert(
 					'Name', // key for matching
 					array($sfcompany), // data objects
 					'Company' // object type
 				);
-				$company_id = $return[0]->id;
-			} catch(Exception $e) {}	
+				$company = $search[0]->id;
+			} catch(Exception $e) {
+				sdf_message_handler('log', __FUNCTION__ . ' : ' . $e->faultstring);
+			}
+
 		} else {
-			$company_id = FRIEND_OF_SPARK;
+			$company = FRIEND_OF_SPARK;
 		} 
 	} else {
-		$company_id = $sf_existing_contact->AccountId;
+		$company = $contact->AccountId;
 	}
+	return $company;
+}
 
-	// now let's do Description.
-	$transaction_description = money_format('%n', ($data['amount'] / 100)) .
-		' - ' . date('n/d/y') . ' - Online donation from ' . gethostname() . '.';
+function sdf_sf_contact_description($data, $contact) {
+	$transaction_desc = money_format('%n', ($data['amount'] / 100)) .
+		' - ' . date('n/d/y') . ' - Online donation from ' . home_url() . '.';
 	if(!empty($data['inhonorof'])) {
-		$transaction_description .= ' In honor of: ' . $data['inhonorof'];
+		$transaction_desc .= ' In honor of: ' . $data['inhonorof'];
 	}
-	if(isset($sf_existing_contact->Description)) {
-		$updated_description = $sf_existing_contact->Description . "\n" . $transaction_description;
+	if(isset($contact->Description)) {
+		$desc = $contact->Description . "\n" . $transaction_desc;
 	} else {
-		$updated_description = $transaction_description;
+		$desc = $transaction_desc;
 	}
 
-	// First_Active_Date__c
-	if(!isset($sf_existing_contact->First_Active_Date__c)) {
+	return $desc;
+}
+
+function sdf_sf_first_active($contact) {
+	if(!isset($contact->First_Active_Date__c)) {
 		// then it is today!
-		$first_active = date(SF_DATE_FORMAT);
+		$date = date(SF_DATE_FORMAT);
 	} else {
-		$first_active = $sf_existing_contact->First_Active_Date__c;
+		$date = $contact->First_Active_Date__c;
 	}
+	return $date;
+}
 
-	// how did you hear about us?
-	if(isset($sf_existing_contact->How_did_you_hear__c)) {
-		$hear = $sf_existing_contact->How_did_you_hear__c;
+function sdf_sf_hear($data, $contact) {
+	if(isset($contact->How_did_you_hear__c)) {
+		$hear = $contact->How_did_you_hear__c;
 	} else {
 		if(!empty($data['hearabout'])) {
-			$hear = ucfirst($data['hearabout'] . (empty($data['hearabout-extra']) ? null : ': ' . $data['hearabout-extra']));
+			$hear = ucfirst($data['hearabout'] .
+				(empty($data['hearabout-extra']) ? null : ': ' . $data['hearabout-extra']));
 		} else {
 			$hear = null;
 		}
 	}
+	return $hear;
+}
+
+function sdf_is_member($data, $contact) {
+	if(strpos($data['donation'], 'month') !== false) {
+		$qualify = ($data['amount'] >= 1000) ? 1 : 0;
+	} else if(strpos($data['donation'], 'annual') !== false) {
+		$qualify = ($data['amount'] >= 10000) ? 1 : 0;
+	}
+
+	return $qualify;
+}
+
+function sdf_sf_renewal_date($data, $contact, $member) {
+	if(isset($contact->Renewal_Date__c)) { // they have existing membership end date
+		$old_date = $contact->Renewal_Date__c;
+		if(!$member) {
+			$date = $old_date;
+		}
+	} else {
+		if(!$member) {
+			$date = null;
+		} else {
+			if(strpos($data['donation'], 'month') !== false) {
+				$date = date(SF_DATE_FORMAT, strtotime('+1 month'));
+			} else if(strpos($data['donation'], 'annual') !== false) {
+				$date = date(SF_DATE_FORMAT, strtotime('+1 year'));
+			}
+		}
+	}	
+	return $date;
+}
+
+function sdf_sf_membership_start($contact, $member) {
+	if(!isset($contact->Membership_Start_Date__c)) {
+		if($member) {
+			$date = date(SF_DATE_FORMAT);
+		} else {
+			$date = null;
+		}
+	} else {
+		$date = $contact->Membership_Start_Date__c;
+	}
+	return $date;
+}
+
+function sdf_sf_birthday($data) {
+	if(!empty($data['birthday-month']) && !empty($data['birthday-day'])) {
+		$date = date(SF_DATE_FORMAT, strtotime(date('Y') . '-'
+			. $data['birthday-month'] . '-' . $data['birthday-day']));
+	} else {
+		$date = null;
+	}
+	return $date;
+}
+
+function sdf_sf_gender($data) {
+	if(!empty($data['gender'])) {
+		$sex = ($data['gender'] == 'other') ? null : $data['gender'];
+	} else {
+		$sex = null;
+	}
+	return $sex;
+}
+
+function sdf_sf_contact_builder($data) {
+	// first, we check to see if a matching customer already exists.
+	$sf_existing_contact = sdf_get_existing_sf_contact(&$data);
+
+	// now we set up the company (AccountId)
+	$company_id = sdf_sf_company(&$data, &$sf_existing_contact);
+	
+	// now let's do Description.
+	$updated_description = sdf_sf_contact_description(&$data, &$sf_existing_contact);
+
+	// First_Active_Date__c
+	$first_active = sdf_sf_first_active(&$sf_existing_contact);
+
+	// how did you hear about us?
+	$hear = sdf_sf_hear(&$data, &$sf_existing_contact);
 
 	// is the donor a member? when is the renewal date?
-	if(strpos($data['donation'], 'month') !== false) {
-		$qualifying_amount = ($data['amount'] >= 1000) ? 1 : 0;
-		$renewal = date(SF_DATE_FORMAT, strtotime('+1 month'));
-	} else if(strpos($data['donation'], 'annual') !== false) {
-		$qualifying_amount = ($data['amount'] >= 10000) ? 1 : 0;
-		$renewal = date(SF_DATE_FORMAT, strtotime('+1 year'));
-	}
-	if(isset($sf_existing_contact->Active_Member__c) && $sf_existing_contact->Active_Member__c) { // they have existing membership status
-		if(((time() - strtotime($sf_existing_contact->Renewal_Date__c)) <= 0) && !$qualifying_amount) {
-			// their existing membership has expired, and they didn't donate enough to renew.
-			$member = 0;
-			$renewal = $sf_existing_contact->Renewal_Date__c;
-		} else if(!$qualifying_amount) {
-			$member = $sf_existing_contact->Active_Member__c;
-			$renewal = $sf_existing_contact->Renewal_Date__c;
-		}
-	} else {
-		$member = $qualifying_amount;
-		if(!$member) {
-			$renewal = null;
-		}
-	}
-
-	// finally, membership start date.
-	if(!isset($sf_existing_contact->Membership_Start_Date__c)) {
-		if($member) {
-			$member_start = date(SF_DATE_FORMAT);
-		} else {
-			$member_start = null;
-		}
-	} else {
-		$member_start = $sf_existing_contact->Membership_Start_Date__c;
-	}
+	$member = sdf_is_member(&$data, &$sf_existing_contact);
+	$renewal = sdf_sf_renewal_date(&$data, &$sf_existing_contact, $member);
+	$member_start = sdf_sf_membership_start(&$sf_existing_contact, $member);
 
 	// And additional fields.
 	$address = (empty($data['address2'])) ? $data['address1'] : $data['address1'] . "\n" . $data['address2'];
-	
-	// birthday
-	if(!empty($data['birthday-month']) && !empty($data['birthday-day'])) {
-		$birthday = date(SF_DATE_FORMAT, strtotime(date('Y') . '-'
-			. $data['birthday-month'] . '-' . $data['birthday-day']));
-	} else {
-		$birthday = null;
-	}
+	$birthday = sdf_sf_birthday(&$data);
+	$gender = sdf_sf_gender(&$data);
 
-	// gender
-	if(!empty($data['gender'])) {
-		$gender = ($data['gender'] == 'other') ? null : $data['gender'];
+	if(isset($sf_existing_contact->Id)) {
+		$contact->Id = $sf_existing_contact->Id;
 	} else {
-		$gender = null;
+		$contact->Id = null;
 	}
 
 	// build the object.
@@ -848,34 +918,36 @@ function sdf_do_salesforce($data) {
 		}
 	}
 
-	if(isset($sf_existing_contact->Id)) {
+	return $contact;
+}
+
+function sdf_sf_upsert($contact) {
+	$sforce = sdf_include_salesforce_api();
+	if(isset($contact->Id)) {
 		// update on id.
-		$contact->Id = $sf_existing_contact->Id;
 		try {
 			$reponse = $sforce->update(array($contact), 'Contact');
 		} catch(Exception $e) {
-			// XXX
+			sdf_message_handler('log', __FUNCTION__ . ' : ' . $e->faultstring);
 		}
 	} else {
 		// create new contact.
 		try {
 			$response = $sforce->create(array($contact), 'Contact');
 		} catch(Exception $e) {
-			// XXX
+			sdf_message_handler('log', __FUNCTION__ . ' : ' . $e->faultstring);
 		}
 	}
+}
 
-	ob_clean();
-	if(isset($e)) {
-		print_r($e);
-	} else {
-		print_r($response);
-	}
+function sdf_do_salesforce($data) {
+	$contact = sdf_sf_contact_builder(&$data);
+	sdf_sf_upsert(&$contact);
 }
 
 function sdf_do_stripe($data) {
 	if(array_key_exists('one-time', $data) && !empty($data['one-time'])) {
-		echo sdf_single_charge($data['amount'], $data['stripe-token'], $data['email']);
+		sdf_single_charge($data['amount'], $data['stripe-token'], $data['email']);
 	} else {
 		// recurring donations. Get the plan.
 		if(strpos($data['donation'], 'custom') !== false) { // it's a custom plan, potentially new.
@@ -888,7 +960,7 @@ function sdf_do_stripe($data) {
 		} else { // default plans.
 			$plan = sdf_get_stripe_default_plan($data['donation']);
 		}
-		echo sdf_create_subscription($plan, sdf_create_stripe_customer($data));
+		sdf_create_subscription($plan, sdf_create_stripe_customer($data));
 	}
 }
 
@@ -899,7 +971,15 @@ function sdf_create_stripe_customer($data) {
 		'email' => $data['email'],
 		'description' => $data['name'],
 	);
-	return Stripe_Customer::create($new_customer);
+
+	$customer;
+	try {
+		$customer = Stripe_Customer::create($new_customer);
+	} catch(Stripe_Error $e) {
+		$body = $e->getJsonBody();
+		sdf_message_handler('log', __FUNCTION__ . ' : ' . $body['error']['message']);
+	}
+	return  $customer;
 }
 
 function sdf_get_stripe_default_plan($id) {
@@ -915,39 +995,42 @@ function sdf_get_stripe_default_plan($id) {
 }
 
 function sdf_create_custom_stripe_plan($recurrence, $amount) {
-	// if($amount > 50) {
-		sdf_include_stripe_api();
-		$plan_id_slug = array(
-			'year' => 'annual-',
-			'month' => 'monthly-'
-		);
-		$plan_id = $plan_id_slug[$recurrence] . ($amount / 100);
-		try {
-			$plan = Stripe_Plan::retrieve($plan_id);
-		} catch(Stripe_InvalidRequestError $e) {
-			$errmsg = 'No such plan: ' . $plan_id;
-			$body = $e->getJsonBody();
-			if($body['error']['message'] == $errmsg) {
-				$new_plan = array(
-					'id' => $plan_id,
-					'currency' => 'USD',
-					'interval' => $recurrence,
-					'amount' => $amount,
-					'name' => '$' . ($amount / 100) . ' ' . $recurrence . 'ly custom gift'
-				);
+	sdf_include_stripe_api();
+
+	// the default plan slugs are closer to human readable than the names used by stripe.
+	$plan_id_slug = array(
+		'year' => 'annual-',
+		'month' => 'monthly-'
+	);
+	$plan_id = $plan_id_slug[$recurrence] . ($amount / 100);
+
+	try {
+		$plan = Stripe_Plan::retrieve($plan_id);
+	} catch(Stripe_Error $e) {
+		$errmsg = 'No such plan: ' . $plan_id;
+		$body = $e->getJsonBody();
+
+		if($body['error']['message'] == $errmsg) {
+			$new_plan = array(
+				'id' => $plan_id,
+				'currency' => 'USD',
+				'interval' => $recurrence,
+				'amount' => $amount,
+				'name' => '$' . ($amount / 100) . ' ' . $recurrence . 'ly custom gift'
+			);
+
+			try {
 				$plan = Stripe_Plan::create($new_plan);
-			} else {
-				ob_clean();
-				echo $body['error']['message'];
-				die();
+			} catch(Stripe_Error $e) {
+				$body = $e->getJsonBody();
+				sdf_message_handler('log', __FUNCTION__ . ' : ' . $body['error']['message']);
 			}
+
+		} else {
+			sdf_message_handler('log', __FUNCTION__ . ' : ' . $body['error']['message']);
 		}
-		return $plan;
-	// } else {
-	// 	ob_clean();
-	// 	echo 'invalid_amount';
-	// 	die();
-	// // }
+	}
+	return $plan;
 }
 
 function sdf_single_charge($amount, $token, $email) {
@@ -961,20 +1044,29 @@ function sdf_single_charge($amount, $token, $email) {
 		));
 	} catch(Stripe_Error $e) {
 		$body = $e->getJsonBody();
-		return $body['error']['message'];
+		sdf_message_handler('error', $body['error']['message']);
 	}
-	return 'single_success';
+	sdf_message_handler('success', 'single_success');
 }
 
-function sdf_enqueue_admin_scripts() {
-	wp_enqueue_script(
-		'sdf_admin_js', // handle
-		plugins_url('sdf/js/admin.js'), // src
-		array('jquery') // dependencies
-	);
-	// exit();
-	// wp_enqueue_script( 'script-name', get_template_directory_uri() . '/js/example.js', array(), '1.0.0', true );
-}
+/* 
+The idea behind this is that since the stripe default plans create is so slow,
+because it's registering each plan individually, that once the private key is 
+set and valid, that we could set off a javascript insertion to the admin side only
+that would call default plan create asynchronously, and take the load off the user.
+However, the js never shows up in the admin side for some reason.
+*/
+
+// add_action('wp_ajax_sdf_stripe_default_plans_create', 'sdf_stripe_default_plans_create');
+
+// function sdf_enqueue_admin_scripts() {
+// 	wp_enqueue_script( 
+// 		'sdf_admin_js', // handle
+// 		plugins_url('sdf/js/admin.js'), // src
+// 		array('jquery') // dependencies
+// 	);
+// 	wp_enqueue_script( 'script-name', get_template_directory_uri() . '/js/example.js', array(), '1.0.0', true );
+// }
 
 // function sdf_stripe_default_plans_callback($old) {
 // 	wp_register_script(
@@ -983,14 +1075,21 @@ function sdf_enqueue_admin_scripts() {
 // 		array('jquery') // dependencies
 // 	);
 // 	wp_enqueue_script('sdf_admin_js');
-// 	//wp_register_script( 'script-name', get_template_directory_uri() . '/js/example.js', array(), '1.0.0', true );
-// 	//add_action('admin_enqueue_scripts', 'sdf_enqueue_admin_scripts');
-// 	//add_action('admin_print_scripts_' . 'spark-form-admin', 'sdf_enqueue_admin_scripts');
+//	wp_register_script( 'script-name', get_template_directory_uri() . '/js/example.js', array(), '1.0.0', true );
+//	add_action('admin_enqueue_scripts', 'sdf_enqueue_admin_scripts');
+//	add_action('admin_print_scripts_' . 'spark-form-admin', 'sdf_enqueue_admin_scripts');
 // }
 
 function sdf_stripe_default_plans_create() {
 	sdf_include_stripe_api();
-	if(!Stripe_Plan::all()->count) { // XXX catch errors here
+	try {
+		$count = Stripe_Plan::all()->count;
+	} catch(Stripe_Error $e) {
+		$body = $e->getJsonBody();
+		sdf_message_handler('log', __FUNCTION__ . ' : ' . $body['error']['message']);
+	}
+
+	if(!$count) {
 		$plans = array(
 			array(
 				'id' => 'annual-75',
@@ -1077,28 +1176,27 @@ function sdf_stripe_default_plans_create() {
 				'name' => '$200 Monthly Gift',
 			),
 		);
+
 		foreach($plans as $plan) {
 			try {
 				Stripe_Plan::create($plan);
-			} catch(Stripe_Error $e) { // XXX
+			} catch(Stripe_Error $e) {
 				$body = $e->getJsonBody();
-				print_r($body);
-				exit();
+				sdf_message_handler('log', __FUNCTION__ . ' : ' . $body['error']['message']);
 			}
 		}
 	}
 }
 
 function sdf_create_subscription($plan, $customer) {
+	$sforce = sdf_include_salesforce_api();
 	try {
 		$customer->updateSubscription(array('plan' => $plan->id));	
 	} catch(Stripe_Error $e) {
-		ob_clean();
 		$body = $e->getJsonBody();
-		print_r($body);
-		exit(); // XXX
+		sdf_message_handler('error', $body['error']['message']);
 	}
-	return 'subscribe_success';
+	sdf_message_handler('success', 'subscription_success');
 }
 
 function sdf_include_stripe_api($input = null) {
@@ -1150,28 +1248,51 @@ function sdf_deactivate() {
 		'salesforce_token',
 		'sdf_salesforce_api_check'
 	);
+	wp_clear_scheduled_event(
+		'sdf_bimonthly_hook'
+	);
 }
 
 function sdf_message_handler($type, $message) {
-	// we expect type to be one of: error, success, log
-	// log messages are written to a file in the plugin dir
-	// if we have write permissions
-	// success messages are passed as an object to the waiting js
+	// type = ('error' | 'success' | 'log')
+	// all messages are written to sdf.log
+	// rotated every two months
+	// success and error messages are passed as an object to the waiting js
 	// the data structure is json, and should be very simple.
 	// data.type = error | success
 	// data.message = message
 
-	// we may need to implement a queue of messages...
 	if($type != 'log') {
+		ob_clean();
 		$data = array(
 			'type' => $type,
 			'message' => $message
 		);
 		echo json_encode($data);
+		ob_flush();
 	} else {
 		$logmessage = time() . ' - ' . $type . ' - ' . $message . "\n";
 		file_put_contents(WP_PLUGIN_DIR . '/sdf/sdf.log', $logmessage, FILE_APPEND);
 	}
+}
+
+function sdf_activate() {
+	wp_schedule_event(
+		current_time ('timestamp'), // timestamp
+		'bimonthly', // recurrence
+		'sdf_bimonthly_hook' // hook
+	);
+}
+
+function sdf_clean_log() {
+	file_put_contents(WP_PLUGIN_DIR . '/sdf/sdf.log', '');
+}
+
+function sdf_add_bimonthly($schedules) {
+	$schedules['bimonthly'] = array(
+		'interval' => 5300000,
+		'display' => 'Every Two Months'
+	);
 }
 
 if(is_admin()) {
@@ -1180,9 +1301,10 @@ if(is_admin()) {
 	// http://codex.wordpress.org/AJAX_in_Plugins#Ajax_on_the_Viewer-Facing_Side
 	add_action('wp_ajax_sdf_parse', 'sdf_parse');
 	add_action('wp_ajax_nopriv_sdf_parse', 'sdf_parse');
-	add_action('wp_ajax_sdf_stripe_default_plans_create', 'sdf_stripe_default_plans_create');
 }
 add_action('template_redirect', 'sdf_template');
 add_action('wp_head', 'sdf_ajaxurl');
+add_filter('cron_schedules', 'sdf_add_bimonthly');
+add_action('sdf_bimonthly_hook', 'sdf_clean_log');
+register_activation_hook(__FILE__, 'sdf_activate');
 register_deactivation_hook(__FILE__, 'sdf_deactivate');
-//add_action('update_option_stripe_api_secret_key', 'sdf_stripe_default_plans_callback'); // XXX
