@@ -1321,7 +1321,7 @@ function sdf_deactivate() {
 		'salesforce_token',
 		'sdf_salesforce_api_check'
 	);
-	wp_clear_scheduled_event(
+	wp_clear_scheduled_hook(
 		'sdf_bimonthly_hook'
 	);
 }

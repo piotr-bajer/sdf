@@ -5,14 +5,6 @@ Date: September
 Provides client ajax functions for the donation form.
 */
 
-//XXX one bug with the custom amount boxes.
-// if you enter a number in one
-// and then click the other
-// you will lose the value in the first input
-// but the radio button wont switch
-// tabbing through works correctly.
-
-
 (function($) {
 	'use strict';
 
@@ -116,8 +108,7 @@ Provides client ajax functions for the donation form.
 	function doSubmit() {
 		var form = $('#sdf_form form')[0];
 
-		$(form).append('<div id="loading"></div>');
-		$('#loading').css({left: ((window.innerWidth / 2) - 90) + 'px'});
+		$('body').append('<div id="loading"></div>');
 		spinner.spin(document.getElementById('loading'));
 
 		if(form.checkValidity()) {
@@ -135,7 +126,7 @@ Provides client ajax functions for the donation form.
 				address_country: $('#cc-country').val()
 			};
 			Stripe.card.createToken(cardData, stripeResponseHandler);
-			$('a#js-form-submit').addClass('disabled').next('span img').prop('src', '/img/button-grey-tip.png');
+			$('a#js-form-submit').addClass('disabled').parent().find('img').prop('src', '/img/button-grey-tip.png');
 		} else {
 			spinner.stop();
 			// iterate through the inputs to mark those that aren't valid.
@@ -144,26 +135,6 @@ Provides client ajax functions for the donation form.
 			});
 		}
 	}
-
-	var opts = {
-		lines: 9, // The number of lines to draw
-		length: 3, // The length of each line
-		width: 4, // The line thickness
-		radius: 19, // The radius of the inner circle
-		corners: 0.4, // Corner roundness (0..1)
-		rotate: 9, // The rotation offset
-		direction: 1, // 1: clockwise, -1: counterclockwise
-		color: '#000', // #rgb or #rrggbb or array of colors
-		speed: 0.7, // Rounds per second
-		trail: 46, // Afterglow percentage
-		shadow: true, // Whether to render a shadow
-		hwaccel: true, // Whether to use hardware acceleration
-		className: 'spinner', // The CSS class to assign to the spinner
-		zIndex: 2e9, // The z-index (defaults to 2000000000)
-		top: 'auto', // Top position relative to parent in px
-		left: 'auto' // Left position relative to parent in px
-	},
-	spinner = new Spinner(opts);
 
 	function clear_notification(timeout) {
 		timeout = timeout || 10000;
@@ -208,11 +179,31 @@ Provides client ajax functions for the donation form.
 				clear_loading();
 				data = JSON.parse(data);
 				$('.alert').append('<p class="'	+ data.type + '">' + data.message + '</p>').show();
-				document.getElementsByClassName('alert')[0].scrollIntoVies();
+				document.getElementsByClassName('alert')[0].scrollIntoView();
 				clear_notification();
 			});
 		}
 	}
+
+	var opts = {
+		lines: 9, // The number of lines to draw
+		length: 3, // The length of each line
+		width: 4, // The line thickness
+		radius: 19, // The radius of the inner circle
+		corners: 0.4, // Corner roundness (0..1)
+		rotate: 9, // The rotation offset
+		direction: 1, // 1: clockwise, -1: counterclockwise
+		color: '#000', // #rgb or #rrggbb or array of colors
+		speed: 0.7, // Rounds per second
+		trail: 46, // Afterglow percentage
+		shadow: true, // Whether to render a shadow
+		hwaccel: true, // Whether to use hardware acceleration
+		className: 'spinner', // The CSS class to assign to the spinner
+		zIndex: 2e9, // The z-index (defaults to 2000000000)
+		top: 'auto', // Top position relative to parent in px
+		left: 'auto' // Left position relative to parent in px
+	},
+	spinner = new Spinner(opts);
 
 	$(document).ready(function() {
 

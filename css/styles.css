@@ -8,7 +8,7 @@ September 2013
 .hideme {
 	display:none;
 }
-:invalid {
+input:invalid {
 	background-color: white;
 	color:inherit;
 }
@@ -116,9 +116,6 @@ input.amount[type="radio"] {
 	display: block;
 	margin-left: 165px;
 }
-#js-form-submit {
-	cursor: pointer;
-}
 #sdf_form div.button-dark a {
 	padding-top: 6px;
 }
@@ -173,5 +170,9 @@ a.disabled {
 	margin: 0 20px 20px 0;
 	position:fixed;
 	top:0;
-	left:200px;
+	left:50%;
+	margin-left:-90px;
+}
+.alert {
+	padding-top: 1.5em;
 }
