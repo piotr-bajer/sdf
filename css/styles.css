@@ -8,9 +8,19 @@ September 2013
 .hideme {
 	display:none;
 }
-input:invalid {
+:invalid {
 	background-color: white;
 	color:inherit;
+}
+input.field-error,
+input.field-custom-error {
+	background-color: red;
+	color:white;
+}
+span.label-required {
+	font-weight: 700;
+	color:red;
+	font-size: 1.25em;
 }
 .membership-level {
 	background-color: #EF4AA8;
@@ -90,9 +100,16 @@ input.wider {
 input#cc-cvc {
 	width:47px;
 }
-input[type="number"] {
-	width:60px;
+input.date-input,
+input.money-amount {
+	width:65px;
 	margin-right: 0;
+}
+input.state-width {
+	width:120px;
+}
+input.amount[type="radio"] {
+	cursor: pointer;
 }
 #sdf_form div.button-dark {
 	clear:both;
@@ -142,4 +159,19 @@ p.error {
 h3 {
 	text-transform: uppercase;
 }
-
+a.disabled {
+	cursor:default;
+	background-color: #C2C2C2;
+}
+#loading {
+	background: #444;
+	opacity: 0.9;
+	color: #FFF;
+	float: left;
+	width: 180px;
+	height: 80px;
+	margin: 0 20px 20px 0;
+	position:fixed;
+	top:0;
+	left:200px;
+}

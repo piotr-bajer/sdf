@@ -15,6 +15,7 @@ Provides client ajax functions for the donation form.
 
 (function($) {
 	'use strict';
+
 	// http://stackoverflow.com/questions/1184624/convert-form-data-to-js-object-with-jquery/1186309#1186309
 	$.fn.serializeObject = function() {
 		var o = {};
@@ -32,33 +33,158 @@ Provides client ajax functions for the donation form.
 		return o;
 	};
 
-	var callbacks = {
-		single_success: function() {
-			clear_loading();
-			$('.alert').append('<p class="success">Thank you for your support! Expect an email with the details.</p>')
-				.show();
-			clear_notification();
-		},
-		subscribe_success: function() {
-			clear_loading();
-			$('.alert').append('<p class="success">Thank you for your support! You have signed up for a recurring donation. Expect an email with the details.</p>')
-				.show();
-			clear_notification();
+	function hasPlaceholderSupport() {
+		var input = document.createElement('input');
+		return ('placeholder' in input);
+	}
+
+	function copyPersonalInfo() {
+		// copy fields and gray out
+		if($('.js-copy-personal-info').attr('checked') == 'checked') {
+
+			$('#js-cc-fields input').each(function(k, v) {
+				$(v).val($('#' + $(v).attr('name').substr(3)).val()).removeClass('field-error');
+			});
+
+			$('#cc-name').val($('#first-name').val() + ' ' + $('#last-name').val());
+			$('#cc-country').val($('#country').val());
+
+			$('#js-cc-fields').fadeTo('fast', 0.5, function() {
+				$('#js-cc-fields input').each(function(k, v) {
+					$(v).prop('readonly', true);
+				});
+				$('#cc-country').prop('disabled', true);
+			});
+
+		} else {
+
+			$('#js-cc-fields').fadeTo('fast', 1, function() {
+				$('#js-cc-fields input').each(function(k, v) {
+					$(v).prop('readonly', false);
+				});
+
+				$('#cc-country').prop('disabled', false);
+			});
+
 		}
+	}
+
+	function futureDate() {
+		// Validate CC date.
+		var inputyear = parseInt($('#cc-exp-year').val()),
+			inputmo = parseInt($('#cc-exp-mo').val());
+
+		if(inputyear < 30) {
+			inputyear += 2000;
+		}
+
+		var date = new Date(inputyear, inputmo),
+			now = new Date();
+
+		now.setHours(0, 0, 0, 0);
+
+		if(now.getTime() - date.getTime() > 0) {
+			// This could be improved by comparing the years,
+			// and if the input year is the same as this year,
+			// then only highlighting the month as incorrect.
+			// Using custom error to not interfere with h5Validate.
+			$('#cc-exp-mo, #cc-exp-year').addClass('field-custom-error');
+		} else {
+			$('#cc-exp-mo, #cc-exp-year').removeClass('field-custom-error');
+		}
+	}
+
+	function hearAboutChange() {
+		var select = $('#hearabout')[0];
+		if($(select.options[select.selectedIndex]).hasClass('js-select-extra')) {
+			$('#js-select-extra-name').html(select.options[select.selectedIndex].value + ':');
+			$('#js-select-extra-input').show();
+		} else {
+			$('#hearabout-extra').val('');
+			$('#js-select-extra-input').hide();
+		}
+	}
+
+	function clearCustomAmounts() {
+		if(!$(this).hasClass('js-custom-amount')) {
+			$('.js-custom-amount').each(function(k, v) {
+				$(v).val('');
+			});
+		}
+	}
+
+	function doSubmit() {
+		var form = $('#sdf_form form')[0];
+
+		$(form).append('<div id="loading"></div>');
+		$('#loading').css({left: ((window.innerWidth / 2) - 90) + 'px'});
+		spinner.spin(document.getElementById('loading'));
+
+		if(form.checkValidity()) {
+			var cardData = {
+				number: $('#cc-number').val(),
+				cvc: $('#cc-cvc').val(),
+				exp_month: $('#cc-exp-mo').val(),
+				exp_year: $('#cc-exp-year').val(),
+				name: $('#cc-name').val(),
+				address_line1: $('#cc-address1').val(),
+				address_line2: $('#cc-address2').val(),
+				address_city: $('#cc-city').val(),
+				address_state: $('#cc-state').val(),
+				address_zip: $('#cc-zip').val(),
+				address_country: $('#cc-country').val()
+			};
+			Stripe.card.createToken(cardData, stripeResponseHandler);
+			$('a#js-form-submit').addClass('disabled').next('span img').prop('src', '/img/button-grey-tip.png');
+		} else {
+			spinner.stop();
+			// iterate through the inputs to mark those that aren't valid.
+			$('#sdf_form input:invalid').each(function(k, v) {
+				$(v).addClass('field-error');
+			});
+		}
+	}
+
+	var opts = {
+		lines: 9, // The number of lines to draw
+		length: 3, // The length of each line
+		width: 4, // The line thickness
+		radius: 19, // The radius of the inner circle
+		corners: 0.4, // Corner roundness (0..1)
+		rotate: 9, // The rotation offset
+		direction: 1, // 1: clockwise, -1: counterclockwise
+		color: '#000', // #rgb or #rrggbb or array of colors
+		speed: 0.7, // Rounds per second
+		trail: 46, // Afterglow percentage
+		shadow: true, // Whether to render a shadow
+		hwaccel: true, // Whether to use hardware acceleration
+		className: 'spinner', // The CSS class to assign to the spinner
+		zIndex: 2e9, // The z-index (defaults to 2000000000)
+		top: 'auto', // Top position relative to parent in px
+		left: 'auto' // Left position relative to parent in px
 	},
-	clear_loading = function() {
-		$('#sdf_form').remove();
-		$('body').animate({scrollTop: 0}, 300);
-	},
-	clear_notification = function(timeout) {
+	spinner = new Spinner(opts);
+
+	function clear_notification(timeout) {
 		timeout = timeout || 10000;
 		setTimeout(function() {
 			$('.alert').first('p').fadeTo('fast', 0, function() {
 				$(this).animate({height: 0}, 'fast').remove();
 			});
+			redirect();
 		}, timeout);
-	},
-	stripeResponseHandler = function(status, response) {
+	}
+
+	function clear_loading() {
+		spinner.stop();
+		$('#loading').remove();
+	}
+
+	function redirect() {
+		window.location.href = window.location.hostname + '/donation-confirmation/';
+	}
+
+	function stripeResponseHandler(status, response) {
 		var data = {};
 		response = (typeof response !== 'undefined') ? response : {};
 		if(response.error) {
@@ -77,147 +203,120 @@ Provides client ajax functions for the donation form.
 
 			$.post(ajaxurl, {
 				action: 'sdf_parse',
-				data: data, // XXX money format remove on the custom amounts fields
+				data: data,
 			}, function(data) {
-				callbacks[data]();
+				clear_loading();
+				data = JSON.parse(data);
+				$('.alert').append('<p class="'	+ data.type + '">' + data.message + '</p>').show();
+				document.getElementsByClassName('alert')[0].scrollIntoVies();
+				clear_notification();
 			});
 		}
-	},
-	formValidity = function() {
-		// XXX don't allow below a certain value in the custom amounts.
-	};
+	}
 
 	$(document).ready(function() {
-		$('input').blur(function(event) {
-			event.target.checkValidity(); // XXX
+
+		if(!hasPlaceholderSupport()) {
+			var inputs = document.getElementsByTagName('input');
+			for(var i = 0, count = inputs.length; i < count; i++) {
+				if(inputs[i].getAttribute('placeholder')) {
+					inputs[i].style.cssText = "color:#939393;"
+					inputs[i].value = inputs[i].getAttribute("placeholder");
+					inputs[i].onclick = function(){
+						if(this.value == this.getAttribute("placeholder")) {
+							this.value = '';
+							this.style.cssText = "color:#000;font-style:normal;"
+						}
+					}
+					inputs[i].onblur = function(){
+						if(this.value == ''){
+							this.value = this.getAttribute("placeholder");
+							this.style.cssText = "color:#939393;"
+						}
+					}
+				}
+			}
+		}
+
+		$('.js-custom-amount-click').click(function() {
+			$(this).nextAll('.js-custom-amount').focus();
 		});
 
 		$('.js-custom-amount').focus(function() {
-			// Also, when a custom amount has been entered, clear the custom amounts.
-			// if none of them have values...
-			// need to differentiate between clicks and tabbed focus.
-			// event.which 9 is tab 1 is click
+			// This part of the code handles when all the inputs are empty.
+			// It switches the radio button.
+
 			var clicked = this,
 				all_empty = true;
+
 			$('.js-custom-amount').each(function(k, v) {
 				if($(v).val().length) {
 					all_empty = false;
 				}
 			});
-			if(all_empty) { // XXX needs to work in firefox too, the behavior is okay but isn't exactly the same. focusing on an empty box when there is a full box will clear the other text box but won't move the radio selection.
-				$(clicked).prev('.js-custom-amount-click').prop('checked', 'checked');
+
+			if(all_empty) {
+				// this will select the radio if you focus on a custom input.
+				$(clicked).prevAll('.js-custom-amount-click').prop('checked', 'checked');
 			}
+
+		}).click(function() {
+			// This part of the code allows you to click focus an input
+			// assuming that clicks take precedence.
+
+			if($(this).val().length) {
+				// The click event is clearing the content.
+				// I would like to just select it instead.
+				$(this).select();
+				return;
+			} else {
+				$('.js-custom-amount').each(function(k, v) {
+					$(v).val('');
+				});
+
+				$(this).prevAll('.js-custom-amount-click').prop('checked', 'checked');
+			}
+
 		}).keydown(function(event) {
-			// if it has a value, clear all others
-			// if this key isn't a control key
+			// This part of the code handles when one of the inputs has content.
+			// It allows you to tab through the other input without clearing
+			// the one that you just interacted with.
+			// Can be improved by allowing shift-tabs.
+
 			var keyCode = event.keyCode || event.which;
-			if(keyCode != (9 || 13)) { // tab character
+
+			if(keyCode != 9) {
+				// if it's not a tab, then we change the selected radio and dump the inputs.
 				if(!$(this).val().length) {
+
 					$(this).prevAll('.js-custom-amount-click').prop('checked', 'checked');
-					var dont_clear = this;
+					var dont_clear = this; // keep the just entered value.
+
 					$('.js-custom-amount').each(function(k, v) {
 						if(v != dont_clear) {
 							$(v).val('');
 						}
 					});
 				}
-			}
+			} 
 		});
 
-		$('.amount').click(function() {
-			if(!$(this).hasClass('.js-custom-amount')) {
-				$('.js-custom-amount').each(function(k, v) {
-					$(v).val('');
-				});
-			}
+		$('.amount').click(clearCustomAmounts);
+
+		$('#hearabout').change(hearAboutChange);
+
+		$('.js-copy-personal-info').click(copyPersonalInfo);
+
+		$('a#js-form-submit.disabled').click(function() {
+			return false;
 		});
 
-		$('.js-custom-amount-click').click(function() {
-			$(this).nextAll('.js-custom-amount').focus();
+		$('#sdf_form form').h5Validate({
+			errorClass: 'field-error'
 		});
 
-		$('#hearabout').change(function() {
-			var select = $('#hearabout')[0];
-			if($(select.options[select.selectedIndex]).hasClass('js-select-extra')) {
-				$('#js-select-extra-name').html(select.options[select.selectedIndex].value + ':');
-				$('#js-select-extra-input').show();
-			} else {
-				$('#hearabout-extra').val('');
-				$('#js-select-extra-input').hide();
-			}
-		});
+		$('#cc-exp-year').on('focusout', futureDate);
 
-		$('.js-copy-personal-info').click(function() {
-			// copy fields and  gray out
-			if($('.js-copy-personal-info').attr('checked') == 'checked') {
-				$('#js-cc-fields input').each(function(k, v) {
-					$(v).val($('#' + $(v).attr('name').substr(3)).val());
-				});
-				$('#cc-name').val($('#first-name').val() + ' ' + $('#last-name').val());
-				$('#cc-country').val($('#country').val());
-				$('#js-cc-fields').fadeTo('fast', 0.5, function() {
-					$('#js-cc-fields input').each(function(k, v) {
-						$(v).prop('readonly', true);
-					});
-					$('#cc-country').prop('disabled', true);
-				});
-			} else {
-				$('#js-cc-fields').fadeTo('fast', 1, function() {
-					$('#js-cc-fields input').each(function(k, v) {
-						$(v).prop('readonly', false);
-					});
-					$('#cc-country').prop('disabled', false);
-				});
-			}
-			
-		});
-
-		$('#js-form-submit').click(function() {
-			//$('#js-form-submit').prop('disabled', true); // XXX
-			// console.log('checking form validity'); // XXX
-			// do something to look like you're loading.
-			var cardData = {
-				number: $('#cc-number').val(),
-				cvc: $('#cc-cvc').val(),
-				exp_month: $('#cc-exp-mo').val(),
-				exp_year: $('#cc-exp-year').val(),
-				name: $('#cc-name').val(),
-				address_line1: $('#cc-address1').val(),
-				address_line2: $('#cc-address2').val(),
-				address_city: $('#cc-city').val(),
-				address_state: $('#cc-state').val(),
-				address_zip: $('#cc-zip').val(),
-				address_country: $('#cc-country').val()
-			};
-			Stripe.card.createToken(cardData, stripeResponseHandler);
-		});
+		$('#js-form-submit').click(doSubmit);
 	});
-})(jQuery)
-
-	// XXX
-  // function hasPlaceholderSupport() {
-  //   var input = document.createElement('input');
-  //   return ('placeholder' in input);
-  // }
-
-  // if(!hasPlaceholderSupport()){
-  //   var inputs = document.getElementsByTagName('input');
-  //   for(var i=0,count=inputs.length;i<count;i++){
-  //     if(inputs[i].getAttribute('placeholder')){
-  //       inputs[i].style.cssText = "color:#939393;"
-  //       inputs[i].value = inputs[i].getAttribute("placeholder");
-  //       inputs[i].onclick = function(){
-  //         if(this.value == this.getAttribute("placeholder")){
-  //           this.value = '';
-  //           this.style.cssText = "color:#000;font-style:normal;"
-  //         }
-  //       }
-  //       inputs[i].onblur = function(){
-  //         if(this.value == ''){
-  //           this.value = this.getAttribute("placeholder");
-  //           this.style.cssText = "color:#939393;"
-  //         }
-  //       }
-  //     }
-  //   }
-  // }
+}(jQuery));

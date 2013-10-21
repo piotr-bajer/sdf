@@ -23,7 +23,7 @@ function sdf_get_form() { ?>
 				<input class="amount" type="radio" name="donation" id="annual-500" value="annual-500" required><label for="annual-500">$500</label>
 				<input class="amount" type="radio" name="donation" id="annual-1000" value="annual-1000" required><label for="annual-1000">$1000</label>
 				<input class="amount" type="radio" name="donation" id="annual-2500" value="annual-2500" required><label for="annual-2500">$2500</label>
-				<input class="amount js-custom-amount-click" type="radio" name="donation" id="annual-custom" value="annual-custom-amount" required><label for="annual-custom-amount">Custom amount:</label><input class="amount money-amount js-custom-amount" type="number" id="annual-custom-amount" name="annual-custom-amount" >
+				<input class="amount js-custom-amount-click" type="radio" name="donation" id="annual-custom" value="annual-custom-amount" required><label for="annual-custom-amount">Custom amount:</label><input class="amount money-amount js-custom-amount" type="text" id="annual-custom-amount" name="annual-custom-amount" pattern="^[$]?\d+([.]\d{2})?$">
 			</fieldset>
 			<fieldset>
 				<legend>Make a monthly gift:</legend>
@@ -33,7 +33,7 @@ function sdf_get_form() { ?>
 				<input class="amount" type="radio" name="donation" id="monthly-50" value="monthly-50" required><label for="monthly-50">$50</label>
 				<input class="amount" type="radio" name="donation" id="monthly-100" value="monthly-100" required><label for="monthly-100">$100</label>
 				<input class="amount" type="radio" name="donation" id="monthly-200" value="monthly-200" required><label for="monthly-200">$200</label>
-				<input class="amount js-custom-amount-click" type="radio" name="donation" id="monthly-custom" value="monthly-custom-amount" required><label for="monthly-custom-amount">Custom amount:</label><input class="amount money-amount js-custom-amount" type="number" id="monthly-custom-amount" name="monthly-custom-amount" >
+				<input class="amount js-custom-amount-click" type="radio" name="donation" id="monthly-custom" value="monthly-custom-amount" required><label for="monthly-custom-amount">Custom amount:</label><input class="amount money-amount js-custom-amount" type="text" id="monthly-custom-amount" name="monthly-custom-amount" pattern="^[$]?\d+([.]\d{2})?$">
 			</fieldset>
 			<hr class="dashed-line">
 			<div class="wider">
@@ -44,10 +44,10 @@ function sdf_get_form() { ?>
 				<select name="hearabout" id="hearabout">
 					<option value="">--</option>
 					<option value="Renewing Membership">Renewing Membership</option>
-					<option value="friend" class="js-select-extra">Friend</option>
+					<option value="Friend" class="js-select-extra">Friend</option>
 					<option value="Website">Website</option>
 					<option value="Search">Search</option>
-					<option value="event" class="js-select-extra">Event</option>
+					<option value="Event" class="js-select-extra">Event</option>
 				</select>
 				<br>
 				<div id="js-select-extra-input" class="hideme">
@@ -59,7 +59,7 @@ function sdf_get_form() { ?>
 			</div>
 			<hr class="dashed-line">
 			<h3>A little about you:</h3>
-			<label for"first-name">Name:</label>
+			<label for"first-name">Name: <span class="label-required">*</span></label>
 			<input name="first-name" id="first-name" type="text" placeholder="First" required>
 			<input name="last-name" id="last-name" type="text" placeholder="Last" required>
 			<br>
@@ -67,9 +67,9 @@ function sdf_get_form() { ?>
 			<input class="wider" type="text" id="company" name="company">
 			<br>
 			<label for="birthday-month">Birthday:</label>
-			<input maxlength="2" type="number" id="birthday-month" name="birthday-month" placeholder="Month">
+			<input maxlength="2" id="birthday-month" class="date-input" name="birthday-month" pattern="[2-9]|1[0-2]?" placeholder="Month">
 			<span id="bday-separator">/</span>
-			<input maxlength="2" type="number" id="birthday-day" name="birthday-day" placeholder="Day">
+			<input maxlength="2" id="birthday-day" class="date-input" name="birthday-day" pattern="([0-2]?[1-9]|3[01])" placeholder="Day">
 			<br>
 			<label for="gender">Gender:</label>
 			<select name="gender" id="gender">
@@ -79,13 +79,13 @@ function sdf_get_form() { ?>
 				<option value="other">Other</option>
 			</select>
 			<br>
-			<label for"email">E-mail:</label>
-			<input class="wider" name="email" id="email" type="email" required>
+			<label for"email">E-mail: <span class="label-required">*</span></label>
+			<input class="wider h5-email" name="email" id="email" type="email" required>
 			<br>
-			<label for"tel">Phone:</label>
-			<input maxlength="15" name="tel" id="tel" type="text" required>
+			<label for"tel">Phone: <span class="label-required">*</span></label>
+			<input class="h5-phone" maxlength="15" name="tel" id="tel" type="text" required>
 			<br>
-			<label for"address1">Street Address:</label>
+			<label for"address1">Street Address: <span class="label-required">*</span></label>
 			<input class="wider" name="address1" id="address1" type="text" required>
 			<br>
 			<label for"address2">Address 2:</label>
@@ -93,40 +93,40 @@ function sdf_get_form() { ?>
 			<br>
 			<div class="address-padding cf">
 				<div>
-					<label for"city">City:</label>
+					<label for"city">City: <span class="label-required">*</span></label>
 					<input name="city" id="city" type="text" required>
 				</div>
 				<div>
-					<label for"state">State/Province:</label>
-					<input name="state" id="state" type="text" required>
+					<label for"state">State/Province: <span class="label-required">*</span></label>
+					<input class="state-width" name="state" id="state" type="text" maxlength="2" pattern="[A-Z]{2}" required>
 				</div>
 				<div class="last">
-					<label for"zip">ZIP/Postal Code:</label>
-					<input maxlength="10" name="zip" id="zip" type="text" required>
+					<label for"zip">ZIP/Postal Code: <span class="label-required">*</span></label>
+					<input maxlength="10" name="zip" id="zip" type="text" pattern="^\d{5}(-\d{4})?$" required>
 				</div>
 			</div>
 			<label for="country">Country:</label>
 			<?php sdf_get_country_select('country'); ?>
 			<hr class="dashed-line">
 			<h3>Billing Information:</h3>
-			<label for="cc-number">Credit Card Number:</label>
-			<input maxlength="16" type="text" id="cc-number" name="cc-number" required>
+			<label for="cc-number">Credit Card Number: <span class="label-required">*</span></label>
+			<input maxlength="16" type="text" id="cc-number" name="cc-number" pattern="[\d]{15,16}" required>
 			<br>
-			<label for="cc-cvc">Security Code:</label>
-			<input maxlength="4" type="text" id="cc-cvc" name="cc-cvc" required>
+			<label for="cc-cvc">Security Code: <span class="label-required">*</span></label>
+			<input maxlength="4" type="text" id="cc-cvc" name="cc-cvc" pattern="[\d]{3,4}" required>
 			<br>
-			<label for="cc-exp-mo">Expiration Date:</label>
-			<input maxlength="2" type="number" id="cc-exp-mo" name="cc-exp-mo" placeholder="Month" required>
+			<label for="cc-exp-mo">Expiration Date: <span class="label-required">*</span></label>
+			<input maxlength="2" id="cc-exp-mo" class="date-input" name="cc-exp-mo" placeholder="Month" pattern="[2-9]|1[0-2]?" required>
 			<span id="cc-exp-separator">/</span>
-			<input maxlength="4" type="number" id="cc-exp-year" name="cc-exp-year" placeholder="Year" required>
+			<input maxlength="4" id="cc-exp-year" class="date-input" name="cc-exp-year" placeholder="Year" pattern="1[0-9]|20[\d]{2}" required>
 			<hr class="dashed-line">
 			<label id="copy-personal-info-label" for="copy-personal-info">Copy billing information from above?</label>
 			<input type="checkbox" id="copy-personal-info" class="js-copy-personal-info">
 			<div id="js-cc-fields">
-				<label for="cc-name">Name on Card:</label>
+				<label for="cc-name">Name on Card: <span class="label-required">*</span></label>
 				<input class="wider" type="text" id="cc-name" name="cc-name" required>
 				<br>
-				<label for="cc-address1">Billing Address:</label>
+				<label for="cc-address1">Billing Address: <span class="label-required">*</span></label>
 				<input class="wider" type="text" id="cc-address1" name="cc-address1" required>
 				<br>
 				<label for="cc-address2">Address 2:</label>
@@ -134,16 +134,16 @@ function sdf_get_form() { ?>
 				<br>
 				<div class="address-padding cf">
 					<div>
-						<label for="cc-city">City:</label>
+						<label for="cc-city">City: <span class="label-required">*</span></label>
 						<input type="text" id="cc-city" name="cc-city" required>
 					</div>
 					<div>
-						<label for="cc-state">State / Province:</label>
-						<input type="text" id="cc-state" name="cc-state" required>
+						<label for="cc-state">State / Province: <span class="label-required">*</span></label>
+						<input class="state-width" type="text" id="cc-state" name="cc-state" maxlength="2" pattern="[A-Z]{2}" required>
 					</div>
 					<div class="last">
-						<label for="cc-zip">ZIP / Postal Code:</label>
-						<input maxlength="10" type="text" id="cc-zip" name="cc-zip" required>
+						<label for="cc-zip">ZIP / Postal Code: <span class="label-required">*</span></label>
+						<input maxlength="10" type="text" id="cc-zip" name="cc-zip" pattern="^\\d{5}(-\\d{4})?$" required>
 					</div>
 				</div>
 				<label for="cc-country">Country:</label>
@@ -164,7 +164,7 @@ function sdf_get_form() { ?>
 <?php } // end function sdf_get_form
 
 function sdf_get_country_select($name_attr) { ?>
-	<select name="<?php echo $name_attr; ?>" id="<?php echo $name_attr; ?>" required>
+	<select name="<?php echo $name_attr; ?>" id="<?php echo $name_attr; ?>">
 		<option value="">--</option>
 		<option value="United States">United States</option>
 		<option value="Afghanistan">Afghanistan</option>
@@ -421,7 +421,7 @@ function sdf_template() {
 
 function do_theme_redirect($url) {
 	global $post, $wp_query;
-	if (have_posts()) {
+	if(have_posts()) {
 		include($url);
 		die();
 	} else {
@@ -618,14 +618,90 @@ function sdf_parse() {
 		sdf_message_handler('log', __FUNCTION__ . ' No data received');
 		die();
 	} else {
-		$data = $_POST['data'];
+		$data = sdf_validate($_POST['data']);
 	}
-	$data['amount'] = sdf_get_amount(&$data);
 	$data['membership'] = sdf_get_membership(&$data);
 	sdf_do_salesforce(&$data);
 	sdf_do_stripe(&$data);
-	sdf_message_handler('success', 'end'); // triggers the redirection.
 	die(); // prevent trailing 0 from admin-ajax.php
+}
+
+function sdf_validate($data) {
+	$required_fields = array(
+		'donation',
+		'first-name',
+		'last-name',
+		'email',
+		'tel',
+		'address1',
+		'city',
+		'state',
+		'zip',
+		'stripe-token'
+	);
+	foreach($required_fields as $key) {
+		if(!array_key_exists($key, $data)) {
+			sdf_message_handler('error', 'Incomplete request.');
+		}
+	}
+
+	$data['email'] = filter_var($data['email'], FILTER_SANITIZE_EMAIL);
+	if(!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
+		sdf_message_handler('error', 'Invalid email.');
+	}
+
+	$hearabout_cats = array(
+		'Renewing Membership',
+		'Friend',
+		'Website',
+		'Search',
+		'Event'
+	);
+	if(!in_array($data['hearabout'], $hearabout_cats)) {
+		sdf_message_handler('log', 'Invalid hearabout category.');
+		unset($data['hearabout']);
+		unset($data['hearabout-extra']);
+	}
+
+	if(!(strlen($data['first-name']) || strlen($data['last-name']))) {
+		sdf_message_handler('error', 'Invalid request. Name field required');
+	}
+
+	$donation_cats = array(
+		'annual-75',
+		'annual-100',
+		'annual-250',
+		'annual-500',
+		'annual-1000',
+		'annual-2500',
+		'monthly-5',
+		'monthly-10',
+		'monthly-20',
+		'monthly-50',
+		'monthly-100',
+		'monthly-200',
+		'annual-custom-amount',
+		'monthly-custom-amount'
+	);
+	if(!in_array($data['donation'], $donation_cats)) {
+		sdf_message_handler('error', 'Invalid request. Donation amount is required.');
+	}
+
+	if(strpos($data['donation'], 'custom-amount') !== false) {
+		$donated_value = $data['annual-custom-amount'] || $data['monthly-custom-amount'];
+		if(!is_numeric($donated_value)) {
+			$donated_value = preg_replace('/([^0-9\\.])/i', '', $donated_value);
+		}
+		if($donated_value <= 0.50) {
+			sdf_message_handler('error', 'Invalid request. Donation amount too small.');
+		} else {
+			$data['amount'] = (int) ($donated_value * 100);
+		}
+	} else {
+		$data['amount'] = sdf_get_amount(&$data);
+	}
+
+	return $data;
 }
 
 function sdf_get_membership($data) {
@@ -690,9 +766,6 @@ function sdf_get_amount($data) {
 	);
 	if(in_array($data['donation'], array_keys($plan_amounts))) {
 		$amount = $plan_amounts[$data['donation']];
-	} else {
-		// custom amount
-		$amount = $data[$data['donation']] * 100;
 	}
 	return $amount;
 }
@@ -1046,7 +1119,7 @@ function sdf_single_charge($amount, $token, $email) {
 		$body = $e->getJsonBody();
 		sdf_message_handler('error', $body['error']['message']);
 	}
-	sdf_message_handler('success', 'single_success');
+	sdf_message_handler('success', 'Success! Thank you for your donation!');
 }
 
 /* 
@@ -1196,7 +1269,7 @@ function sdf_create_subscription($plan, $customer) {
 		$body = $e->getJsonBody();
 		sdf_message_handler('error', $body['error']['message']);
 	}
-	sdf_message_handler('success', 'subscription_success');
+	sdf_message_handler('success', 'Success! Thanks for supporting Spark into the future.');
 }
 
 function sdf_include_stripe_api($input = null) {
@@ -1270,10 +1343,11 @@ function sdf_message_handler($type, $message) {
 		);
 		echo json_encode($data);
 		ob_flush();
-	} else {
-		$logmessage = time() . ' - ' . $type . ' - ' . $message . "\n";
-		file_put_contents(WP_PLUGIN_DIR . '/sdf/sdf.log', $logmessage, FILE_APPEND);
+		die();
 	}
+
+	$logmessage = time() . ' - ' . $type . ' - ' . $message . "\n";
+	file_put_contents(WP_PLUGIN_DIR . '/sdf/sdf.log', $logmessage, FILE_APPEND);
 }
 
 function sdf_activate() {
