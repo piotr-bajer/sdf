@@ -22,7 +22,7 @@ get_header(); ?>
 <?php
 	wp_enqueue_script('sdf_validation', plugins_url('/sdf/js/h5validate/jquery.h5validate.js'), array('jquery'));
 	wp_enqueue_script('sdf_spin', plugins_url('/sdf/js/spin/spin.min.js'));
-	wp_enqueue_script('sdf_donate_form_js', plugins_url('/sdf/js/donate_form.js'), array('jquery')); 
+	wp_enqueue_script('sdf_donate_form_js', plugins_url('/sdf/js/donate_form.min.js'), array('jquery')); 
 ?>
 <script type="text/javascript">
 	Stripe.setPublishableKey("<?php echo get_option('stripe_api_public_key'); ?>");

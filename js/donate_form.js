@@ -152,7 +152,8 @@ Provides client ajax functions for the donation form.
 	}
 
 	function redirect() {
-		window.location.href = window.location.hostname + '/donation-confirmation/';
+		window.location.href = window.location.protocol + '//'
+			+ window.location.hostname + '/donation-confirmation/';
 	}
 
 	function stripeResponseHandler(status, response) {
@@ -185,18 +186,101 @@ Provides client ajax functions for the donation form.
 		}
 	}
 
+	function input_focus() {
+		// This part of the code handles when all the inputs are empty.
+		// It switches the radio button.
+
+		var clicked = this,
+			all_empty = true;
+
+		$('.js-custom-amount').each(function(k, v) {
+			if($(v).val().length) {
+				all_empty = false;
+			}
+		});
+
+		if(all_empty) {
+			// this will select the radio if you focus on a custom input.
+			$(clicked).prevAll('.js-custom-amount-click').prop('checked', 'checked');
+		}
+	}
+
+	function input_keydown() {
+		// This part of the code handles when one of the inputs has content.
+		// It allows you to tab through the other input without clearing
+		// the one that you just interacted with.
+		// Can be improved by allowing shift-tabs.
+
+		var keyCode = event.keyCode || event.which;
+
+		if(keyCode != 9) {
+			// if it's not a tab, then we change the selected radio and dump the inputs.
+			if(!$(this).val().length) {
+
+				$(this).prevAll('.js-custom-amount-click').prop('checked', 'checked');
+				var dont_clear = this; // keep the just entered value.
+
+				$('.js-custom-amount').each(function(k, v) {
+					if(v != dont_clear) {
+						$(v).val('');
+					}
+				});
+			}
+		}
+	}
+
+	function input_click() {
+		// This part of the code allows you to click focus an input
+		// assuming that clicks take precedence.
+
+		if($(this).val().length) {
+			// The click event is clearing the content.
+			// I would like to just select it instead.
+			$(this).select();
+			return;
+		} else {
+			$('.js-custom-amount').each(function(k, v) {
+				$(v).val('');
+			});
+
+			$(this).prevAll('.js-custom-amount-click').prop('checked', 'checked');
+		}
+	}
+
+	function placeholder_pf() {
+		var inputs = document.getElementsByTagName('input');
+		for(var i = 0, count = inputs.length; i < count; i++) {
+			if(inputs[i].getAttribute('placeholder')) {
+				inputs[i].style.cssText = 'color:#939393;'
+				inputs[i].value = inputs[i].getAttribute('placeholder');
+				inputs[i].onclick = function(){
+					if(this.value == this.getAttribute('placeholder')) {
+						this.value = '';
+						this.style.cssText = 'color:#000;font-style:normal;'
+					}
+				}
+				inputs[i].onblur = function(){
+					if(this.value == ''){
+						this.value = this.getAttribute('placeholder');
+						this.style.cssText = 'color:#939393;'
+					}
+				}
+			}
+		}
+	}
+
 	var opts = {
 		lines: 9, // The number of lines to draw
-		length: 3, // The length of each line
-		width: 4, // The line thickness
-		radius: 19, // The radius of the inner circle
-		corners: 0.4, // Corner roundness (0..1)
-		rotate: 9, // The rotation offset
+		length: 13, // The length of each line
+		width: 7, // The line thickness
+		radius: 26, // The radius of the inner circle
+		corners: 0.8, // Corner roundness (0..1)
+		rotate: 30, // The rotation offset
 		direction: 1, // 1: clockwise, -1: counterclockwise
-		color: '#000', // #rgb or #rrggbb or array of colors
+		color: '#FFF', // #rgb or #rrggbb or array of colors
 		speed: 0.7, // Rounds per second
-		trail: 46, // Afterglow percentage
-		shadow: true, // Whether to render a shadow
+		trail: 76, // Afterglow percentage
+		shadow: false, // Whether to render a shadow
 		hwaccel: true, // Whether to use hardware acceleration
 		className: 'spinner', // The CSS class to assign to the spinner
 		zIndex: 2e9, // The z-index (defaults to 2000000000)
@@ -205,92 +289,21 @@ Provides client ajax functions for the donation form.
 	},
 	spinner = new Spinner(opts);
 
+	// One function to bind them.
+
 	$(document).ready(function() {
 
 		if(!hasPlaceholderSupport()) {
-			var inputs = document.getElementsByTagName('input');
-			for(var i = 0, count = inputs.length; i < count; i++) {
-				if(inputs[i].getAttribute('placeholder')) {
-					inputs[i].style.cssText = "color:#939393;"
-					inputs[i].value = inputs[i].getAttribute("placeholder");
-					inputs[i].onclick = function(){
-						if(this.value == this.getAttribute("placeholder")) {
-							this.value = '';
-							this.style.cssText = "color:#000;font-style:normal;"
-						}
-					}
-					inputs[i].onblur = function(){
-						if(this.value == ''){
-							this.value = this.getAttribute("placeholder");
-							this.style.cssText = "color:#939393;"
-						}
-					}
-				}
-			}
+
 		}
 
 		$('.js-custom-amount-click').click(function() {
 			$(this).nextAll('.js-custom-amount').focus();
 		});
 
-		$('.js-custom-amount').focus(function() {
-			// This part of the code handles when all the inputs are empty.
-			// It switches the radio button.
-
-			var clicked = this,
-				all_empty = true;
-
-			$('.js-custom-amount').each(function(k, v) {
-				if($(v).val().length) {
-					all_empty = false;
-				}
-			});
-
-			if(all_empty) {
-				// this will select the radio if you focus on a custom input.
-				$(clicked).prevAll('.js-custom-amount-click').prop('checked', 'checked');
-			}
-
-		}).click(function() {
-			// This part of the code allows you to click focus an input
-			// assuming that clicks take precedence.
-
-			if($(this).val().length) {
-				// The click event is clearing the content.
-				// I would like to just select it instead.
-				$(this).select();
-				return;
-			} else {
-				$('.js-custom-amount').each(function(k, v) {
-					$(v).val('');
-				});
-
-				$(this).prevAll('.js-custom-amount-click').prop('checked', 'checked');
-			}
-
-		}).keydown(function(event) {
-			// This part of the code handles when one of the inputs has content.
-			// It allows you to tab through the other input without clearing
-			// the one that you just interacted with.
-			// Can be improved by allowing shift-tabs.
-
-			var keyCode = event.keyCode || event.which;
-
-			if(keyCode != 9) {
-				// if it's not a tab, then we change the selected radio and dump the inputs.
-				if(!$(this).val().length) {
-
-					$(this).prevAll('.js-custom-amount-click').prop('checked', 'checked');
-					var dont_clear = this; // keep the just entered value.
-
-					$('.js-custom-amount').each(function(k, v) {
-						if(v != dont_clear) {
-							$(v).val('');
-						}
-					});
-				}
-			} 
-		});
+		$('.js-custom-amount').focus(input_focus)
+			.click(input_click)
+			.keydown(input_keydown);
 
 		$('.amount').click(clearCustomAmounts);
 
@@ -298,7 +311,7 @@ Provides client ajax functions for the donation form.
 
 		$('.js-copy-personal-info').click(copyPersonalInfo);
 
-		$('a#js-form-submit.disabled').click(function() {
+		$('a#js-form-submit.disabled').on('click', function() {
 			return false;
 		});
 
@@ -309,5 +322,6 @@ Provides client ajax functions for the donation form.
 		$('#cc-exp-year').on('focusout', futureDate);
 
 		$('#js-form-submit').click(doSubmit);
+
 	});
 }(jQuery));

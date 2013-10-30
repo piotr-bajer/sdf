@@ -5,24 +5,24 @@ Steve Avery
 September 2013
 */
 
-.hideme {
+#sdf_form .hideme {
 	display:none;
 }
-input:invalid {
+#sdf_form input:invalid {
 	background-color: white;
 	color:inherit;
 }
-input.field-error,
-input.field-custom-error {
+#sdf_form input.field-error,
+#sdf_form input.field-custom-error {
 	background-color: red;
 	color:white;
 }
-span.label-required {
+#sdf_form span.label-required {
 	font-weight: 700;
 	color:red;
 	font-size: 1.25em;
 }
-.membership-level {
+#sdf_form .membership-level {
 	background-color: #EF4AA8;
 	position:relative;
 	padding:10px;
@@ -34,12 +34,12 @@ span.label-required {
 	width:90%;
 	margin:auto;
 }
-form input,
-form select {
+#sdf_form input,
+#sdf_form select {
 	margin-bottom:1em;
 	margin-right: 1em;
 }
-form > label,
+#sdf_form form > label,
 #js-cc-fields > label {
 	float: left;
 	text-align: right;
@@ -47,68 +47,68 @@ form > label,
 	width: 150px;
 	clear:left;
 }
-div.wider {
+#sdf_form div.wider {
 	margin-top: 1em;
 }
-.wider label {
+#sdf_form .wider label {
 	float: left;
 	text-align: right;
 	margin-right: 1em;
 	clear:left;
 	white-space: nowrap;
 }
-#copy-personal-info-label {
+#sdf_form #copy-personal-info-label {
 	white-space: nowrap;
 	float: none;
 }
-fieldset {
+#sdf_form fieldset {
 	margin-bottom: 1em;
 	background-image: url(/img/dashed-line.png);
 	background-repeat: repeat-x;
 	background-position: right top;
 	border: none;
 }
-legend {
+#sdf_form legend {
 	font-weight: 700;
 	padding:0 0.5em;
 	margin-bottom: 12px;
 	background-color: white;
 }
-input.amount {
-	margin:0 0.5em 0 1em;
+#sdf_form input.amount {
+	margin:5px 0.5em 5px 1em;
 }
-.address-padding {
+#sdf_form .address-padding {
 	margin-left: 165px;
 }
-.address-padding div {
+#sdf_form .address-padding div {
 	float:left;
 	padding-right: 2px;
 }
-.address-padding div.last {
+#sdf_form .address-padding div.last {
 	width:145px;
 }
-select#country,
-select#cc-country {
+#sdf_form select#country,
+#sdf_form select#cc-country {
 	float: left;
 }
-.address-padding input {
+#sdf_form .address-padding input {
 	display: block;
 }
-input.wider {
+#sdf_form input.wider {
 	width:299px;
 }
-input#cc-cvc {
+#sdf_form input#cc-cvc {
 	width:47px;
 }
-input.date-input,
-input.money-amount {
+#sdf_form input.date-input,
+#sdf_form input.money-amount {
 	width:65px;
 	margin-right: 0;
 }
-input.state-width {
+#sdf_form input.state-width {
 	width:120px;
 }
-input.amount[type="radio"] {
+#sdf_form input.amount[type="radio"] {
 	cursor: pointer;
 }
 #sdf_form div.button-dark {
@@ -123,6 +123,41 @@ input.amount[type="radio"] {
 	width:100%;
 	margin:0 0 1em;
 	clear:both;
+}
+/* clearfix rules */
+#sdf_form .cf:before,
+#sdf_form .cf:after {
+    content: " "; 
+    display: table;
+}
+#sdf_form .cf:after {
+    clear: both;
+}
+#sdf_form .cf {
+    *zoom: 1;
+}
+#sdf_form h3 {
+	text-transform: uppercase;
+}
+#sdf_form a.disabled {
+	cursor:default;
+	background-color: #C2C2C2;
+}
+#loading {
+	background: #666;
+	opacity: 0.9;
+	color: #FFF;
+	float: left;
+	width: 260px;
+	height: 120px;
+	margin: 0 20px 20px 0;
+	position:fixed;
+	top:0;
+	left:50%;
+	margin-left:-130px;
+}
+.alert {
+	padding-top: 1.5em;
 }
 .alert p {
 	display: block;
@@ -140,39 +175,4 @@ p.success {
 }
 p.error {
 	background-color: pink;
-}
-/* clearfix rules */
-.cf:before,
-.cf:after {
-    content: " "; 
-    display: table;
-}
-.cf:after {
-    clear: both;
-}
-.cf {
-    *zoom: 1;
-}
-h3 {
-	text-transform: uppercase;
-}
-a.disabled {
-	cursor:default;
-	background-color: #C2C2C2;
-}
-#loading {
-	background: #444;
-	opacity: 0.9;
-	color: #FFF;
-	float: left;
-	width: 180px;
-	height: 80px;
-	margin: 0 20px 20px 0;
-	position:fixed;
-	top:0;
-	left:50%;
-	margin-left:-90px;
-}
-.alert {
-	padding-top: 1.5em;
 }

@@ -7,14 +7,18 @@
 	Version: 0.1
 	Author URI: mailto:schavery@gmail.com
 */
+
 define('FRIEND_OF_SPARK', '00130000007qhRG');
 define('SF_DATE_FORMAT', 'Y-m-d');
 setlocale(LC_MONETARY, 'en_US'); // for money format
 
+//error_reporting(0); // XXX
+
 function sdf_get_form() { ?>
 	<div id="sdf_form">
 		<form method="post">
-			<h3>Make A Donation:</h3>
+			<h1 class="wide-left-content">Make a Donation</h1>
+			<hr class="wide-left-content">
 			<fieldset>
 				<legend>Make an annual gift:</legend>
 				<input class="amount" type="radio" name="donation" id="annual-75" value="annual-75" required><label for="annual-75">$75</label>
@@ -26,7 +30,7 @@ function sdf_get_form() { ?>
 				<input class="amount js-custom-amount-click" type="radio" name="donation" id="annual-custom" value="annual-custom-amount" required><label for="annual-custom-amount">Custom amount:</label><input class="amount money-amount js-custom-amount" type="text" id="annual-custom-amount" name="annual-custom-amount" pattern="^[$]?\d+([.]\d{2})?$">
 			</fieldset>
 			<fieldset>
-				<legend>Make a monthly gift:</legend>
+				<legend>Or, make a monthly gift:</legend>
 				<input class="amount" type="radio" name="donation" id="monthly-5" value="monthly-5" required><label for="monthly-5">$5</label>
 				<input class="amount" type="radio" name="donation" id="monthly-10" value="monthly-10" required><label for="monthly-10"><span class="membership-level">$10</span></label>
 				<input class="amount" type="radio" name="donation" id="monthly-20" value="monthly-20" required><label for="monthly-20">$20</label>
@@ -37,9 +41,6 @@ function sdf_get_form() { ?>
 			</fieldset>
 			<hr class="dashed-line">
 			<div class="wider">
-				<label for="one-time">No thanks, I only want to make a one-time gift of the amount above.</label>
-				<input type="checkbox" name="one-time" id="one-time">
-				<br>
 				<label for="hearabout">How did you hear about Spark?</label>
 				<select name="hearabout" id="hearabout">
 					<option value="">--</option>
@@ -56,6 +57,9 @@ function sdf_get_form() { ?>
 				</div>
 				<label for="inhonorof">Please make this donation in honor of:</label>
 				<input type="text" id="inhonorof" name="inhonorof">
+				<br>
+				<label for="one-time">No thanks, I only want to make a one-time gift of the amount above.</label>
+				<input type="checkbox" name="one-time" id="one-time">
 			</div>
 			<hr class="dashed-line">
 			<h3>A little about you:</h3>
@@ -67,9 +71,9 @@ function sdf_get_form() { ?>
 			<input class="wider" type="text" id="company" name="company">
 			<br>
 			<label for="birthday-month">Birthday:</label>
-			<input maxlength="2" id="birthday-month" class="date-input" name="birthday-month" pattern="[2-9]|1[0-2]?" placeholder="Month">
+			<input maxlength="2" id="birthday-month" class="date-input" name="birthday-month" pattern="^(0?[1-9]|1[012])" placeholder="Month">
 			<span id="bday-separator">/</span>
-			<input maxlength="2" id="birthday-day" class="date-input" name="birthday-day" pattern="([0-2]?[1-9]|3[01])" placeholder="Day">
+			<input maxlength="4" id="birthday-year" class="date-input" name="birthday-year" pattern="^(19|20)\d{2}$" placeholder="Year">
 			<br>
 			<label for="gender">Gender:</label>
 			<select name="gender" id="gender">
@@ -116,7 +120,7 @@ function sdf_get_form() { ?>
 			<input maxlength="4" type="text" id="cc-cvc" name="cc-cvc" pattern="[\d]{3,4}" required>
 			<br>
 			<label for="cc-exp-mo">Expiration Date: <span class="label-required">*</span></label>
-			<input maxlength="2" id="cc-exp-mo" class="date-input" name="cc-exp-mo" placeholder="Month" pattern="[2-9]|1[0-2]?" required>
+			<input maxlength="2" id="cc-exp-mo" class="date-input" name="cc-exp-mo" placeholder="Month" pattern="^(0?[1-9]|1[012])$" required>
 			<span id="cc-exp-separator">/</span>
 			<input maxlength="4" id="cc-exp-year" class="date-input" name="cc-exp-year" placeholder="Year" pattern="1[0-9]|20[\d]{2}" required>
 			<hr class="dashed-line">
@@ -143,7 +147,7 @@ function sdf_get_form() { ?>
 					</div>
 					<div class="last">
 						<label for="cc-zip">ZIP / Postal Code: <span class="label-required">*</span></label>
-						<input maxlength="10" type="text" id="cc-zip" name="cc-zip" pattern="^\\d{5}(-\\d{4})?$" required>
+						<input maxlength="10" type="text" id="cc-zip" name="cc-zip" pattern="^\d{5}(-\d{4})?$" required>
 					</div>
 				</div>
 				<label for="cc-country">Country:</label>
@@ -156,8 +160,15 @@ function sdf_get_form() { ?>
 					<img src="/img/button-dark-tip.png">
 				</span>
 			</div>
+			<hr class="dashed-line">
+			<div id="checks">
+				<span>Send checks to:</span><br>
+				Spark<br>
+				110 Pacific Ave. #188<br>
+				San Francisco, CA 94111<br>
+			</div>
 			<div id="contact">
-				<span>Questions? <a href="#">Contact us.</a></span>
+				<span>Questions? <a href="mailto:programs@sparksf.org">Contact us.</a></span>
 			</div>
 		</form>
 	</div>
@@ -620,13 +631,13 @@ function sdf_parse() {
 	} else {
 		$data = sdf_validate($_POST['data']);
 	}
-	$data['membership'] = sdf_get_membership(&$data);
-	sdf_do_salesforce(&$data);
-	sdf_do_stripe(&$data);
+	$data['membership'] = sdf_get_membership($data);
+	sdf_do_salesforce($data);
+	sdf_do_stripe($data);
 	die(); // prevent trailing 0 from admin-ajax.php
 }
 
-function sdf_validate($data) {
+function sdf_validate(&$data) {
 	$required_fields = array(
 		'donation',
 		'first-name',
@@ -657,11 +668,14 @@ function sdf_validate($data) {
 		'Search',
 		'Event'
 	);
-	if(!in_array($data['hearabout'], $hearabout_cats)) {
-		sdf_message_handler('log', 'Invalid hearabout category.');
-		unset($data['hearabout']);
-		unset($data['hearabout-extra']);
+	if(!empty($data['hearabout'])) {
+		if(!in_array($data['hearabout'], $hearabout_cats)) {
+			sdf_message_handler('log', 'Invalid hearabout category.');
+			unset($data['hearabout']);
+			unset($data['hearabout-extra']);
+		}
 	}
+
 
 	if(!(strlen($data['first-name']) || strlen($data['last-name']))) {
 		sdf_message_handler('error', 'Invalid request. Name field required');
@@ -698,13 +712,13 @@ function sdf_validate($data) {
 			$data['amount'] = (int) ($donated_value * 100);
 		}
 	} else {
-		$data['amount'] = sdf_get_amount(&$data);
+		$data['amount'] = sdf_get_amount($data);
 	}
 
 	return $data;
 }
 
-function sdf_get_membership($data) {
+function sdf_get_membership(&$data) {
 	$levels = array(
 		'annual' => array(
 			'Friend' => 7500,
@@ -749,7 +763,7 @@ function sdf_get_membership($data) {
 	}
 }
 
-function sdf_get_amount($data) {
+function sdf_get_amount(&$data) {
 	$plan_amounts = array(
 		'annual-75' => 7500,
 		'annual-100' => 10000,
@@ -770,7 +784,7 @@ function sdf_get_amount($data) {
 	return $amount;
 }
 
-function sdf_get_existing_sf_contact($data) {
+function sdf_get_existing_sf_contact(&$data) {
 	$sforce = sdf_include_salesforce_api();
 	$search_string = 'FIND {' . $data['email'] . '} IN EMAIL FIELDS ' .
 		'RETURNING CONTACT(ID)';
@@ -799,7 +813,7 @@ function sdf_get_existing_sf_contact($data) {
 	return $contact;
 }
 
-function sdf_sf_company($data, $contact) {
+function sdf_sf_company(&$data, &$contact) {
 	$sforce = sdf_include_salesforce_api();
 	if(!isset($contact->AccountId)) {
 		if(!empty($data['company'])) {
@@ -826,7 +840,7 @@ function sdf_sf_company($data, $contact) {
 	return $company;
 }
 
-function sdf_sf_contact_description($data, $contact) {
+function sdf_sf_contact_description(&$data, &$contact) {
 	$transaction_desc = money_format('%n', ($data['amount'] / 100)) .
 		' - ' . date('n/d/y') . ' - Online donation from ' . home_url() . '.';
 	if(!empty($data['inhonorof'])) {
@@ -841,7 +855,7 @@ function sdf_sf_contact_description($data, $contact) {
 	return $desc;
 }
 
-function sdf_sf_first_active($contact) {
+function sdf_sf_first_active(&$contact) {
 	if(!isset($contact->First_Active_Date__c)) {
 		// then it is today!
 		$date = date(SF_DATE_FORMAT);
@@ -851,7 +865,7 @@ function sdf_sf_first_active($contact) {
 	return $date;
 }
 
-function sdf_sf_hear($data, $contact) {
+function sdf_sf_hear(&$data, &$contact = null) {
 	if(isset($contact->How_did_you_hear__c)) {
 		$hear = $contact->How_did_you_hear__c;
 	} else {
@@ -865,7 +879,7 @@ function sdf_sf_hear($data, $contact) {
 	return $hear;
 }
 
-function sdf_is_member($data, $contact) {
+function sdf_is_member(&$data, &$contact) {
 	if(strpos($data['donation'], 'month') !== false) {
 		$qualify = ($data['amount'] >= 1000) ? 1 : 0;
 	} else if(strpos($data['donation'], 'annual') !== false) {
@@ -875,7 +889,7 @@ function sdf_is_member($data, $contact) {
 	return $qualify;
 }
 
-function sdf_sf_renewal_date($data, $contact, $member) {
+function sdf_sf_renewal_date(&$data, &$contact, $member) {
 	if(isset($contact->Renewal_Date__c)) { // they have existing membership end date
 		$old_date = $contact->Renewal_Date__c;
 		if(!$member) {
@@ -895,7 +909,7 @@ function sdf_sf_renewal_date($data, $contact, $member) {
 	return $date;
 }
 
-function sdf_sf_membership_start($contact, $member) {
+function sdf_sf_membership_start(&$contact, $member) {
 	if(!isset($contact->Membership_Start_Date__c)) {
 		if($member) {
 			$date = date(SF_DATE_FORMAT);
@@ -908,17 +922,17 @@ function sdf_sf_membership_start($contact, $member) {
 	return $date;
 }
 
-function sdf_sf_birthday($data) {
-	if(!empty($data['birthday-month']) && !empty($data['birthday-day'])) {
-		$date = date(SF_DATE_FORMAT, strtotime(date('Y') . '-'
-			. $data['birthday-month'] . '-' . $data['birthday-day']));
+function sdf_sf_birthday(&$data) {
+	if(!empty($data['birthday-month']) && !empty($data['birthday-year'])) {
+		$date = date(SF_DATE_FORMAT, strtotime($data['birthday-year'] . '-'
+			. $data['birthday-month'] . '-01'));
 	} else {
 		$date = null;
 	}
 	return $date;
 }
 
-function sdf_sf_gender($data) {
+function sdf_sf_gender(&$data) {
 	if(!empty($data['gender'])) {
 		$sex = ($data['gender'] == 'other') ? null : $data['gender'];
 	} else {
@@ -927,37 +941,31 @@ function sdf_sf_gender($data) {
 	return $sex;
 }
 
-function sdf_sf_contact_builder($data) {
+function sdf_sf_contact_builder(&$data) {
 	// first, we check to see if a matching customer already exists.
-	$sf_existing_contact = sdf_get_existing_sf_contact(&$data);
+	$sf_existing_contact = sdf_get_existing_sf_contact($data);
 
 	// now we set up the company (AccountId)
-	$company_id = sdf_sf_company(&$data, &$sf_existing_contact);
+	$company_id = sdf_sf_company($data, $sf_existing_contact);
 	
 	// now let's do Description.
-	$updated_description = sdf_sf_contact_description(&$data, &$sf_existing_contact);
+	$updated_description = sdf_sf_contact_description($data, $sf_existing_contact);
 
 	// First_Active_Date__c
-	$first_active = sdf_sf_first_active(&$sf_existing_contact);
+	$first_active = sdf_sf_first_active($sf_existing_contact);
 
 	// how did you hear about us?
-	$hear = sdf_sf_hear(&$data, &$sf_existing_contact);
+	$hear = sdf_sf_hear($data, $sf_existing_contact);
 
 	// is the donor a member? when is the renewal date?
-	$member = sdf_is_member(&$data, &$sf_existing_contact);
-	$renewal = sdf_sf_renewal_date(&$data, &$sf_existing_contact, $member);
-	$member_start = sdf_sf_membership_start(&$sf_existing_contact, $member);
+	$member = sdf_is_member($data, $sf_existing_contact);
+	$renewal = sdf_sf_renewal_date($data, $sf_existing_contact, $member);
+	$member_start = sdf_sf_membership_start($sf_existing_contact, $member);
 
 	// And additional fields.
 	$address = (empty($data['address2'])) ? $data['address1'] : $data['address1'] . "\n" . $data['address2'];
-	$birthday = sdf_sf_birthday(&$data);
-	$gender = sdf_sf_gender(&$data);
-
-	if(isset($sf_existing_contact->Id)) {
-		$contact->Id = $sf_existing_contact->Id;
-	} else {
-		$contact->Id = null;
-	}
+	$birthday = sdf_sf_birthday($data);
+	$gender = sdf_sf_gender($data);
 
 	// build the object.
 	$contact = new stdClass();
@@ -991,10 +999,16 @@ function sdf_sf_contact_builder($data) {
 		}
 	}
 
+	if(isset($sf_existing_contact->Id)) {
+		$contact->Id = $sf_existing_contact->Id;
+	} else {
+		$contact->Id = null;
+	}
+
 	return $contact;
 }
 
-function sdf_sf_upsert($contact) {
+function sdf_sf_upsert(&$contact) {
 	$sforce = sdf_include_salesforce_api();
 	if(isset($contact->Id)) {
 		// update on id.
@@ -1007,18 +1021,85 @@ function sdf_sf_upsert($contact) {
 		// create new contact.
 		try {
 			$response = $sforce->create(array($contact), 'Contact');
+			$contact->Id = $response->id;
 		} catch(Exception $e) {
 			sdf_message_handler('log', __FUNCTION__ . ' : ' . $e->faultstring);
 		}
 	}
 }
 
-function sdf_do_salesforce($data) {
-	$contact = sdf_sf_contact_builder(&$data);
-	sdf_sf_upsert(&$contact);
+function sdf_sf_emails(&$contact, &$data) {
+	$sforce = sdf_include_salesforce_api();
+
+	// two emails are created here. One for the Spark team,
+	// and one for the donor.
+
+	$donor_email = new SingleEmailMessage();
+	$donor_email->setTemplateId('00X50000001VaHS');
+	$donor_email->setTargetObjectId($contact->Id);
+	$donor_email->setReplyTo('programs@sparksf.org');
+	$donor_email->setSenderDisplayName('Spark');
+
+	try {
+		$response = $sforce->sendSingleEmail(array($donor_email));
+	} catch(Exception $e) {
+  		sdf_message_handler('log', __FUNCTION__ . ': Donor email failure! ' . $e->faultstring);
+	}
+
+	// The Spark team message.
+	$alert_addresses = array(
+		'schavery@gmail.com'
+	);
+
+	$hear = sdf_sf_hear($data);
+	
+	if(array_key_exists($data, 'one-time') && !empty($data['one-time'])) {
+		if(strpos($data['donation'], 'annual') !== false) {
+			$recurrence = 'Annual.';
+		} else {
+			$recurrence = 'Monthly.';
+		}
+	} else {
+		$recurrence = 'Single donation.';
+	}
+
+$body = <<<EOF
+A Donation has been made!
+
+Name: {$contact->FirstName} {$contact->LastName}
+Amount: ${$contact->Paid__c}
+Recurrence: {$recurrence}
+Email: {$contact->Email}
+In honor of: {$data['inhonorof']}
+
+NB: this field may not reflect the data in Salesforce.
+How did they hear about Spark?: {$hear}
+
+Sincerely,
+the website.
+EOF;
+
+	$spark_email = new SingleEmailMessage();
+	$spark_email->setSenderDisplayName('Spark Donations');
+	$spark_email->setToAddresses($alert_addresses);
+	$spark_email->setPlainTextBody($body);
+	$spark_email->setSubject('New Donation Alert');
+
+	try {
+		$response = $sforce->sendSingleEmail(array($spark_email));
+	} catch(Exception $e) {
+		sdf_message_handler('log', __FUNCTION__ . ': Alert email failure! ' . $e->faultstring);
+	}
+
 }
 
-function sdf_do_stripe($data) {
+function sdf_do_salesforce(&$data) {
+	$contact = sdf_sf_contact_builder($data);
+	sdf_sf_upsert($contact);
+	sdf_sf_emails($contact, $data);
+}
+
+function sdf_do_stripe(&$data) {
 	if(array_key_exists('one-time', $data) && !empty($data['one-time'])) {
 		sdf_single_charge($data['amount'], $data['stripe-token'], $data['email']);
 	} else {
@@ -1037,7 +1118,7 @@ function sdf_do_stripe($data) {
 	}
 }
 
-function sdf_create_stripe_customer($data) {
+function sdf_create_stripe_customer(&$data) {
 	sdf_include_stripe_api();
 	$new_customer = array(
 		'card' => $data['stripe-token'],
@@ -1119,7 +1200,7 @@ function sdf_single_charge($amount, $token, $email) {
 		$body = $e->getJsonBody();
 		sdf_message_handler('error', $body['error']['message']);
 	}
-	sdf_message_handler('success', 'Success! Thank you for your donation!');
+	sdf_message_handler('success', 'Thank you for your donation!');
 }
 
 /* 
@@ -1269,7 +1350,7 @@ function sdf_create_subscription($plan, $customer) {
 		$body = $e->getJsonBody();
 		sdf_message_handler('error', $body['error']['message']);
 	}
-	sdf_message_handler('success', 'Success! Thanks for supporting Spark into the future.');
+	sdf_message_handler('success', 'Thank you for your donation!');
 }
 
 function sdf_include_stripe_api($input = null) {
@@ -1351,22 +1432,26 @@ function sdf_message_handler($type, $message) {
 }
 
 function sdf_activate() {
-	wp_schedule_event(
-		current_time ('timestamp'), // timestamp
-		'bimonthly', // recurrence
-		'sdf_bimonthly_hook' // hook
-	);
+	if(wp_next_scheduled('sdf_bimonthly_hook') == false) {
+		wp_schedule_event(
+			current_time('timestamp'), // timestamp
+			'bimonthly', // recurrence
+			'sdf_bimonthly_hook' // hook
+		);
+	}
+
 }
 
 function sdf_clean_log() {
-	file_put_contents(WP_PLUGIN_DIR . '/sdf/sdf.log', '');
+	file_put_contents(WP_PLUGIN_DIR . '/sdf/sdf.log', time() . ' - Cron run.');
 }
 
 function sdf_add_bimonthly($schedules) {
 	$schedules['bimonthly'] = array(
 		'interval' => 5300000,
-		'display' => 'Every Two Months'
+		'display' => __('Every Two Months')
 	);
+	return $schedules;
 }
 
 if(is_admin()) {
