@@ -14,7 +14,7 @@ September 2013
 }
 #sdf_form input.field-error,
 #sdf_form input.field-custom-error {
-	background-color: red;
+	background-color: #00CCFF;
 	color:white;
 }
 #sdf_form span.label-required {
