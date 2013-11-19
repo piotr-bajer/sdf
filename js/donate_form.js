@@ -5,8 +5,12 @@ Date: September
 Provides client ajax functions for the donation form.
 */
 
+var sdf = {};
+
 (function($) {
 	'use strict';
+
+	// $.webshims.polyfill('forms'); // XXX
 
 	// http://stackoverflow.com/questions/1184624/convert-form-data-to-js-object-with-jquery/1186309#1186309
 	$.fn.serializeObject = function() {
@@ -25,14 +29,77 @@ Provides client ajax functions for the donation form.
 		return o;
 	};
 
-	function hasPlaceholderSupport() {
-		var input = document.createElement('input');
-		return ('placeholder' in input);
+	$.extend($.expr[':'], {
+		invalid : function(elem, index, match){
+			var invalids = document.querySelectorAll(':invalid'),
+				result = false,
+				len = invalids.length;
+
+			if (len) {
+				for (var i=0; i<len; i++) {
+					if (elem === invalids[i]) {
+						result = true;
+						break;
+					}
+				}
+			}
+			return result;
+		}
+	});
+
+	var opts = {
+		lines: 9, // The number of lines to draw
+		length: 13, // The length of each line
+		width: 7, // The line thickness
+		radius: 26, // The radius of the inner circle
+		corners: 0.8, // Corner roundness (0..1)
+		rotate: 30, // The rotation offset
+		direction: 1, // 1: clockwise, -1: counterclockwise
+		color: '#FFF', // #rgb or #rrggbb or array of colors
+		speed: 0.7, // Rounds per second
+		trail: 76, // Afterglow percentage
+		shadow: false, // Whether to render a shadow
+		hwaccel: true, // Whether to use hardware acceleration
+		className: 'spinner', // The CSS class to assign to the spinner
+		zIndex: 2e9, // The z-index (defaults to 2000000000)
+		top: 'auto', // Top position relative to parent in px
+		left: 'auto' // Left position relative to parent in px
+	},
+	spinner = new Spinner(opts);
+
+	sdf.setValidities = function() {
+		// required fields should say this field is required
+		// date fields should give expected formats
+		// email field should say a valid email is required
+
+		// need to be done dynamically, can't just set em all, since then the fields are all invalid, 
+		// with a custom error on them
+		$('input[required]').blur(function() {
+			if($(this).val() == '') {
+				this.setCustomValidity('This field is required.');
+			} else {
+				this.setCustomValidity('');
+			}
+		});
+
+		$('#cc-number').blur(function() {
+			if(this.validity.patternMismatch) {
+				this.setCustomValidity('Please enter a credit card number.');
+			} else {
+				this.setCustomValidity('');
+			}
+		});
+
 	}
 
-	function copyPersonalInfo() {
+	sdf.stateBlur = function() {
+		$('#state').val($('#state').val().toUpperCase());
+		$('#cc-state').val($('#cc-state').val().toUpperCase());
+	}
+
+	sdf.copyPersonalInfo = function() {
 		// copy fields and gray out
-		if($('.js-copy-personal-info').attr('checked') == 'checked') {
+		if($('.js-copy-personal-info').prop('checked')) {
 
 			$('#js-cc-fields input').each(function(k, v) {
 				$(v).val($('#' + $(v).attr('name').substr(3)).val()).removeClass('field-error');
@@ -61,7 +128,7 @@ Provides client ajax functions for the donation form.
 		}
 	}
 
-	function futureDate() {
+	sdf.futureDate = function() {
 		// Validate CC date.
 		var inputyear = parseInt($('#cc-exp-year').val()),
 			inputmo = parseInt($('#cc-exp-mo').val());
@@ -86,7 +153,7 @@ Provides client ajax functions for the donation form.
 		}
 	}
 
-	function hearAboutChange() {
+	sdf.hearAboutChange = function() {
 		var select = $('#hearabout')[0];
 		if($(select.options[select.selectedIndex]).hasClass('js-select-extra')) {
 			$('#js-select-extra-name').html(select.options[select.selectedIndex].value + ':');
@@ -97,21 +164,13 @@ Provides client ajax functions for the donation form.
 		}
 	}
 
-	function clearCustomAmounts() {
-		if(!$(this).hasClass('js-custom-amount')) {
-			$('.js-custom-amount').each(function(k, v) {
-				$(v).val('');
-			});
-		}
-	}
-
-	function doSubmit() {
+	sdf.doSubmit = function() {
 		var form = $('#sdf_form form')[0];
 
-		$('body').append('<div id="loading"></div>');
-		spinner.spin(document.getElementById('loading'));
-
 		if(form.checkValidity()) {
+			$('body').append('<div id="loading"></div>');
+			spinner.spin(document.getElementById('loading'));
+
 			var cardData = {
 				number: $('#cc-number').val(),
 				cvc: $('#cc-cvc').val(),
@@ -125,10 +184,11 @@ Provides client ajax functions for the donation form.
 				address_zip: $('#cc-zip').val(),
 				address_country: $('#cc-country').val()
 			};
-			Stripe.card.createToken(cardData, stripeResponseHandler);
-			$('a#js-form-submit').addClass('disabled').parent().find('img').prop('src', '/img/button-grey-tip.png');
+
+			Stripe.card.createToken(cardData, sdf.stripeResponseHandler);
+			$('a#js-form-submit').addClass('disabled')
+				.parent().find('img').prop('src', '/img/button-grey-tip.png');
 		} else {
-			spinner.stop();
 			// iterate through the inputs to mark those that aren't valid.
 			$('#sdf_form input:invalid').each(function(k, v) {
 				$(v).addClass('field-error');
@@ -136,32 +196,38 @@ Provides client ajax functions for the donation form.
 		}
 	}
 
-	function clear_notification(timeout) {
-		timeout = timeout || 10000;
-		setTimeout(function() {
-			$('.alert').first('p').fadeTo('fast', 0, function() {
-				$(this).animate({height: 0}, 'fast').remove();
-			});
-			redirect();
-		}, timeout);
+	sdf.clear_notification = function(timeout) {
+		if(timeout === 0) {
+			$('.alert p').first().remove();
+		} else {
+			timeout = timeout || 5000;
+			setTimeout(function() {
+				$('.alert p').first().fadeTo('fast', 0, function() {
+					$(this).animate({height: 0}, 'fast').remove();
+				});
+			}, timeout);
+		}
+
 	}
 
-	function clear_loading() {
+	sdf.clear_loading = function() {
 		spinner.stop();
 		$('#loading').remove();
 	}
 
-	function redirect() {
+	sdf.redirect = function() {
 		window.location.href = window.location.protocol + '//'
 			+ window.location.hostname + '/donation-confirmation/';
 	}
 
-	function stripeResponseHandler(status, response) {
+	sdf.stripeResponseHandler = function(status, response) {
 		var data = {};
 		response = (typeof response !== 'undefined') ? response : {};
 		if(response.error) {
+			sdf.clear_notification(0);
 			$('.alert').append('<p class="error">' + response.error.message + '</p>');
-			clear_notification();
+			document.getElementsByClassName('alert')[0].scrollIntoView();
+			sdf.clear_loading();
 		} else {
 			$('#stripe-token').val(response.id);
 			data = $('#sdf_form form').serializeObject();
@@ -177,77 +243,231 @@ Provides client ajax functions for the donation form.
 				action: 'sdf_parse',
 				data: data,
 			}, function(data) {
-				clear_loading();
+				sdf.clear_loading();
+				// clear existing notifications.
+				sdf.clear_notification(0);
+
 				data = JSON.parse(data);
 				$('.alert').append('<p class="'	+ data.type + '">' + data.message + '</p>').show();
 				document.getElementsByClassName('alert')[0].scrollIntoView();
-				clear_notification();
+				
+				if(data.type == 'error') {
+					// could we figure out what element to highlight in error? that would be good.
+					// don't clear error for now.
+					// re enable submit
+					$('a#js-form-submit').removeClass('disabled')
+						.parent().find('img').prop('src', '/img/button-dark-tip.png');
+				} else {
+					setTimeout(sdf.redirect, 5000);
+				}
 			});
 		}
 	}
 
-	function input_focus() {
-		// This part of the code handles when all the inputs are empty.
-		// It switches the radio button.
+	sdf.custom_amount_create = function(event) {
+		// replace the label contents with the input value. 
+		// set focus in the input element
 
-		var clicked = this,
-			all_empty = true;
+		// okay since the radio change function is called AFTER this one
+		// when a custom is to be created
+		// the problem is that radio change in turn calls the destroy function
+		// which insta kills the custom.
+		// fix is to make sure that other customs are gone before radio change starts
 
-		$('.js-custom-amount').each(function(k, v) {
-			if($(v).val().length) {
-				all_empty = false;
-			}
-		});
-
-		if(all_empty) {
-			// this will select the radio if you focus on a custom input.
-			$(clicked).prevAll('.js-custom-amount-click').prop('checked', 'checked');
-		}
-	}
-
-	function input_keydown() {
-		// This part of the code handles when one of the inputs has content.
-		// It allows you to tab through the other input without clearing
-		// the one that you just interacted with.
-		// Can be improved by allowing shift-tabs.
-
-		var keyCode = event.keyCode || event.which;
-
-		if(keyCode != 9) {
-			// if it's not a tab, then we change the selected radio and dump the inputs.
-			if(!$(this).val().length) {
-
-				$(this).prevAll('.js-custom-amount-click').prop('checked', 'checked');
-				var dont_clear = this; // keep the just entered value.
-
-				$('.js-custom-amount').each(function(k, v) {
-					if(v != dont_clear) {
-						$(v).val('');
-					}
-				});
-			}
-		}
-	}
-
-	function input_click() {
-		// This part of the code allows you to click focus an input
-		// assuming that clicks take precedence.
-
-		if($(this).val().length) {
-			// The click event is clearing the content.
-			// I would like to just select it instead.
-			$(this).select();
-			return;
+		event = event || {};
+		var ele = event.target;
+		
+		if($(ele).is('#js-custom-input, #amount-text')
+			|| $.contains(ele, document.getElementById('js-custom-input'))) {
+			// means you have clicked on an empty input!
+			return true;
 		} else {
-			$('.js-custom-amount').each(function(k, v) {
-				$(v).val('');
-			});
-
-			$(this).prevAll('.js-custom-amount-click').prop('checked', 'checked');
+			sdf.custom_amount_remove();
 		}
+
+		var	input = document.createElement('input');
+		input.name = $(ele).attr('for');
+		input.placeholder = 'Custom amount';
+		input.pattern = '^[$]?\\d+([.]\\d{2})?$';
+		input.required = true;
+		input.type = 'text';
+		input.id = 'js-custom-input';
+
+
+		// can't chain these because otherwise focus gets called too early
+		$(ele).html(input).addClass('custom-label-input');
+		// dunno why i gotta wait
+		setTimeout(function() {
+			$(input).focus();
+		}, 0);
+
+		// $(input).parent('label').prev('input.amount').prop('checked', 'checked');
+
+		// so, when this is called, the next click on the other custom-able label
+		// isn't called, radio change goes first and says, okay destroy other, set this to active
+		// but doesn't give a shot to create new.	
+		//$('#sdf_form').off('click', '.custom-label', sdf.custom_amount_create);
+	
 	}
 
-	function placeholder_pf() {
+	sdf.custom_amount_remove = function() {
+		// should they change selection
+		// replace the input in the label with the placeholder text of that input
+
+		// this is not a guaranteed test for custom. the input
+		var input = $('#js-custom-input');
+		if(input.length) {
+			var label_text = input.prop('placeholder');
+			input.parent('label').empty()
+				.removeClass('custom-label-active custom-label-input').text(label_text);
+		}
+
+		// should re hook the create here.
+		//$('.custom-label').click(sdf.custom_amount_create);
+		// don't bind multiple times!
+		$('#sdf_form').off('click', '.custom-label')
+			.on('click', '.custom-label', sdf.custom_amount_create);
+	}
+
+	sdf.custom_amount_blur = function() {
+		// when the input loses focus
+		// make the label just have the content of the amount 
+		// from the input and a dollar sign in front, to match the other label styles
+
+		var input = $('#js-custom-input'),
+			amount_text = input.val(),
+			label = input.parent('label');
+
+		if(!amount_text.length) {
+
+			// look to see if the checked radio button doesn't correspond to this element.
+			// if it does, then remove and radio change
+			// also, if I clicked on something else, we have to switch.
+			// label.prev('input.amount').is(':checked') &&
+			// it has to be this element / and it can't be any other label
+			var hasMyClass = $(sdf.clicked).hasClass('selected'),
+				isNotALabel = !($(sdf.clicked).is('label.button-look'));
+			if(hasMyClass || isNotALabel) {
+				// this means we have blurred but not to another amount
+				// we DONT want to remove.
+				return false;
+			} else {
+				// we can destroy the element
+				// sdf.custom_amount_remove();
+				// reset the selected class, so that one of them is clicked
+				// sdf.radio_change();
+			}
+		}
+
+		// if the input state is invalid, return false
+		if(input.is(':invalid')) {
+			// a perfect moment for custom validity
+			// $('#js-custom-input').focus();
+			return false;
+		}
+
+		// we test again here, just to be able to toggle this block.
+		if(amount_text.length) {
+			// should also make sure amount text doesn't have a dollar sign in it
+			if(amount_text.substr(0,1) !== '$') {
+				amount_text = '$' + amount_text;
+			}
+
+			// MONEY FORMAT!!!!!!!
+			if(amount_text.indexOf('.') != -1) {
+				// found a period. make sure that there are two decimal points.
+				var parts = amount_text.split('.');
+				if(parts[1].length == 0) {
+					parts[1] += '00';
+				} else if(parts[1].length == 1) {
+					parts[1] += '0';
+				}
+				amount_text = parts[0] + '.' + parts[1];
+			}
+
+			input.prop('type', 'hidden');
+			// don't append so many!
+			if($('#amount-text').length) {
+				$('#amount-text').text(amount_text);
+			} else {
+				label.append('<span id="amount-text">' + amount_text + '</span>');
+			}
+			//label.off('click', '.custom-label', sdf.custom_amount_create).addClass('custom-label-active');
+			label.removeClass('custom-label-input').addClass('custom-label-active');
+		}
+		
+	}
+
+	sdf.custom_amount_focus = function() {
+		// make it into a input again to edit the number
+
+		$('#amount-text').remove();
+		// so apparently there can be two somehow...
+		if($('#amount-text').length) {
+			$('#amount-text').remove();
+		}
+
+		$('#js-custom-input').parent('label').addClass('custom-label-input');
+
+		$('#js-custom-input').prop('type', 'text');
+		setTimeout(function() {
+			$('#js-custom-input').focus();
+		}, 0);
+	}	
+
+	sdf.radio_change = function(event) {
+		// need to check here so that we don't clear a just created input.
+		var clearem = false,
+			event = event || {};
+
+		if(!('target' in event)) {
+			event.target = sdf.clicked;
+		}
+	
+		// problem:
+		// going from custom to custom, the old input is destoryed, and a new one is created,
+		// then this is called. soo, in that case, we want to know if event.target is also a custom!
+
+		// looks like the target is actually the input ELEMENT itself...
+		var label = $(event.target).next('label'),
+			previousIsCustom = $('.selected').hasClass('custom-label');
+		if(previousIsCustom) {
+			var targetIsntCustom = !(label.hasClass('custom-label'));
+			// targetWasntOldSelected = (event.target !== document.getElementsByClassName('selected')[0]);
+			if(targetIsntCustom) {
+				clearem = true;
+			}
+		}
+
+		if(clearem) {
+			sdf.custom_amount_remove();
+		}
+
+
+		// insurance against unbound events
+		// should have been called!
+		if($(event.target).hasClass('custom-label')) {
+			sdf.custom_amount_create(event);
+		}
+
+		$('label.button-look').removeClass('selected');
+
+		$('.amount:checked').next('label').addClass('selected');
+	}
+
+	sdf.custom_keys = function(event) {
+		var key = event.which || event.keyCode;
+
+		if(key == 13) {
+			sdf.custom_amount_blur();
+		} /*else if (key == 9) {
+			return false;
+		}*/
+	}
+
+
+
+	sdf.placeholder_pf = function() {
 		var inputs = document.getElementsByTagName('input');
 		for(var i = 0, count = inputs.length; i < count; i++) {
 			if(inputs[i].getAttribute('placeholder')) {
@@ -269,47 +489,33 @@ Provides client ajax functions for the donation form.
 		}
 	}
 
-	var opts = {
-		lines: 9, // The number of lines to draw
-		length: 13, // The length of each line
-		width: 7, // The line thickness
-		radius: 26, // The radius of the inner circle
-		corners: 0.8, // Corner roundness (0..1)
-		rotate: 30, // The rotation offset
-		direction: 1, // 1: clockwise, -1: counterclockwise
-		color: '#FFF', // #rgb or #rrggbb or array of colors
-		speed: 0.7, // Rounds per second
-		trail: 76, // Afterglow percentage
-		shadow: false, // Whether to render a shadow
-		hwaccel: true, // Whether to use hardware acceleration
-		className: 'spinner', // The CSS class to assign to the spinner
-		zIndex: 2e9, // The z-index (defaults to 2000000000)
-		top: 'auto', // Top position relative to parent in px
-		left: 'auto' // Left position relative to parent in px
-	},
-	spinner = new Spinner(opts);
+	// in order to be able to see what blurred me
+	$(document).mousedown(function(e) {
+		sdf.clicked = e.target;
+	});
 
 	// One function to bind them.
 
 	$(document).ready(function() {
 
-		if(!hasPlaceholderSupport()) {
-
+		if(!Modernizr.input.placeholder) {
+			sdf.placeholder_pf();
 		}
 
-		$('.js-custom-amount-click').click(function() {
-			$(this).nextAll('.js-custom-amount').focus();
-		});
+		//$('.custom-label').click(sdf.custom_amount_create);
 
-		$('.js-custom-amount').focus(input_focus)
-			.click(input_click)
-			.keydown(input_keydown);
+		$('#sdf_form').on('blur', '#js-custom-input', sdf.custom_amount_blur)
+			.on('click', '.custom-label-active', sdf.custom_amount_focus)
+			.on('click', '.custom-label', sdf.custom_amount_create)
+			.on('keydown', '#js-custom-input', sdf.custom_keys);
 
-		$('.amount').click(clearCustomAmounts);
+		$('.amount').change(sdf.radio_change);
 
-		$('#hearabout').change(hearAboutChange);
+		$('#hearabout').change(sdf.hearAboutChange);
 
-		$('.js-copy-personal-info').click(copyPersonalInfo);
+		$('#state, #cc-state').blur(sdf.stateBlur);
+
+		$('#copy-personal-info').click(sdf.copyPersonalInfo);
 
 		$('a#js-form-submit.disabled').on('click', function() {
 			return false;
@@ -319,9 +525,13 @@ Provides client ajax functions for the donation form.
 			errorClass: 'field-error'
 		});
 
-		$('#cc-exp-year').on('focusout', futureDate);
+		$('#cc-exp-year').on('focusout', sdf.futureDate);
 
-		$('#js-form-submit').click(doSubmit);
+		$('#js-form-submit').click(sdf.doSubmit);
+
+
+
+		// sdf.setValidities();
 
 	});
 }(jQuery));

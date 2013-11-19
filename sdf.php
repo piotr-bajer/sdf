@@ -12,33 +12,38 @@ define('FRIEND_OF_SPARK', '00130000007qhRG');
 define('SF_DATE_FORMAT', 'Y-m-d');
 setlocale(LC_MONETARY, 'en_US'); // for money format
 
-//error_reporting(0); // XXX
+error_reporting(0); // XXX
+defined('ABSPATH') or die("Unauthorized.");
 
 function sdf_get_form() { ?>
 	<div id="sdf_form">
 		<form method="post">
-			<h1 class="wide-left-content">Make a Donation</h1>
-			<hr class="wide-left-content">
+			<h1>Make a Donation</h1>
 			<fieldset>
 				<legend>Make an annual gift:</legend>
-				<input class="amount" type="radio" name="donation" id="annual-75" value="annual-75" required><label for="annual-75">$75</label>
-				<input class="amount" type="radio" name="donation" id="annual-100" value="annual-100" checked required><label for="annual-100"><span class="membership-level">$100</span></label>
-				<input class="amount" type="radio" name="donation" id="annual-250" value="annual-250" required><label for="annual-250">$250</label>
-				<input class="amount" type="radio" name="donation" id="annual-500" value="annual-500" required><label for="annual-500">$500</label>
-				<input class="amount" type="radio" name="donation" id="annual-1000" value="annual-1000" required><label for="annual-1000">$1000</label>
-				<input class="amount" type="radio" name="donation" id="annual-2500" value="annual-2500" required><label for="annual-2500">$2500</label>
-				<input class="amount js-custom-amount-click" type="radio" name="donation" id="annual-custom" value="annual-custom-amount" required><label for="annual-custom-amount">Custom amount:</label><input class="amount money-amount js-custom-amount" type="text" id="annual-custom-amount" name="annual-custom-amount" pattern="^[$]?\d+([.]\d{2})?$">
+				<input class="amount" type="radio" name="donation" id="annual-75" value="annual-75" required><label class="button-look" onclick for="annual-75">$75</label>
+				<input class="amount" type="radio" name="donation" id="annual-100" value="annual-100" checked required><label onclick class="selected button-look" for="annual-100">$100</label>
+				<input class="amount" type="radio" name="donation" id="annual-250" value="annual-250" required><label class="button-look" onclick for="annual-250">$250</label>
+				<input class="amount" type="radio" name="donation" id="annual-500" value="annual-500" required><label class="button-look" onclick for="annual-500">$500</label>
+				<input class="amount" type="radio" name="donation" id="annual-1000" value="annual-1000" required><label class="button-look" onclick for="annual-1000">$1000</label>
+				<input class="amount" type="radio" name="donation" id="annual-2500" value="annual-2500" required><label class="button-look" onclick for="annual-2500">$2500</label>
+				<input class="amount" type="radio" name="donation" id="annual-custom" value="annual-custom" required>
+				<label class="button-look custom-label" onclick for="annual-custom">Custom amount</label>
 			</fieldset>
 			<fieldset>
 				<legend>Or, make a monthly gift:</legend>
-				<input class="amount" type="radio" name="donation" id="monthly-5" value="monthly-5" required><label for="monthly-5">$5</label>
-				<input class="amount" type="radio" name="donation" id="monthly-10" value="monthly-10" required><label for="monthly-10"><span class="membership-level">$10</span></label>
-				<input class="amount" type="radio" name="donation" id="monthly-20" value="monthly-20" required><label for="monthly-20">$20</label>
-				<input class="amount" type="radio" name="donation" id="monthly-50" value="monthly-50" required><label for="monthly-50">$50</label>
-				<input class="amount" type="radio" name="donation" id="monthly-100" value="monthly-100" required><label for="monthly-100">$100</label>
-				<input class="amount" type="radio" name="donation" id="monthly-200" value="monthly-200" required><label for="monthly-200">$200</label>
-				<input class="amount js-custom-amount-click" type="radio" name="donation" id="monthly-custom" value="monthly-custom-amount" required><label for="monthly-custom-amount">Custom amount:</label><input class="amount money-amount js-custom-amount" type="text" id="monthly-custom-amount" name="monthly-custom-amount" pattern="^[$]?\d+([.]\d{2})?$">
+				<input class="amount" type="radio" name="donation" id="monthly-5" value="monthly-5" required><label class="button-look" onclick for="monthly-5">$5</label>
+				<input class="amount" type="radio" name="donation" id="monthly-10" value="monthly-10" required><label class="button-look" onclick for="monthly-10">$10</label>
+				<input class="amount" type="radio" name="donation" id="monthly-20" value="monthly-20" required><label class="button-look" onclick for="monthly-20">$20</label>
+				<input class="amount" type="radio" name="donation" id="monthly-50" value="monthly-50" required><label class="button-look" onclick for="monthly-50">$50</label>
+				<input class="amount" type="radio" name="donation" id="monthly-100" value="monthly-100" required><label class="button-look" onclick for="monthly-100">$100</label>
+				<input class="amount" type="radio" name="donation" id="monthly-200" value="monthly-200" required><label class="button-look" onclick for="monthly-200">$200</label>
+				<input class="amount" type="radio" name="donation" id="monthly-custom" value="monthly-custom" required>
+				<label class="button-look custom-label" onclick for="monthly-custom">Custom amount</label>
 			</fieldset>
+			<label id="one-time-label" for="one-time">No thanks, I only want to make a one-time gift of the amount above.</label>
+			<input type="checkbox" name="one-time" id="one-time">
+			<br>
 			<hr class="dashed-line">
 			<div class="wider">
 				<label for="hearabout">How did you hear about Spark?</label>
@@ -57,9 +62,6 @@ function sdf_get_form() { ?>
 				</div>
 				<label for="inhonorof">Please make this donation in honor of:</label>
 				<input type="text" id="inhonorof" name="inhonorof">
-				<br>
-				<label for="one-time">No thanks, I only want to make a one-time gift of the amount above.</label>
-				<input type="checkbox" name="one-time" id="one-time">
 			</div>
 			<hr class="dashed-line">
 			<h3>A little about you:</h3>
@@ -102,7 +104,7 @@ function sdf_get_form() { ?>
 				</div>
 				<div>
 					<label for"state">State/Province: <span class="label-required">*</span></label>
-					<input class="state-width" name="state" id="state" type="text" maxlength="2" pattern="[A-Z]{2}" required>
+					<input class="state-width" name="state" id="state" type="text" maxlength="2" pattern="[a-zA-Z]{2}" required>
 				</div>
 				<div class="last">
 					<label for"zip">ZIP/Postal Code: <span class="label-required">*</span></label>
@@ -114,7 +116,7 @@ function sdf_get_form() { ?>
 			<hr class="dashed-line">
 			<h3>Billing Information:</h3>
 			<label for="cc-number">Credit Card Number: <span class="label-required">*</span></label>
-			<input maxlength="16" type="text" id="cc-number" name="cc-number" pattern="[\d]{15,16}" required>
+			<input maxlength="16" type="text" id="cc-number" name="cc-number" pattern="\d{15,16}" required>
 			<br>
 			<label for="cc-cvc">Security Code: <span class="label-required">*</span></label>
 			<input maxlength="4" type="text" id="cc-cvc" name="cc-cvc" pattern="[\d]{3,4}" required>
@@ -122,7 +124,7 @@ function sdf_get_form() { ?>
 			<label for="cc-exp-mo">Expiration Date: <span class="label-required">*</span></label>
 			<input maxlength="2" id="cc-exp-mo" class="date-input" name="cc-exp-mo" placeholder="Month" pattern="^(0?[1-9]|1[012])$" required>
 			<span id="cc-exp-separator">/</span>
-			<input maxlength="4" id="cc-exp-year" class="date-input" name="cc-exp-year" placeholder="Year" pattern="1[0-9]|20[\d]{2}" required>
+			<input maxlength="4" id="cc-exp-year" class="date-input" name="cc-exp-year" placeholder="Year" pattern="^(1[0-9])|20[\d]{2}" required>
 			<hr class="dashed-line">
 			<label id="copy-personal-info-label" for="copy-personal-info">Copy billing information from above?</label>
 			<input type="checkbox" id="copy-personal-info" class="js-copy-personal-info">
@@ -143,7 +145,7 @@ function sdf_get_form() { ?>
 					</div>
 					<div>
 						<label for="cc-state">State / Province: <span class="label-required">*</span></label>
-						<input class="state-width" type="text" id="cc-state" name="cc-state" maxlength="2" pattern="[A-Z]{2}" required>
+						<input class="state-width" type="text" id="cc-state" name="cc-state" maxlength="2" pattern="[a-zA-Z]{2}" required>
 					</div>
 					<div class="last">
 						<label for="cc-zip">ZIP / Postal Code: <span class="label-required">*</span></label>
@@ -168,7 +170,7 @@ function sdf_get_form() { ?>
 				San Francisco, CA 94111<br>
 			</div>
 			<div id="contact">
-				<span>Questions? <a href="mailto:programs@sparksf.org">Contact us.</a></span>
+				<span>Questions? <a target="_blank" href="mailto:programs@sparksf.org">Contact us.</a></span>
 			</div>
 		</form>
 	</div>
@@ -632,8 +634,12 @@ function sdf_parse() {
 		$data = sdf_validate($_POST['data']);
 	}
 	$data['membership'] = sdf_get_membership($data);
-	sdf_do_salesforce($data);
+
 	sdf_do_stripe($data);
+	sdf_do_salesforce($data);
+
+	// sdf_message_handler('error', 'test error to your face');
+
 	die(); // prevent trailing 0 from admin-ajax.php
 }
 
@@ -694,15 +700,15 @@ function sdf_validate(&$data) {
 		'monthly-50',
 		'monthly-100',
 		'monthly-200',
-		'annual-custom-amount',
-		'monthly-custom-amount'
+		'annual-custom',
+		'monthly-custom'
 	);
 	if(!in_array($data['donation'], $donation_cats)) {
 		sdf_message_handler('error', 'Invalid request. Donation amount is required.');
 	}
 
-	if(strpos($data['donation'], 'custom-amount') !== false) {
-		$donated_value = $data['annual-custom-amount'] || $data['monthly-custom-amount'];
+	if(strpos($data['donation'], 'custom') !== false) {
+		$donated_value = $data['annual-custom'] || $data['monthly-custom'];
 		if(!is_numeric($donated_value)) {
 			$donated_value = preg_replace('/([^0-9\\.])/i', '', $donated_value);
 		}
@@ -1048,28 +1054,31 @@ function sdf_sf_emails(&$contact, &$data) {
 
 	// The Spark team message.
 	$alert_addresses = array(
-		'schavery@gmail.com'
+		// 'amanda@sparksf.org',
+		// 'shannon@sparksf.org',
+		'schavery@gmail.com' // XXX
 	);
 
 	$hear = sdf_sf_hear($data);
 	
-	if(array_key_exists($data, 'one-time') && !empty($data['one-time'])) {
+	if(array_key_exists('one-time', $data) && !empty($data['one-time'])) {
+		$recurrence = 'Single donation.';
+	} else {
 		if(strpos($data['donation'], 'annual') !== false) {
 			$recurrence = 'Annual.';
 		} else {
 			$recurrence = 'Monthly.';
 		}
-	} else {
-		$recurrence = 'Single donation.';
 	}
 
 $body = <<<EOF
 A Donation has been made!
 
 Name: {$contact->FirstName} {$contact->LastName}
-Amount: ${$contact->Paid__c}
+Amount: \${$contact->Paid__c}
 Recurrence: {$recurrence}
 Email: {$contact->Email}
+Location: {$data['city']}, {$data['state']}
 In honor of: {$data['inhonorof']}
 
 NB: this field may not reflect the data in Salesforce.
@@ -1118,6 +1127,8 @@ function sdf_do_stripe(&$data) {
 	}
 }
 
+// This function has the potential to stop flow, since card data is validated here.
+
 function sdf_create_stripe_customer(&$data) {
 	sdf_include_stripe_api();
 	$new_customer = array(
@@ -1131,7 +1142,7 @@ function sdf_create_stripe_customer(&$data) {
 		$customer = Stripe_Customer::create($new_customer);
 	} catch(Stripe_Error $e) {
 		$body = $e->getJsonBody();
-		sdf_message_handler('log', __FUNCTION__ . ' : ' . $body['error']['message']);
+		sdf_message_handler('error', $body['error']['message']);
 	}
 	return  $customer;
 }
@@ -1443,7 +1454,7 @@ function sdf_activate() {
 }
 
 function sdf_clean_log() {
-	file_put_contents(WP_PLUGIN_DIR . '/sdf/sdf.log', time() . ' - Cron run.');
+	file_put_contents(WP_PLUGIN_DIR . '/sdf/sdf.log', time() . ' - Cron run.' . "\n");
 }
 
 function sdf_add_bimonthly($schedules) {
@@ -1452,6 +1463,14 @@ function sdf_add_bimonthly($schedules) {
 		'display' => __('Every Two Months')
 	);
 	return $schedules;
+}
+
+function sdf_check_ssl() {
+	if(!(isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on')) {
+		header('HTTP/1.1 301 Moved Permanently');
+        header('Location: https://' . $_SERVER['SERVER_NAME'] . $_SERVER['REQUEST_URI']);
+        exit();
+	}
 }
 
 if(is_admin()) {

@@ -11,24 +11,37 @@ September 2013
 #sdf_form input:invalid {
 	background-color: white;
 	color:inherit;
+	box-shadow: none;
+	outline: 0;
 }
 #sdf_form input.field-error,
 #sdf_form input.field-custom-error {
-	background-color: #00CCFF;
-	color:white;
+	border:2px solid red;
 }
 #sdf_form span.label-required {
 	font-weight: 700;
 	color:red;
-	font-size: 1.25em;
+	font-size: 1.5em;
 }
-#sdf_form .membership-level {
+#sdf_form label.button-look {
+	padding:6px 8px;
+	border:1px solid #BBB;
+	background-color: #FFF;
+	-webkit-border-radius:8px;
+	-moz-border-radius:8px;
+	border-radius:8px;
+	margin:5px 10px;
+	display:inline-block;
+	cursor: pointer;
+}
+#sdf_form label.selected {
 	background-color: #EF4AA8;
 	position:relative;
-	padding:10px;
-	-webkit-border-radius:10px;
-	-moz-border-radius:10px;
-	border-radius: 10px;
+	padding:7px 9px;
+	-webkit-box-shadow:#000 1px 1px 3px;
+	-moz-box-shadow:#000 1px 1px 3px;
+	box-shadow:#000 1px 1px 3px;
+	border:0;
 }
 #sdf_form {
 	width:90%;
@@ -44,7 +57,7 @@ September 2013
 	float: left;
 	text-align: right;
 	margin-right: 1em;
-	width: 150px;
+	width: 152px;
 	clear:left;
 }
 #sdf_form div.wider {
@@ -57,7 +70,8 @@ September 2013
 	clear:left;
 	white-space: nowrap;
 }
-#sdf_form #copy-personal-info-label {
+#sdf_form #copy-personal-info-label,
+#sdf_form #one-time-label {
 	white-space: nowrap;
 	float: none;
 }
@@ -74,8 +88,11 @@ September 2013
 	margin-bottom: 12px;
 	background-color: white;
 }
-#sdf_form input.amount {
-	margin:5px 0.5em 5px 1em;
+/*#sdf_form input.amount {
+	margin:5px 0 5px 10px;
+}*/
+#sdf_form input.js-custom-amount {
+	margin-left: 0;
 }
 #sdf_form .address-padding {
 	margin-left: 165px;
@@ -100,8 +117,7 @@ September 2013
 #sdf_form input#cc-cvc {
 	width:47px;
 }
-#sdf_form input.date-input,
-#sdf_form input.money-amount {
+#sdf_form input.date-input {
 	width:65px;
 	margin-right: 0;
 }
@@ -109,7 +125,8 @@ September 2013
 	width:120px;
 }
 #sdf_form input.amount[type="radio"] {
-	cursor: pointer;
+	position: absolute;
+	left:-5000px;
 }
 #sdf_form div.button-dark {
 	clear:both;
@@ -143,6 +160,15 @@ September 2013
 	cursor:default;
 	background-color: #C2C2C2;
 }
+#sdf_form .button-dark {
+	margin-bottom: 2em;
+}
+#sdf_form #checks span {
+	font-weight: 700;
+}
+#sdf_form #contact {
+	margin-top: 1.5em;
+}
 #loading {
 	background: #666;
 	opacity: 0.9;
@@ -175,4 +201,8 @@ p.success {
 }
 p.error {
 	background-color: pink;
+}
+#sdf_form #js-custom-input {
+	margin:0;
+	width:70px;
 }
