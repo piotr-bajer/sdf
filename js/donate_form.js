@@ -67,29 +67,37 @@ var sdf = {};
 	},
 	spinner = new Spinner(opts);
 
-	sdf.setValidities = function() {
-		// required fields should say this field is required
-		// date fields should give expected formats
-		// email field should say a valid email is required
+	// sdf.setValidities = function() {
+	// 	// required fields should say this field is required
+	// 	// date fields should give expected formats
+	// 	// email field should say a valid email is required
 
-		// need to be done dynamically, can't just set em all, since then the fields are all invalid, 
-		// with a custom error on them
-		$('input[required]').blur(function() {
-			if($(this).val() == '') {
-				this.setCustomValidity('This field is required.');
-			} else {
-				this.setCustomValidity('');
-			}
-		});
+	// 	// need to be done dynamically, can't just set em all, since then the fields are all invalid, 
+	// 	// with a custom error on them
+	// 	$('#first-name').blur(function() {
+	// 		if(this.validity.valueMissing) {
+	// 			this.setCustomValidity('This field is required.');
+	// 			$(this).addClass('field-error');
+	// 		} else {
+	// 			this.setCustomValidity('');
+	// 			$(this).removeClass('field-error');
+	// 		}
+	// 	});
 
-		$('#cc-number').blur(function() {
-			if(this.validity.patternMismatch) {
-				this.setCustomValidity('Please enter a credit card number.');
-			} else {
-				this.setCustomValidity('');
-			}
-		});
+	// 	$('#cc-number').blur(function() {
+	// 		if(this.validity.patternMismatch) {
+	// 			this.setCustomValidity('Please enter a credit card number.');
+	// 		} else {
+	// 			this.setCustomValidity('');
+	// 		}
+	// 	});
 
+	// }
+
+	// preload the image
+	sdf.preload = function() {
+		var img = document.createElement('image');
+		img.src = '/wp-content/plugins/sdf/img/button-gray-tip-transparent.png';
 	}
 
 	sdf.stateBlur = function() {
@@ -112,6 +120,7 @@ var sdf = {};
 				$('#js-cc-fields input').each(function(k, v) {
 					$(v).prop('readonly', true);
 				});
+
 				$('#cc-country').prop('disabled', true);
 			});
 
@@ -125,6 +134,20 @@ var sdf = {};
 				$('#cc-country').prop('disabled', false);
 			});
 
+		}
+	}
+
+	sdf.cc_fields_gray = function() {
+		// when we go to another page and come back, make sure that if the
+		// box is checked, the fields are gray, and read-only-ize them
+		if($('.js-copy-personal-info').prop('checked')) {
+			$('#js-cc-fields').addClass('faded');
+
+			$('#js-cc-fields input').each(function(k, v) {
+					$(v).prop('readonly', true);
+				});
+
+			$('#cc-country').prop('disabled', true);
 		}
 	}
 
@@ -187,7 +210,7 @@ var sdf = {};
 
 			Stripe.card.createToken(cardData, sdf.stripeResponseHandler);
 			$('a#js-form-submit').addClass('disabled')
-				.parent().find('img').prop('src', '/img/button-grey-tip.png');
+				.parent().find('img').prop('src', '/wp-content/plugins/sdf/img/button-gray-tip-transparent.png');
 		} else {
 			// iterate through the inputs to mark those that aren't valid.
 			$('#sdf_form input:invalid').each(function(k, v) {
@@ -292,6 +315,7 @@ var sdf = {};
 		input.required = true;
 		input.type = 'text';
 		input.id = 'js-custom-input';
+		input.dataset.h5Errorid = 'invalid-' + input.name;
 
 
 		// can't chain these because otherwise focus gets called too early
@@ -320,6 +344,9 @@ var sdf = {};
 			var label_text = input.prop('placeholder');
 			input.parent('label').empty()
 				.removeClass('custom-label-active custom-label-input').text(label_text);
+
+			// hide error message
+			$('#invalid-' + input.attr('name')).hide();
 		}
 
 		// should re hook the create here.
@@ -502,7 +529,9 @@ var sdf = {};
 			sdf.placeholder_pf();
 		}
 
-		//$('.custom-label').click(sdf.custom_amount_create);
+		sdf.cc_fields_gray();
+
+		sdf.preload();
 
 		$('#sdf_form').on('blur', '#js-custom-input', sdf.custom_amount_blur)
 			.on('click', '.custom-label-active', sdf.custom_amount_focus)
@@ -528,10 +557,6 @@ var sdf = {};
 		$('#cc-exp-year').on('focusout', sdf.futureDate);
 
 		$('#js-form-submit').click(sdf.doSubmit);
-
-
-
-		// sdf.setValidities();
 
 	});
 }(jQuery));

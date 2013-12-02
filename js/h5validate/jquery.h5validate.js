@@ -112,7 +112,8 @@
 						if ($element.attr('title')) {
 							$errorID.text($element.attr('title'));
 						}
-						$errorID.show();
+						// XXX
+						$errorID.css('display', 'inline-block');
 					}
 					$element.data('valid', false);
 					options.settings.invalidCallback.call(options.element, options.validity);
