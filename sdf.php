@@ -556,6 +556,7 @@ function sdf_print_stripe_api_settings_form() { ?>
 <?php }
 
 // XXX js for removing password from the DOM
+// need js to show up in admin side first
 function sdf_print_salesforce_settings_form() { ?>
 <table class="form-table">
 	<tr valign="top">
@@ -1078,9 +1079,8 @@ function sdf_sf_emails(&$contact, &$data) {
 
 	// The Spark team message.
 	$alert_addresses = array(
-		// 'amanda@sparksf.org',
-		// 'shannon@sparksf.org',
-		'schavery@gmail.com' // XXX
+		'amanda@sparksf.org',
+		'shannon@sparksf.org',
 	);
 
 	$hear = sdf_sf_hear($data);

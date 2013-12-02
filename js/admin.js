@@ -1,5 +1,6 @@
 /*
 admin.js
+untested and unimplemented
 */
 (function($) {
 	$.post(ajaxurl, {

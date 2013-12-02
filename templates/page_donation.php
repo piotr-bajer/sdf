@@ -3,7 +3,6 @@
 	Template Name: Donation Form
 */
 defined('ABSPATH') or die("Unauthorized.");
-// wp_enqueue_script('sdf_jquery_dev', plugins_url('/sdf/js/jquery.js')); // XXX
 sdf_check_ssl();
 get_header(); ?>
 <link href="<?php echo plugins_url('/sdf/css/styles.css?v=0.1'); ?>" rel="stylesheet">
@@ -24,12 +23,9 @@ get_header(); ?>
 </div><!-- #main -->
 <?php
 	// not putting jquery as a requirement because then spark wp is including it twice.
-	wp_enqueue_script('sdf_validation', plugins_url('/sdf/js/h5validate/jquery.h5validate.js'));
-
-	wp_enqueue_script('sdf_modernize', plugins_url('/sdf/js/modernizr.min.js')); // XXX
-	// wp_enqueue_script('sdf_validate', plugins_url('/sdf/js/webshim/minified/polyfiller.js'));
-	wp_enqueue_script('sdf_spin', plugins_url('/sdf/js/spin/spin.min.js'));
-	wp_enqueue_script('sdf_donate_form_js', plugins_url('/sdf/js/donate_form.js')); 
+	wp_enqueue_script('sdf_validation', plugins_url('/sdf/js/jquery.h5validate.min.js'));
+	wp_enqueue_script('sdf_spin', plugins_url('/sdf/js/spin.min.js'));
+	wp_enqueue_script('sdf_donate_form_js', plugins_url('/sdf/js/donate_form.min.js')); 
 ?>
 <script type="text/javascript">
 	Stripe.setPublishableKey("<?php echo get_option('stripe_api_public_key'); ?>");
