@@ -10,8 +10,6 @@ var sdf = {};
 (function($) {
 	'use strict';
 
-	// $.webshims.polyfill('forms'); // XXX
-
 	// http://stackoverflow.com/questions/1184624/convert-form-data-to-js-object-with-jquery/1186309#1186309
 	$.fn.serializeObject = function() {
 		var o = {};
@@ -67,33 +65,6 @@ var sdf = {};
 	},
 	spinner = new Spinner(opts);
 
-	// sdf.setValidities = function() {
-	// 	// required fields should say this field is required
-	// 	// date fields should give expected formats
-	// 	// email field should say a valid email is required
-
-	// 	// need to be done dynamically, can't just set em all, since then the fields are all invalid, 
-	// 	// with a custom error on them
-	// 	$('#first-name').blur(function() {
-	// 		if(this.validity.valueMissing) {
-	// 			this.setCustomValidity('This field is required.');
-	// 			$(this).addClass('field-error');
-	// 		} else {
-	// 			this.setCustomValidity('');
-	// 			$(this).removeClass('field-error');
-	// 		}
-	// 	});
-
-	// 	$('#cc-number').blur(function() {
-	// 		if(this.validity.patternMismatch) {
-	// 			this.setCustomValidity('Please enter a credit card number.');
-	// 		} else {
-	// 			this.setCustomValidity('');
-	// 		}
-	// 	});
-
-	// }
-
 	// preload the image
 	sdf.preload = function() {
 		var img = document.createElement('image');
@@ -111,6 +82,13 @@ var sdf = {};
 
 			$('#js-cc-fields input').each(function(k, v) {
 				$(v).val($('#' + $(v).attr('name').substr(3)).val()).removeClass('field-error');
+			});
+
+			$('#js-cc-fields .h5-error-msg').each(function(k, v) {
+				$(v).hide();
+				// its imperfect, but it will smooth the problem of big error messages in the way
+				// can be improved by re-validating the transferred fields
+				// and leaving the ones that are still bad not read only
 			});
 
 			$('#cc-name').val($('#first-name').val() + ' ' + $('#last-name').val());
@@ -251,6 +229,8 @@ var sdf = {};
 			$('.alert').append('<p class="error">' + response.error.message + '</p>');
 			document.getElementsByClassName('alert')[0].scrollIntoView();
 			sdf.clear_loading();
+			// re enable submissions
+			sdf.re_enable();
 		} else {
 			$('#stripe-token').val(response.id);
 			data = $('#sdf_form form').serializeObject();
@@ -278,13 +258,20 @@ var sdf = {};
 					// could we figure out what element to highlight in error? that would be good.
 					// don't clear error for now.
 					// re enable submit
-					$('a#js-form-submit').removeClass('disabled')
-						.parent().find('img').prop('src', '/img/button-dark-tip.png');
+					sdf.re_enable();
 				} else {
-					setTimeout(sdf.redirect, 5000);
+					setTimeout(sdf.redirect, 2500);
 				}
 			});
 		}
+	}
+
+	sdf.re_enable = function() {
+		$('a#js-form-submit')
+			.removeClass('disabled')
+			.parent()
+			.find('img')
+			.prop('src', '/img/button-dark-tip.png');
 	}
 
 	sdf.custom_amount_create = function(event) {
