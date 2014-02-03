@@ -23,9 +23,11 @@ get_header(); ?>
 </div><!-- #main -->
 <?php
 	// not putting jquery as a requirement because then spark wp is including it twice.
+	wp_enqueue_script('mod', plugins_url('/sdf/modernizr-latest.js'));
 	wp_enqueue_script('sdf_validation', plugins_url('/sdf/js/jquery.h5validate.min.js'));
 	wp_enqueue_script('sdf_spin', plugins_url('/sdf/js/spin.min.js'));
-	wp_enqueue_script('sdf_donate_form_js', plugins_url('/sdf/js/donate_form.min.js')); 
+	//wp_enqueue_script('sdf_donate_form_js', plugins_url('/sdf/js/donate_form.min.js')); // XXX
+	wp_enqueue_script('sdf_donate_form_js', plugins_url('/sdf/js/donate_form.js'));
 ?>
 <script type="text/javascript">
 	Stripe.setPublishableKey("<?php echo get_option('stripe_api_public_key'); ?>");

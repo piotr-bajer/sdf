@@ -1,10 +1,11 @@
 <?php
 /*
+	// version = spark current
 	Plugin Name: Spark Donation Form
 	Plugin URI:
 	Description: Create and integrate a form with payment processing and CRM
 	Author: Steve Avery
-	Version: 0.1
+	Version: 1.0
 	Author URI: mailto:schavery@gmail.com
 */
 
@@ -12,7 +13,7 @@ define('FRIEND_OF_SPARK', '00130000007qhRG');
 define('SF_DATE_FORMAT', 'Y-m-d');
 setlocale(LC_MONETARY, 'en_US'); // for money format
 
-error_reporting(0); // XXX
+//error_reporting(0); // XXX
 defined('ABSPATH') or die("Unauthorized.");
 
 function sdf_get_form() { ?>
@@ -66,7 +67,7 @@ function sdf_get_form() { ?>
 			<hr class="dashed-line">
 			<h3>A little about you:</h3>
 			<label for"first-name">Name: <span class="label-required">*</span></label>
-			<input name="first-fname" id="first-name" type="text" placeholder="First" data-h5-errorid="invalid-fname" required>
+			<input name="first-name" id="first-name" type="text" placeholder="First" data-h5-errorid="invalid-fname" required>
 			<span id="invalid-fname" class="h5-error-msg" style="display:none;">This field is required.</span>
 			<input name="last-name" id="last-name" type="text" placeholder="Last" data-h5-errorid="invalid-lname" required>
 			<span id="invalid-lname" class="h5-error-msg" style="display:none;">This field is required.</span>
@@ -444,7 +445,7 @@ function sdf_get_country_select($name_attr) { ?>
 function sdf_template() {
 	global $wp;
 	if(array_key_exists('pagename', $wp->query_vars)) {
-		if($wp->query_vars['pagename'] == 'new-donate-page') {
+		if($wp->query_vars['pagename'] == 'donate') {
 			$return_template = 'templates/page_donation.php';
 			do_theme_redirect($return_template);
 		}
@@ -653,12 +654,47 @@ function sdf_parse() {
 	} else {
 		$data = sdf_validate($_POST['data']);
 	}
-	$data['membership'] = sdf_get_membership($data);
 
-	sdf_do_stripe($data);
-	sdf_do_salesforce($data);
+	$sforce = sdf_include_salesforce_api();
+	$Id = '0035000001wG3rjAAC';
 
-	sdf_message_handler('success', 'Thank you for your donation!');
+	$query = 'SELECT (SELECT 
+							Amount__c,
+							Donation_Date__c
+					FROM 
+						Donations__r)
+					FROM
+						Contact
+					WHERE
+						Contact.Id = \'' . $Id . '\'';
+
+	$response = $sforce->query($query);
+
+
+
+    $records = $response->records[0]->Donations__r->records;
+    $donations_list = array();
+    foreach($records as $donation) {
+    	$li = array();
+    	$date = strtotime($donation->Donation_Date__c);
+
+    	if($date >= strtotime(date('Y') . '01-01')) {
+    		// donations from this calendar year
+    		$li['date'] = $donation->Donation_Date__c;
+    		$li['amount-cents'] = $donation->Amount__c * 100;
+    		$donations_list[] = $li;
+    	}
+    }
+
+if(!count($donations_list)) {
+	echo "You won this time mr bond";
+}
+
+
+	// sdf_do_stripe($data);
+	// sdf_do_salesforce($data);
+
+	// sdf_message_handler('success', 'Thank you for your donation!');
 
 	die(); // prevent trailing 0 from admin-ajax.php
 }
@@ -746,52 +782,65 @@ function sdf_validate(&$data) {
 	} else {
 		$data['amount'] = sdf_get_amount($data);
 	}
+	
+	$data['recurrence'] = sdf_get_recurrence($data);
+	$data['membership'] = sdf_get_membership($data);
+
 	return $data;
 }
 
-function sdf_get_membership(&$data) {
-	$levels = array(
-		'annual' => array(
-			'Friend' => 7500,
-			'Member' => 10000,
-			'Affiliate' => 25000,
-			'Sponsor' => 50000,
-			'Investor' => 100000,
-			'Benefactor' => 250000,
-		),
-		'monthly' => array(
-			'Friend' => 500,
-			'Member' => 1000,
-			'Affiliate' => 2000,
-			'Sponsor' => 5000,
-			'Investor' => 10000,
-			'Benefactor' => 20000,
-		),
-	);
-	$amount = $data['amount'];
-
-	// ugly ugly ugly
-	foreach($levels as $recurrence => $level) {
-		if(strpos($data['donation'], $recurrence) !== false) {
-			// IF THE DONATED AMOUNT EXISTS IN THE DEFAULT PLANS
-			if(array_search($amount, $level) !== false) {
-				// NOW WE CAN CHECK WHICH LEVEL IT IS.
-				return array_search($amount, $level);
-			} else {
-				// MAKE SURE IT'S MORE THAN THE MINIMUM.
-				if($amount < reset($level)) {
-					return key($level);
-				} else {
-					$array_keys = array_keys($level);
-					for($ii = 0; $ii < count($level); $ii++) {
-						if($amount > $level[$array_keys[$ii]] && $amount < $level[$array_keys[$ii + 1]]) {
-							return $array_keys[$ii];
-						}
-					}
-				}
-			}
+// Get recurrence description
+function sdf_get_recurrence(&$data) {
+	if(array_key_exists('one-time', $data) && !empty($data['one-time'])) {
+		$recurrence = 'Single donation';
+	} else {
+		if(strpos($data['donation'], 'annual') !== false) {
+			$recurrence = 'Annual';
+		} else {
+			$recurrence = 'Monthly';
 		}
 	}
+	return $recurrence;
+}
+
+// Get membership level description
+function sdf_get_membership(&$data) {
+	$amount = $data['amount'];
+	$member = 'Donor';
+
+	if($data['recurrence'] == 'Annual') {
+		if($amount >= 7500 && $amount < 10000) {
+			$member = 'Friend';
+		} else if($amount >= 10000 && $amount < 25000) {
+			$member = 'Member';
+		} else if($amount >= 25000 && $amount < 50000) {
+			$member = 'Affiliate';
+		} else if($amount >= 50000 && $amount < 100000) {
+			$member = 'Sponsor';
+		} else if($amount >= 100000 && $amount < 250000) {
+			$member = 'Investor';
+		} else if($amount >= 250000) {
+			$member = 'Benefactor';
+		}
+	}
+
+	if($data['recurrence'] == 'Monthly') {
+		if($amount >= 500 && $amount < 1000) {
+			$member = 'Friend';
+		} else if($amount >= 1000 && $amount < 2000) {
+			$member = 'Member';
+		} else if($amount >= 2000 && $amount < 5000) {
+			$member = 'Affiliate';
+		} else if($amount >= 5000 && $amount < 10000) {
+			$member = 'Sponsor';
+		} else if($amount >= 10000 && $amount < 20000) {
+			$member = 'Investor';
+		} else if($amount >= 20000) {
+			$member = 'Benefactor';
+		}
+	}
+
+	return $member;
 }
 
 function sdf_get_amount(&$data) {
@@ -872,11 +921,15 @@ function sdf_sf_company(&$data, &$contact) {
 }
 
 function sdf_sf_contact_description(&$data, &$contact) {
-	$transaction_desc = money_format('%n', ($data['amount'] / 100)) .
+
+	$transaction_desc = $data['recurrence'] . 
+		' - ' . money_format('%n', ($data['amount'] / 100)) .
 		' - ' . date('n/d/y') . ' - Online donation from ' . home_url() . '.';
+
 	if(!empty($data['inhonorof'])) {
 		$transaction_desc .= ' In honor of: ' . $data['inhonorof'];
 	}
+
 	if(isset($contact->Description)) {
 		$desc = $contact->Description . "\n" . $transaction_desc;
 	} else {
@@ -912,9 +965,9 @@ function sdf_sf_hear(&$data, &$contact = null) {
 
 function sdf_is_member(&$data, &$contact) {
 	if(strpos($data['donation'], 'month') !== false) {
-		$qualify = ($data['amount'] >= 1000) ? 1 : 0;
+		$qualify = ($data['amount'] >= 500) ? 1 : 0;
 	} else if(strpos($data['donation'], 'annual') !== false) {
-		$qualify = ($data['amount'] >= 10000) ? 1 : 0;
+		$qualify = ($data['amount'] >= 7500) ? 1 : 0;
 	}
 
 	return $qualify;
@@ -925,6 +978,12 @@ function sdf_sf_renewal_date(&$data, &$contact, $member) {
 		$old_date = $contact->Renewal_Date__c;
 		if(!$member) {
 			$date = $old_date;
+		} else {
+			if(strpos($data['donation'], 'month') !== false) {
+				$date = date(SF_DATE_FORMAT, strtotime('+1 month', strtotime($old_date)));
+			} else if(strpos($data['donation'], 'annual') !== false) {
+				$date = date(SF_DATE_FORMAT, strtotime('+1 year', strtotime($old_date)));
+			}
 		}
 	} else {
 		if(!$member) {
@@ -1399,7 +1458,7 @@ function sdf_include_stripe_api($input = null) {
 function sdf_include_salesforce_api($input = null) {
 	require_once(WP_PLUGIN_DIR . '/sdf/salesforce/soapclient/SforceEnterpriseClient.php');
 	$sf_object = new SforceEnterpriseClient();
-	$sf_client = $sf_object->createConnection(WP_PLUGIN_DIR . '/sdf/salesforce/soapclient/wsdl.jsp.xml');
+	$sf_client = $sf_object->createConnection(WP_PLUGIN_DIR . '/sdf/salesforce/soapclient/sdf.wsdl.jsp.xml');
 	if(!empty($input)) {
 		// we expect the input to be a new token.
 		$sf_object->login(get_option('salesforce_username'), get_option('salesforce_password') . $input);
@@ -1493,6 +1552,10 @@ function sdf_check_ssl() {
         header('Location: https://' . $_SERVER['SERVER_NAME'] . $_SERVER['REQUEST_URI']);
         exit();
 	}
+}
+
+function sdf_noindex() {
+	echo "<META NAME=\"ROBOTS\" CONTENT=\"NOINDEX, NOFOLLOW\">";
 }
 
 if(is_admin()) {
