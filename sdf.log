@@ -1,3 +1,20 @@
 1382833187 - log - Invalid hearabout category.
 1382848743 - log - Invalid hearabout category.
 1391108321 - success - Thank you for your donation!
+1391802155 - error - Error: Missing required fields.
+1391802302 - error - Error: Missing required fields.
+1391803903 - log - upsert : '' is not a valid value for the type xsd:date
+1391803903 - log - new_donation : '' is not a valid value for the type xsd:date
+1391803936 - log - upsert : '' is not a valid value for the type xsd:date
+1391803937 - log - new_donation : '' is not a valid value for the type xsd:date
+1391803937 - success - Thank you for your donation!
+1391804046 - log - upsert : '' is not a valid value for the type xsd:date
+1391804046 - log - new_donation : '' is not a valid value for the type xsd:date
+1391804197 - log - upsert : '' is not a valid value for the type xsd:date
+1391804197 - log - new_donation : '' is not a valid value for the type xsd:date
+1391804812 - log - upsert : '' is not a valid value for the type xsd:date
+1391804812 - log - new_donation : '' is not a valid value for the type xsd:date
+1391804975 - log - upsert : '' is not a valid value for the type xsd:date
+1391804975 - log - new_donation : '' is not a valid value for the type xsd:date
+1391846778 - error - Invalid request. Donation amount too small.
+1391853399 - success - Thank you for your donation!

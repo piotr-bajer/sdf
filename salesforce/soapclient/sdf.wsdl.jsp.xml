@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 Salesforce.com Enterprise Web Services API Version 29.0
-Generated on 2014-01-27 17:01:43 +0000.
+Generated on 2014-02-08 05:13:58 +0000.
 
 Package Versions:
 Eventbrite Sync (Version: 1.5, Namespace: gweb)
@@ -1852,6 +1852,7 @@ All Rights Reserved
                         <element name="SystemModstamp" nillable="true" minOccurs="0" type="xsd:dateTime"/>
                         <element name="Tags" nillable="true" minOccurs="0" type="tns:QueryResult"/>
                         <element name="Tasks" nillable="true" minOccurs="0" type="tns:QueryResult"/>
+                        <element name="Total_paid_this_year__c" nillable="true" minOccurs="0" type="xsd:double"/>
                         <element name="Type__c" nillable="true" minOccurs="0" type="xsd:string"/>
                         <element name="UndecidedEventRelations" nillable="true" minOccurs="0" type="tns:QueryResult"/>
                         </sequence>

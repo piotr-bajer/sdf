@@ -1,20 +1,1292 @@
 <?php
 /*
-	// version = spark current
 	Plugin Name: Spark Donation Form
 	Plugin URI:
 	Description: Create and integrate a form with payment processing and CRM
 	Author: Steve Avery
-	Version: 1.0
+	Version: 1.2
 	Author URI: mailto:schavery@gmail.com
 */
 
-define('FRIEND_OF_SPARK', '00130000007qhRG');
-define('SF_DATE_FORMAT', 'Y-m-d');
-setlocale(LC_MONETARY, 'en_US'); // for money format
-
-//error_reporting(0); // XXX
+// error_reporting(E_ALL); // XXX
 defined('ABSPATH') or die("Unauthorized.");
+
+define('ERROR', 0);
+define('SUCCESS', 1);
+define('LOG', 2);
+
+class sdf_data {
+
+	private $data;
+
+	private $strp_plan;
+	private $strp_customer;
+
+	private static $sf_cnxn;
+	private $sf_contact;
+	private $sf_txn;
+	private $sf_donations;
+
+	private static $FRIEND_OF_SPARK = '00130000007qhRG';
+	private static $DONOR_SINGLE_TEMPLATE = '00X50000001VaHS';
+	private static $DONOR_MONTHLY_TEMPLATE = '00X50000001eVEX';
+	private static $DONOR_ANNUAL_TEMPLATE = '00X50000001eVEc';
+	private static $REPLY_TO = 'programs@sparksf.org';
+	private static $DISPLAY_NAME = 'Spark';
+	private static $SPARK_TEAM = array('amanda@sparksf.org', 'shannon@sparksf.org');
+	private static $SF_DATE_FORMAT = 'Y-m-d';
+	private static $ONE_TIME = 0;
+	private static $ANNUAL = 1;
+	private static $MONTHLY = 2;
+	private static $IS_NOT_CUSTOM = 0;
+	private static $IS_CUSTOM = 1;
+	private static $IS_NOT_MEMBER = 0;
+	private static $IS_MEMBER = 1;
+
+	// ************************************************************************
+	// Main
+
+	// Start processing, validation, execution....
+	public function begin($postdata) {
+		$this->data = $postdata;
+
+		$this->validate();
+		$this->setup_additional_info();
+
+		$this->do_stripe();
+		$this->do_salesforce();
+	}
+
+	private function validate() {
+		$this->required_fields();
+		$this->donation_category();
+		$this->hearabout_category();
+		$this->check_email();
+	}
+
+	private function setup_additional_info() {
+		$this->set_amount();
+		$this->set_recurrence();
+		$this->get_ext_amount();
+	}
+
+	private function do_stripe() {
+		$this->stripe_api();
+		$this->charge();
+	}
+
+	private function do_salesforce() {
+		$this->salesforce_api();
+		$this->get_contact();
+		$this->get_donations();
+		$this->update();
+		$this->upsert();
+		$this->new_donation();
+		$this->send_email();
+	}
+
+	// ************************************************************************
+	// Validation functions
+
+	private function required_fields() {
+		$fields = array(
+			'donation',
+			'first-name',
+			'last-name',
+			'email',
+			'tel',
+			'address1',
+			'city',
+			'state',
+			'zip',
+			'stripe-token'
+		);
+
+		foreach($fields as $key) {
+			if(!array_key_exists($key, $this->data)
+				|| empty($this->data[$key])) {
+				sdf_message_handler(ERROR, 'Error: Missing required fields.');
+			}
+		}
+	}
+
+	private function donation_category() {
+		$cats = array(
+			'annual-75',
+			'annual-100',
+			'annual-250',
+			'annual-500',
+			'annual-1000',
+			'annual-2500',
+			'monthly-5',
+			'monthly-10',
+			'monthly-20',
+			'monthly-50',
+			'monthly-100',
+			'monthly-200',
+			'annual-custom',
+			'monthly-custom'
+		);
+
+
+		if(!in_array($this->data['donation'], $cats)) {
+			sdf_message_handler(ERROR, 'Invalid donation amount.');
+		}
+	}
+
+	private function hearabout_category() {
+		$cats = array(
+			'Renewing Membership',
+			'Friend',
+			'Website',
+			'Search',
+			'Event'
+		);
+
+		if(!empty($this->data['hearabout'])) {
+			if(!in_array($this->data['hearabout'], $cats)) {
+				sdf_message_handler(LOG, 'Invalid hearabout category.');
+				unset($data['hearabout']);
+				unset($data['hearabout-extra']);
+			}
+		}
+	}
+
+	private function check_email() {
+		$this->data['email'] = filter_var($this->data['email'], FILTER_SANITIZE_EMAIL);
+		if(!filter_var($this->data['email'], FILTER_VALIDATE_EMAIL)) {
+			sdf_message_handler(ERROR, 'Invalid email address.');
+		}
+	}
+
+	// ************************************************************************
+	// Setup functions
+
+	private function set_recurrence() {
+		if(array_key_exists('one-time', $this->data) 
+			&& !empty($this->data['one-time'])) {
+				$recurrence = 'Single donation';
+				$type = static::$ONE_TIME;
+		} else {
+			if(strpos($this->data['donation'], 'annual') !== false) {
+				$recurrence = 'Annual';
+				$type = static::$ANNUAL;
+			} else {
+				$recurrence = 'Monthly';
+				$type = static::$MONTHLY;
+			}
+		}
+
+		$this->data['recurrence-type'] = $type;
+		$this->data['recurrence-string'] = $recurrence;
+	}
+
+	// set up data['amount'] and ['amount-string']
+	// is also testing for sensibility, can stop execution
+	// side effect: sets data['custom']
+	private function set_amount() {
+		if(strpos($this->data['donation'], 'custom') !== false) {
+			$this->data['custom'] = static::$IS_CUSTOM;
+
+			if(array_key_exists('annual-custom', $this->data)) {
+				$donated_value = $this->data['annual-custom'];
+			} else if(array_key_exists('monthly-custom', $this->data)) {
+				$donated_value = $this->data['monthly-custom'];
+			}
+
+			unset($this->data['monthly-custom']);
+			unset($this->data['annual-custom']);
+
+			if(!is_numeric($donated_value)) {
+				// replace anything not numeric or a . with nothing
+				$donated_value = preg_replace('/([^0-9\\.])/i', '', $donated_value);
+			}
+
+			if($donated_value <= 0.50) {
+				sdf_message_handler(ERROR, 'Invalid request. Donation amount too small.');
+			}
+		} else {
+			$this->data['custom'] = static::$IS_NOT_CUSTOM;
+			$donated_value = $this->get_std_amount();
+		}
+
+		$this->data['amount'] = $donated_value;
+		$this->data['amount-string'] = '$' . $donated_value;
+	}
+
+	// returns the amount in cents of standard donations
+	private function get_std_amount() {
+		$plan_amounts = array(
+			'annual-75' => 75,
+			'annual-100' => 100,
+			'annual-250' => 250,
+			'annual-500' => 500,
+			'annual-1000' => 1000,
+			'annual-2500' => 2500,
+			'monthly-5' => 5,
+			'monthly-10' => 10,
+			'monthly-20' => 20,
+			'monthly-50' => 50,
+			'monthly-100' => 100,
+			'monthly-200' => 200
+		);
+
+		// potentially erroneous return of null
+		return $plan_amounts[$this->data['donation']];
+	}
+
+	// Find out how much the amount is for the year if it's monthly 
+	private function get_ext_amount() {
+		if($this->data['recurrence-type'] == static::$MONTHLY) {
+			$times = 13 - intval(date('n'));
+			$this->data['amount-ext'] = $times * $this->data['amount'];
+		} else {
+			$this->data['amount-ext'] = $this->data['amount'];
+		}
+	}
+
+	// ************************************************************************
+	// Stripe functions
+
+	// This function is public since we use it to test keys input to
+	// the options page.
+	public static function stripe_api($input = null) {
+		require_once(WP_PLUGIN_DIR . '/sdf/stripe/lib/Stripe.php');
+		if(!empty($input)) {
+			Stripe::setApiKey($input);
+		} else {
+			Stripe::setApiKey(get_option('stripe_api_secret_key'));
+		}
+		Stripe::setApiVersion('2013-08-13');
+	}
+
+	// This function is public to perform initial setup of plans.
+	// Execute when the api keys are updated
+	public static function stripe_default_plans() {
+		$plans = array(
+			array(
+				'id' => 'annual-75',
+				'amount' => 7500,
+				'currency' => 'USD',
+				'interval' => 'year',
+				'name' => '$75 Annual Gift',
+			),
+			array(
+				'id' => 'annual-100',
+				'amount' => 10000,
+				'currency' => 'USD',
+				'interval' => 'year',
+				'name' => '$100 Annual Gift',
+			),
+			array(
+				'id' => 'annual-250',
+				'amount' => 25000,
+				'currency' => 'USD',
+				'interval' => 'year',
+				'name' => '$250 Annual Gift',
+			),
+			array(
+				'id' => 'annual-500',
+				'amount' => 50000,
+				'currency' => 'USD',
+				'interval' => 'year',
+				'name' => '$500 Annual Gift',
+			),
+			array(
+				'id' => 'annual-1000',
+				'amount' => 100000,
+				'currency' => 'USD',
+				'interval' => 'year',
+				'name' => '$1000 Annual Gift',
+			),
+			array(
+				'id' => 'annual-2500',
+				'amount' => 250000,
+				'currency' => 'USD',
+				'interval' => 'year',
+				'name' => '$2500 Annual Gift',
+			),
+			array(
+				'id' => 'monthly-5',
+				'amount' => 500,
+				'currency' => 'USD',
+				'interval' => 'month',
+				'name' => '$5 Monthly Gift',
+			),
+			array(
+				'id' => 'monthly-10',
+				'amount' => 1000,
+				'currency' => 'USD',
+				'interval' => 'month',
+				'name' => '$10 Monthly Gift',
+			),
+			array(
+				'id' => 'monthly-20',
+				'amount' => 2000,
+				'currency' => 'USD',
+				'interval' => 'month',
+				'name' => '$20 Monthly Gift',
+			),
+			array(
+				'id' => 'monthly-50',
+				'amount' => 5000,
+				'currency' => 'USD',
+				'interval' => 'month',
+				'name' => '$50 Monthly Gift',
+			),
+			array(
+				'id' => 'monthly-100',
+				'amount' => 10000,
+				'currency' => 'USD',
+				'interval' => 'month',
+				'name' => '$100 Monthly Gift',
+			),
+			array(
+				'id' => 'monthly-200',
+				'amount' => 20000,
+				'currency' => 'USD',
+				'interval' => 'month',
+				'name' => '$200 Monthly Gift',
+			),
+		);
+
+		foreach($plans as $plan) {
+			try {
+				Stripe_Plan::create($plan);
+			} catch(Stripe_Error $e) {
+				$body = $e->getJsonBody();
+				sdf_message_handler(LOG, __FUNCTION__ . ' : ' . $body['error']['message']);
+
+				$message = '<span id="source">Salesforce error:</span> ' . $body['error']['message'];
+				add_settings_error(
+					'stripe_plans',
+					'stripe_plans_error',
+					$message,
+					'error'
+				);
+			}
+		}
+	}
+
+	private function charge() {
+		if($this->data['recurrence-type'] == static::$ONE_TIME) {
+			$this->single_charge();
+		} else {
+			$this->recurring_charge();
+		}
+	}
+
+	private function single_charge() {
+		try {
+			$cents = $this->data['amount'] * 100;
+			Stripe_Charge::create(array(
+				'amount' => $cents,
+				'card' => $this->data['stripe-token'],
+				'currency' => 'usd',
+				'description' => $this->data['email']
+			));
+		} catch(Stripe_Error $e) {
+			$body = $e->getJsonBody();
+			sdf_message_handler(ERROR, $body['error']['message']);
+		}
+	}
+
+	private function recurring_charge() {
+		if($this->data['custom'] == static::$IS_CUSTOM) {
+			$this->custom_plan();
+		} else {
+			$this->std_plan();
+		}
+
+		$this->stripe_customer();
+		$this->subscribe();
+	}
+
+	// We assume that the custom plan has been created, and try to retrieve it
+	// and if we fail, then we create the plan
+	private function custom_plan() {
+		$plan_id = strtolower($this->data['recurrence-string']) . '-' . $this->data['amount'];
+
+		try {
+			$plan = Stripe_Plan::retrieve($plan_id);
+		} catch(Stripe_Error $e) {
+			$recurrence = ($this->data['recurrence-type'] == static::$ANNUAL ? 'year' : 'month');
+
+			$cents = $this->data['amount'] * 100;
+
+			$new_plan = array(
+				'id' => $plan_id,
+				'currency' => 'USD',
+				'interval' => $recurrence,
+				'amount' => $cents,
+				'name' => $this->data['amount-string'] . ' ' . $recurrence . 'ly custom gift'
+			);
+
+			try {
+				$plan = Stripe_Plan::create($new_plan);
+			} catch(Stripe_Error $e) {
+				$body = $e->getJsonBody();
+				sdf_message_handler(LOG, __FUNCTION__ . ' : ' . $body['error']['message']);
+				sdf_message_handler(ERROR, 'Something\'s not right. Please try again.');
+			}
+		}
+
+		$this->strp_plan = $plan;
+	}
+
+	private function std_plan() {
+		try {
+			$plan = Stripe_Plan::retrieve($this->data['donation']);
+		} catch(Stripe_Error $e) {
+			$body = $e->getJsonBody();
+			sdf_message_handler(ERROR, $body['error']['message']);
+		}
+
+		$this->strp_plan = $plan;
+	}
+
+	private function stripe_customer() {
+		$info = array(
+			'card' => $this->data['stripe-token'],
+			'email' => $this->data['email'],
+			'description' => $this->data['first-name'] . ' ' . $this->data['last-name']
+		);
+
+		try {
+			$customer = Stripe_Customer::create($info);
+		} catch(Stripe_Error $e) {
+			$body = $e->getJsonBody();
+			sdf_message_handler(ERROR, $body['error']['message']);
+		}
+
+		$this->strp_customer = $customer;
+	}
+
+	private function subscribe() {
+		try {
+			$this->strp_customer->updateSubscription(array('plan' => $this->strp_plan->id));	
+		} catch(Stripe_Error $e) {
+			$body = $e->getJsonBody();
+			sdf_message_handler(ERROR, $body['error']['message']);
+		}
+	}
+
+	// ************************************************************************
+	// SalesForce Functions
+
+	// This function is public to allow verification from settings page
+	// just like the Stripe API
+	public static function salesforce_api($input = null) {
+		require_once(WP_PLUGIN_DIR . '/sdf/salesforce/soapclient/SforceEnterpriseClient.php');
+		
+		$sf_cnxn = new SforceEnterpriseClient();
+		$sf_cnxn->createConnection(WP_PLUGIN_DIR . '/sdf/salesforce/soapclient/sdf.wsdl.jsp.xml');
+		
+		if(!empty($input)) {
+			// we expect the input to be a new token.
+			$sf_cnxn->login(get_option('salesforce_username'), get_option('salesforce_password') . $input);
+		} else {
+			$sf_cnxn->login(get_option('salesforce_username'), get_option('salesforce_password') . get_option('salesforce_token'));	
+		}
+
+		static::$sf_cnxn = clone $sf_cnxn;
+	}
+
+	// This method queries the data in SalesForce using the provided email, 
+	// and fills out this->sf_contact
+	private function get_contact() {
+		$id = $this->search_salesforce();
+		$contact = new stdClass();
+
+		if($id !== null) {
+			$fields = array( // # is index of contact object
+				'AccountId', // 3
+				'Description', // 25
+				'Membership_Start_Date__c', // 44
+				'Renewal_Date__c', // 52
+				'Member_Level__c', // 53
+				'First_Active_Date__c', // 56
+				'Board_Member_Contact_Owner__c', // 61
+				'How_did_you_hear_about_Spark__c', // 66
+				'Total_paid_this_year__c'
+			);
+
+			$fieldlist = implode(', ', $fields);
+
+			try {
+				$contact = array_pop(static::$sf_cnxn->retrieve($fieldlist, 'Contact', array($id)));
+			} catch(Exception $e) {
+				sdf_message_handler(LOG, __FUNCTION__ . ' : ' . $e->faultstring);
+			}
+		}
+		
+		$this->sf_contact = $contact;
+		$this->sf_contact->Id = $id;
+	}
+
+	// Searches SalesForce for the user, and returns their ID, or null
+	private function search_salesforce() {
+		$query = 'FIND {' . $this->data['email'] . '} IN EMAIL FIELDS RETURNING CONTACT(ID)';
+
+		try {
+			$response = static::$sf_cnxn->search($query);
+		} catch(Exception $e) {
+			sdf_message_handler(LOG, __FUNCTION__ . ' : ' . $e->faultstring);
+		}
+
+		if(count($response)) {
+			return array_pop($response->searchRecords)->Id;
+		} else {
+			return null;
+		}
+	}
+
+	// Find the donations for our contact, so that we can determine their
+	// donor level
+	private function get_donations() {
+		$donations_list = array();
+		
+		if($this->sf_contact->Id !== null) {
+			$cutoff_date = strtotime(date('Y') . '-01-01');
+
+			$query = 'SELECT (SELECT 
+							Amount__c,
+							Donation_Date__c
+					FROM 
+						Donations__r)
+					FROM
+						Contact
+					WHERE
+						Contact.Id = \'' . $this->sf_contact->Id . '\'';
+
+			try {
+				$response = static::$sf_cnxn->query($query);
+				$records = $response->records[0]->Donations__r->records;
+				foreach($records as $donation) {
+					$li = array();
+					$date = strtotime($donation->Donation_Date__c);
+
+					if($date >= $cutoff_date) {
+						// donations from this calendar year
+						$li['date'] = $donation->Donation_Date__c;
+						$li['amount'] = $donation->Amount__c;
+						$donations_list[] = $li;
+					}
+				}
+			} catch(Exception $e) {
+				sdf_message_handler(LOG, __FUNCTION__ . ' : ' . $e->faultstring);
+			}
+		}
+
+		$this->sf_donations = $donations_list;
+	}
+
+	// This function has a TON of helper functions that help it build
+	// our contact data up.
+	// Take what we can from the old contact, and stage the new data for insertion.
+	// The helper functions are called in the order of the contact object fields
+	private function update() {
+		$this->recalc_sum();
+		$this->member_level();
+		$this->set_constant();
+		$this->company();
+		$this->name();
+		$this->address();
+		$this->phone();
+		$this->description();
+		$this->email();
+		$this->type();
+		$this->start_date();
+		$this->renewal_date();
+		$this->first_active();
+		$this->gender();
+		$this->board_member();
+		$this->birthday();
+		$this->hdyh_type();
+		$this->cleanup();
+	}
+
+	// Find out if the donation li's will update the contact's memberhsip level
+	// we want the TOTAL amount of donations for this calendar year
+	// and we want to know whether that passes the 75 dollar cutoff.
+	// then they are a member
+	// Also sets contact->paid__c and total__c
+	private function recalc_sum() {
+		$sum = 0;
+
+		foreach($this->sf_donations as $donation) {
+			$sum += $donation['amount'];
+		}
+
+		$sum += $this->data['amount-ext'];
+
+		if($sum >= 75) { // change to intval?
+			$this->data['is-member'] = static::$IS_MEMBER;
+		} else {
+			$this->data['is-member'] = static::$IS_NOT_MEMBER;
+		}
+
+		$this->sf_contact->Total_paid_this_year__c = $sum;
+		// last amount paid
+		$this->sf_contact->Paid__c = $this->data['amount-ext'];
+	}
+
+	private function member_level() {
+		$amount = $this->sf_contact->Total_paid_this_year__c;
+		$level = 'Donor';
+
+		if($amount >= 75 && $amount < 100) {
+			$level = 'Friend';
+		} else if($amount >= 100 && $amount < 250) {
+			$level = 'Member';
+		} else if($amount >= 250 && $amount < 500) {
+			$level = 'Affiliate';
+		} else if($amount >= 500 && $amount < 1000) {
+			$level = 'Sponsor';
+		} else if($amount >= 1000 && $amount < 2500) {
+			$level = 'Investor';
+		} else if($amount >= 2500) {
+			$level = 'Benefactor';
+		}
+
+		$this->sf_contact->Member_Level__c = $level;
+	}
+
+	// Set the values that will always be the same
+	private function set_constant() {
+		$this->sf_contact->Payment_Type__c = 'Credit Card';
+		$this->sf_contact->Contact_Status__c = 'Active';
+		$this->sf_contact->Active_Member__c = true;
+	}
+
+	private function company() {
+		if(!isset($this->sf_contact->AccountId)) {
+			if(!empty($this->data['company'])) {
+				$company = new stdClass();
+				$company->Name = $data['company'];
+
+				try {
+					// we upsert: makes it if it doesn't exist, get id otherwise
+					$search = static::$sf_cnxn->upsert('Name', array($company), 'Company');
+					$this->sf_contact->AccountId = $search[0]->id;
+				} catch(Exception $e) {
+					sdf_message_handler(LOG, __FUNCTION__ . ' : ' . $e->faultstring);
+					$this->sf_contact->AccountId = static::$FRIEND_OF_SPARK;
+				}
+
+			} else {
+				$this->sf_contact->AccountId = static::$FRIEND_OF_SPARK;
+			} 
+		}
+	}
+
+	private function name() {
+		$this->sf_contact->FirstName = $this->data['first-name'];
+		$this->sf_contact->LastName = $this->data['last-name'];
+	}
+
+	private function address() {
+		$this->sf_contact->MailingStreet = empty($this->data['address2']) ? $this->data['address1'] 
+			: $this->data['address1'] . "\n" . $this->data['address2'];
+
+		$this->sf_contact->MailingCity = $this->data['city'];
+		$this->sf_contact->MailingState = $this->data['state'];
+		$this->sf_contact->MailingPostalCode = $this->data['zip'];
+		$this->sf_contact->MailingCountry = $this->data['country'];
+	}
+
+	private function phone() {
+		$this->sf_contact->Phone = $this->data['tel'];
+	}
+
+	private function description() {
+		$this->sf_txn = $this->data['recurrence-string']
+			. ' - ' . $this->data['amount-string']. ' - ' 
+			. date('n/d/y') . ' - Online donation from ' . home_url() . '.';
+
+		if(!empty($this->data['inhonorof'])) {
+			$this->sf_txn .= ' In honor of: ' . $this->data['inhonorof'];
+		}
+
+		if(isset($this->sf_contact->Description)) {
+			$desc = $this->sf_contact->Description . "\n" . $this->sf_txn;
+		} else {
+			$desc = $this->sf_txn;
+		}
+
+		$this->sf_contact->Description = $desc;
+	}
+
+	private function email() {
+		$this->sf_contact->Email = $this->data['email'];
+	}
+
+	// SalesForce Type - Donor or Member
+	private function type() {
+		$type = $this->data['is-member'] == static::$IS_MEMBER ? 'Spark Member' : 'Donor';
+		$this->sf_contact->Type__c = $type;
+	}
+
+	private function start_date() {
+		if(!isset($this->sf_contact->Membership_Start_Date__c)) {
+			$this->sf_contact->Membership_Start_Date__c = date(static::$SF_DATE_FORMAT);
+		}
+	}
+
+	// Renewal is always updated to be one more year from now
+	private function renewal_date() {
+		$this->sf_contact->Renewal_Date__c = date(static::$SF_DATE_FORMAT, strtotime('+1 year'));
+	}
+
+	private function first_active() {
+		if(!isset($this->sf_contact->First_Active_Date__c)) {
+			$this->sf_contact->First_Active_Date__c = date(static::$SF_DATE_FORMAT);
+		}
+	}
+
+	private function gender() {
+		if(!empty($this->data['gender'])) {
+			$this->sf_contact->Gender__c = ucfirst($this->data['gender']);
+		}
+	}
+
+	private function board_member() {
+		if(!isset($this->sf_contact->Board_Member_Contact_Owner__c)) {
+			$this->sf_contact->Board_Member_Contact_Owner__c = 'Amanda Brock';
+		}
+	}
+
+	private function birthday() {
+		// Birth_Month_Year__c
+		if(!empty($this->data['birthday-month']) && !empty($this->data['birthday-year'])) {
+			$this->sf_contact->Birth_Month_Year__c = date('m/Y', 
+				strtotime($this->data['birthday-year'] . '-' . $this->data['birthday-month']));
+		}
+	}
+
+	// Form field hearabout-extra is not being sent to SalesForce
+	// but we do notify Spark Team about it.
+	private function hdyh_type() {
+		if(!empty($this->data['hearabout'])) {
+			if(!isset($this->sf_contact->How_did_you_hear_about_Spark__c)) {
+				$this->sf_contact->How_did_you_hear_about_Spark__c = ucfirst($this->data['hearabout']);
+			}
+		}
+	}
+
+	// This function removes empty fields from the contact object
+	// could be a problem with the 
+	private function cleanup() {
+		foreach($this->sf_contact as $property => $value) {
+			if(is_null($value)) {
+				unset($this->sf_contact->$property);
+			}
+		}
+	}
+
+	private function upsert() {
+		if(isset($this->sf_contact->Id)) {
+			// update on id.
+			try {
+				static::$sf_cnxn->update(array($this->sf_contact), 'Contact');
+			} catch(Exception $e) {
+				sdf_message_handler(LOG, __FUNCTION__ . ' : ' . $e->faultstring);
+
+				$body = "Something went wrong, and this contact was not inserted into Salesforce.\n"
+					. "Here is the contact info:\n"
+					. strval($this->sf_contact)
+					. "\nAnd here's the error message:\n"
+					. $e->faultstring;
+
+				$spark_email = new SingleEmailMessage();
+				$spark_email->setSenderDisplayName('Spark Donations');
+				$spark_email->setToAddresses(static::$SPARK_TEAM);
+				$spark_email->setPlainTextBody($body);
+				$spark_email->setSubject('Donation Problem');
+
+				static::$sf_cnxn->sendSingleEmail(array($spark_email));
+			}
+		} else {
+			// create new contact.
+			try {
+				$response = static::$sf_cnxn->create(array($contact), 'Contact');
+				$this->sf_contact->Id = $response->id;
+			} catch(Exception $e) {
+				sdf_message_handler(LOG, __FUNCTION__ . ' : ' . $e->faultstring);
+			}
+		}
+	}
+
+	// Uses sf_txn to hold donation description
+	// Create the donation line item child object
+	// Called after insert, because we have to have the contact id
+	private function new_donation() {
+		$donation = new stdClass();
+		$donation->Contact__c = $this->sf_contact->Id;
+		$donation->Amount__c = $this->data['amount-ext'];
+		$donation->Description__c = strlen($this->sf_txn) > 255 ? substr($this->sf_txn, 0, 252) . '...' : $this->sf_txn;
+		$donation->Donation_Date__c = date(static::$SF_DATE_FORMAT);
+		$donation->Type__c = 'Membership';
+
+		try {
+			static::$sf_cnxn->create(array($donation), 'Donation__c');
+		} catch(Exception $e) {
+			sdf_message_handler(LOG, __FUNCTION__ . ' : ' . $e->faultstring);
+		}
+	}
+
+	// Send an email to the Spark team
+	// Send an email to our lovely donor
+	private function send_email() {
+
+		switch($this->data['recurrence-type']) {
+			case static::$MONTHLY: $template = static::$DONOR_MONTHLY_TEMPLATE; break;
+			case static::$ANNUAL: $template = static::$DONOR_ANNUAL_TEMPLATE; break;
+			case static::$ONE_TIME: $template = static::$DONOR_SINGLE_TEMPLATE; break;
+		}
+
+		$donor_email = new SingleEmailMessage();
+		$donor_email->setTemplateId($template);
+		$donor_email->setTargetObjectId($this->sf_contact->Id);
+		$donor_email->setReplyTo(static::$REPLY_TO);
+		$donor_email->setSenderDisplayName(static::$DISPLAY_NAME);
+
+		try {
+			static::$sf_cnxn->sendSingleEmail(array($donor_email));
+		} catch(Exception $e) {
+			sdf_message_handler(LOG, __FUNCTION__ . ': Donor email failure! ' . $e->faultstring);
+		}
+
+		// Alert email
+		$hear = $this->hdyh();
+		$honor = empty($this->data['inhonorof']) ? null : 'In honor of: ' . $this->data['inhonorof'];
+
+		$body = <<<EOF
+A donation has been made!
+
+Name: {$this->sf_contact->FirstName} {$this->sf_contact->LastName}
+Amount: {$this->data['amount-string']}
+Recurrence: {$this->data['recurrence-string']}
+Email: {$this->sf_contact->Email}
+Location: {$this->data['city']}, {$this->data['state']}
+{$honor}
+{$hear}
+EOF;
+
+		$spark_email = new SingleEmailMessage();
+		$spark_email->setSenderDisplayName('Spark Donations');
+		$spark_email->setToAddresses(static::$SPARK_TEAM);
+		$spark_email->setPlainTextBody($body);
+		$spark_email->setSubject('New Donation Alert');
+
+		try {
+			static::$sf_cnxn->sendSingleEmail(array($spark_email));
+		} catch(Exception $e) {
+			sdf_message_handler(LOG, __FUNCTION__ . ': Alert email failure! ' . $e->faultstring);
+		}
+	}
+
+	// Get the string describing hearabout and hearabout-extra
+	private function hdyh() {
+		$begin = "How did they hear about Spark? ";
+		if(isset($this->sf_contact->How_did_you_hear_about_Spark__c)) {
+			if(isset($this->data['hearabout-extra']) && !empty($this->data['hearabout-extra'])) {
+				$str = $this->sf_contact->How_did_you_hear_about_Spark__c . ": " . $this->data['hearabout-extra'];
+				return $begin . $str;
+			}
+			return $begin . $this->sf_contact->How_did_you_hear_about_Spark__c;
+		}
+		return null;
+	}
+
+	// ************************************************************************
+
+} // end sdf_data
+
+function sdf_message_handler($type, $message) {
+	// type = (ERROR | SUCCESS | LOG)
+	// all messages are written to sdf.log
+	// rotated every six months
+	// success and error messages are passed as an object to the waiting js
+	// the data structure is json, and should be very simple.
+	// data.type = error | success
+	// data.message = message
+
+	switch($type) {
+		case ERROR: $type = 'error'; break;
+		case SUCCESS: $type = 'success'; break;
+		case LOG: $type = 'log'; break;
+	}
+
+	$logmessage = time() . ' - ' . $type . ' - ' . $message . "\n";
+	file_put_contents(WP_PLUGIN_DIR . '/sdf/sdf.log', $logmessage, FILE_APPEND);
+
+	if($type != LOG) {
+		ob_clean();
+		$data = array(
+			'type' => $type,
+			'message' => $message
+		);
+		echo json_encode($data);
+		ob_flush();
+		die();
+	}
+}
+
+function sdf_clean_log() {
+	$file = WP_PLUGIN_DIR . '/sdf/sdf.log';
+	$handle = fopen($file, 'r+');
+	$linecount = 0;
+	while(!feof($handle)) {
+		$line = fgets($handle);
+		$linecount++;
+	}
+	ftructate($handle, 0);
+	rewind($handle);
+	fwrite($handle, time() . ' - Cron run. ' . $linecount . ' lines cleared.' . "\n");
+	fclose($handle);
+}
+
+function sdf_add_bimonthly($schedules) {
+	$schedules['bimonthly'] = array(
+		'interval' => 10000000,
+		'display' => __('Every Six Months')
+	);
+	return $schedules;
+}
+
+// ****************************************************************************
+// Set up hooks
+
+if(is_admin()) {
+	add_action('admin_init', 'sdf_register_settings');
+	add_action('admin_menu', 'sdf_create_menu');
+	// http://codex.wordpress.org/AJAX_in_Plugins#Ajax_on_the_Viewer-Facing_Side
+	add_action('wp_ajax_sdf_parse', 'sdf_parse');
+	add_action('wp_ajax_nopriv_sdf_parse', 'sdf_parse');
+}
+add_action('template_redirect', 'sdf_template');
+add_action('wp_head', 'sdf_ajaxurl');
+add_filter('cron_schedules', 'sdf_add_bimonthly');
+add_action('sdf_bimonthly_hook', 'sdf_clean_log');
+register_activation_hook(__FILE__, 'sdf_activate');
+register_deactivation_hook(__FILE__, 'sdf_deactivate');
+
+// ****************************************************************************
+// Ajax response function
+
+function sdf_parse() {
+	if(!isset($_POST['data'])) {
+		sdf_message_handler('log', __FUNCTION__ . ' No data received');
+		die();
+	} else {
+		$sdf = new sdf_data();
+		$sdf->begin($_POST['data']);
+		unset($_POST['data']);
+	}
+	
+	sdf_message_handler(SUCCESS, 'Thank you for your donation!');
+	die(); // prevent trailing 0 from admin-ajax.php
+}
+
+// ****************************************************************************
+// Activation and Deactivation functions
+
+function sdf_activate() {
+	if(wp_next_scheduled('sdf_bimonthly_hook') == false) {
+		wp_schedule_event(
+			current_time('timestamp'), // timestamp
+			'bimonthly', // recurrence
+			'sdf_bimonthly_hook' // hook
+		);
+	}
+
+}
+
+function sdf_deactivate() {
+	unregister_setting(
+		'sdf', // option group
+		'stripe_api_secret_key', // option name
+		'sdf_stripe_secret_sanitize' // sanitize callback.
+	);
+	unregister_setting(
+		'sdf',
+		'stripe_api_public_key',
+		'sdf_stripe_secret_sanitize'
+	);
+	unregister_setting(
+		'sdf',
+		'salesforce_username',
+		'sdf_string_setting_sanitize'
+	);
+	unregister_setting(
+		'sdf',
+		'salesforce_password',
+		'sdf_string_setting_sanitize'
+	);
+	unregister_setting(
+		'sdf',
+		'salesforce_token',
+		'sdf_salesforce_api_check'
+	);
+	wp_clear_scheduled_hook(
+		'sdf_bimonthly_hook'
+	);
+}
+// ****************************************************************************
+// Options page
+
+/*
+TODO: Would also like to include the following settings:
+page picker for the donate form plugin.
+page picker for landing page.
+*/
+function sdf_options_page() { ?>
+	<div class="wrap">
+		<?php screen_icon(); ?>
+		<h2>Spark Donation Form</h2>
+		<form method="post" action="options.php">
+			<?php 
+				settings_fields('sdf');
+				do_settings_sections('spark-form-admin');
+				submit_button();
+			?>
+		</form>
+	</div>
+<?php }
+
+function sdf_register_settings() {
+	// Stripe stuff
+	register_setting(
+		'sdf', // option group name
+		'stripe_api_secret_key', // option name
+		'sdf_stripe_secret_sanitize' // option sanitization callback
+	);
+	register_setting(
+		'sdf',
+		'stripe_api_public_key',
+		'sdf_string_setting_sanitize'
+	);
+	add_settings_section(
+		'sdf_stripe_api', // id attribute of tags ??
+		'Stripe', // section title
+		'sdf_stripe_api_section_print', // callback to print section content
+		'spark-form-admin' // page slug to work on
+	);
+	// Salesforce stuff
+	register_setting(
+		'sdf',
+		'salesforce_username',
+		'sdf_string_setting_sanitize'
+	);
+	register_setting(
+		'sdf',
+		'salesforce_password',
+		'sdf_string_setting_sanitize'
+	);
+	register_setting(
+		'sdf',
+		'salesforce_token',
+		'sdf_salesforce_api_check'
+	);
+	add_settings_section(
+		'sdf_salesforce_api',
+		'Salesforce',
+		'sdf_salesforce_section_print',
+		'spark-form-admin'
+	);
+}
+
+function sdf_stripe_api_section_print() {
+	echo "<p>Enter your API keys.<br>Ensure that your public and private keys match, whether in live mode, or test mode.</p>";
+	sdf_print_stripe_api_settings_form();
+}
+
+function sdf_salesforce_section_print() {
+	echo "<p>Enter your username, password, and the security token.<br>If you reset your password, you will need to <a href='https://na3.salesforce.com/_ui/system/security/ResetApiTokenEdit?retURL=%2Fui%2Fsetup%2FSetup%3Fsetupid%3DPersonalInfo&setupid=ResetApiToken'>reset your security token too.</a></p>";
+	sdf_print_salesforce_settings_form();
+}
+
+function sdf_print_stripe_api_settings_form() { ?>
+<table class="form-table">
+	<tr valign="top">
+		<th scope="row">Stripe secret key:</th>
+		<td>
+			<input class="sdf-wide" type="text" id="stripe_api_secret_key" name="stripe_api_secret_key" value="<?php echo esc_attr(get_option('stripe_api_secret_key')); ?>" />
+		</td>
+	</tr>
+	<tr valign="top">
+		<th scope="row">Stripe public key:</th>
+		<td>
+			<input class="sdf-wide" type="text" id="stripe_api_public_key" name="stripe_api_public_key" value="<?php echo esc_attr(get_option('stripe_api_public_key')); ?>" />
+		</td>
+	</tr>
+</table>
+<?php }
+
+// XXX js for removing password from the DOM
+// need js to show up in admin side first
+function sdf_print_salesforce_settings_form() { ?>
+<table class="form-table">
+	<tr valign="top">
+		<th scope="row">Salesforce username:</th>
+		<td>
+			<input type="text" id="salesforce_username" name="salesforce_username" value="<?php echo esc_attr(get_option('salesforce_username')); ?>" />
+		</td>
+	</tr>
+	<tr valign="top">
+		<th scope="row">Salesforce password:</th>
+		<td>
+			<input type="password" id="salesforce_password" name="salesforce_password" value="<?php echo esc_attr(get_option('salesforce_password')); ?>" />
+		</td>
+	</tr>
+	<tr valign="top">
+		<th scope="row">Salesforce token:</th>
+		<td>
+			<input type="text" id="salesforce_token" name="salesforce_token" value="<?php echo esc_attr(get_option('salesforce_token')); ?>" />
+		</td>
+	</tr>
+</table>
+<?php }
+
+function sdf_stripe_secret_sanitize($input) {
+	if(strlen($input)) {
+		sdf_data::stripe_api($input);
+		try {
+			$count = Stripe_Plan::all()->count;
+		} catch(Stripe_Error $e) {
+			$message = $e->getJsonBody();
+			$message = $message['error']['message'];
+			add_settings_error(
+				'stripe_api_secret_key', // id, or slug, of the pertinent setting
+				'stripe_api_secret_key_auth_error', // id or slug of the error itself
+				$message,
+				'error' // message type, since this function actually handles everything including updates
+			);
+		}
+		if($count == 0) {
+			sdf_data::create_std_plans();
+			// this wont work until there's js in the admin side
+			// XXX
+			// add_action('admin_enqueue_scripts', 'sdf_enqueue_admin_scripts');  
+		}
+	}
+	return $input;
+}
+
+function sdf_salesforce_api_check($input) {
+	if(strlen($input)) {
+		$input = sdf_string_setting_sanitize($input);
+		if(get_option('salesforce_username') && get_option('salesforce_password')) {
+			try {
+				sdf_data::salesforce_api($input);
+			} catch(Exception $e) {
+				$message = '<span id="source">Salesforce error:</span> ' . $e->faultstring;
+				add_settings_error(
+					'salesforce_token',
+					'salesforce_token_auth_error',
+					$message,
+					'error'
+				);
+			}
+		}
+	}
+	return $input;
+}
+
+function sdf_string_setting_sanitize($input) {
+	return trim(sanitize_text_field($input));
+}
+
+function sdf_create_menu() {
+	$page = add_options_page(
+		'Spark Form Settings', // the options page html title tag contents
+		'Spark Donation Form', // settings menu link title
+		'manage_options', // capability requirement
+		'spark-form-admin', // options page slug
+		'sdf_options_page' // callback to print markup
+	);
+	add_action('admin_print_styles-' . $page, 'sdf_enqueue_admin_styles' );
+}
+
+function sdf_enqueue_admin_styles() {
+	wp_enqueue_style(
+		'sdf_admin_css', // style handle
+		plugins_url('sdf/css/admin.css') // href
+	);
+}
+
+/* 
+The idea behind this is that since the stripe default plans create is so slow,
+because it's registering each plan individually, that once the private key is 
+set and valid, that we could set off a javascript insertion to the admin side only
+that would call default plan create asynchronously, and take the load off the user.
+However, the js never shows up in the admin side for some reason.
+*/
+
+// add_action('wp_ajax_sdf_stripe_default_plans_create', 'sdf_stripe_default_plans_create');
+
+// function sdf_enqueue_admin_scripts() {
+// 	wp_enqueue_script( 
+// 		'sdf_admin_js', // handle
+// 		plugins_url('sdf/js/admin.js'), // src
+// 		array('jquery') // dependencies
+// 	);
+// 	wp_enqueue_script( 'script-name', get_template_directory_uri() . '/js/example.js', array(), '1.0.0', true );
+// }
+
+// function sdf_stripe_default_plans_callback($old) {
+// 	wp_register_script(
+// 		'sdf_admin_js', // handle
+// 		plugins_url('sdf/js/admin.js'), // src
+// 		array('jquery') // dependencies
+// 	);
+// 	wp_enqueue_script('sdf_admin_js');
+//	wp_register_script( 'script-name', get_template_directory_uri() . '/js/example.js', array(), '1.0.0', true );
+//	add_action('admin_enqueue_scripts', 'sdf_enqueue_admin_scripts');
+//	add_action('admin_print_scripts_' . 'spark-form-admin', 'sdf_enqueue_admin_scripts');
+// }
+
+// ****************************************************************************
+// HTML and redirect functions
+
+function sdf_template() {
+	global $wp;
+	if(array_key_exists('pagename', $wp->query_vars)) {
+		if($wp->query_vars['pagename'] == 'donate') { // XXX needs to be changed if the page
+			$return_template = 'templates/page_donation.php';  // goes live on a new slug
+			sdf_theme_redirect($return_template);
+		}
+	}	
+}
+
+function sdf_theme_redirect($url) {
+	global $post, $wp_query;
+	if(have_posts()) {
+		include($url);
+		die();
+	} else {
+		$wp_query->is_404 = true;
+	}
+}
+
+function sdf_ajaxurl() { ?>
+	<script type="text/javascript">
+		var ajaxurl = '<?php echo admin_url('admin-ajax.php'); ?>';
+	</script>
+<?php }
+
+function sdf_check_ssl() {
+	if(!(isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on')) {
+		header('HTTP/1.1 301 Moved Permanently');
+        header('Location: https://' . $_SERVER['SERVER_NAME'] . $_SERVER['REQUEST_URI']);
+        exit();
+	}
+}
+
+function sdf_noindex() {
+	echo "<META NAME=\"ROBOTS\" CONTENT=\"NOINDEX, NOFOLLOW\">";
+}
 
 function sdf_get_form() { ?>
 	<div id="sdf_form">
@@ -441,1133 +1713,3 @@ function sdf_get_country_select($name_attr) { ?>
 		<option value="Zimbabwe">Zimbabwe</option>
 	</select>
 <?php }
-
-function sdf_template() {
-	global $wp;
-	if(array_key_exists('pagename', $wp->query_vars)) {
-		if($wp->query_vars['pagename'] == 'donate') {
-			$return_template = 'templates/page_donation.php';
-			do_theme_redirect($return_template);
-		}
-	}	
-}
-
-function do_theme_redirect($url) {
-	global $post, $wp_query;
-	if(have_posts()) {
-		include($url);
-		die();
-	} else {
-		$wp_query->is_404 = true;
-	}
-}
-
-function sdf_ajaxurl() { ?>
-	<script type="text/javascript">
-		var ajaxurl = '<?php echo admin_url('admin-ajax.php'); ?>';
-	</script>
-<?php }
-
-/*
-Would also like to include the following settings:
-page picker for the donate form plugin.
-page picker for landing page.
-*/
-function sdf_options_page() { ?>
-	<div class="wrap">
-		<?php screen_icon(); ?>
-		<h2>Spark Donation Form</h2>
-		<form method="post" action="options.php">
-			<?php 
-				settings_fields('sdf');
-				do_settings_sections('spark-form-admin');
-				submit_button();
-			?>
-		</form>
-	</div>
-<?php }
-
-function sdf_register_settings() {
-	// Stripe stuff
-	register_setting(
-		'sdf', // option group name
-		'stripe_api_secret_key', // option name
-		'sdf_stripe_secret_sanitize' // option sanitization callback
-	);
-	register_setting(
-		'sdf',
-		'stripe_api_public_key',
-		'sdf_string_setting_sanitize'
-	);
-	add_settings_section(
-		'sdf_stripe_api', // id attribute of tags ??
-		'Stripe', // section title
-		'sdf_stripe_api_section_print', // callback to print section content
-		'spark-form-admin' // page slug to work on
-	);
-	// Salesforce stuff
-	register_setting(
-		'sdf',
-		'salesforce_username',
-		'sdf_string_setting_sanitize'
-	);
-	register_setting(
-		'sdf',
-		'salesforce_password',
-		'sdf_string_setting_sanitize'
-	);
-	register_setting(
-		'sdf',
-		'salesforce_token',
-		'sdf_salesforce_api_check'
-	);
-	add_settings_section(
-		'sdf_salesforce_api',
-		'Salesforce',
-		'sdf_salesforce_section_print',
-		'spark-form-admin'
-	);
-}
-
-function sdf_stripe_api_section_print() {
-	echo "<p>Enter your API keys.<br>Ensure that your public and private keys match, whether in live mode, or test mode.</p>";
-	sdf_print_stripe_api_settings_form();
-}
-
-function sdf_salesforce_section_print() {
-	echo "<p>Enter your username, password, and the security token.<br>If you reset your password, you will need to <a href='https://na3.salesforce.com/_ui/system/security/ResetApiTokenEdit?retURL=%2Fui%2Fsetup%2FSetup%3Fsetupid%3DPersonalInfo&setupid=ResetApiToken'>reset your security token too.</a></p>";
-	sdf_print_salesforce_settings_form();
-}
-
-function sdf_print_stripe_api_settings_form() { ?>
-<table class="form-table">
-	<tr valign="top">
-		<th scope="row">Stripe secret key:</th>
-		<td>
-			<input class="sdf-wide" type="text" id="stripe_api_secret_key" name="stripe_api_secret_key" value="<?php echo esc_attr(get_option('stripe_api_secret_key')); ?>" />
-		</td>
-	</tr>
-	<tr valign="top">
-		<th scope="row">Stripe public key:</th>
-		<td>
-			<input class="sdf-wide" type="text" id="stripe_api_public_key" name="stripe_api_public_key" value="<?php echo esc_attr(get_option('stripe_api_public_key')); ?>" />
-		</td>
-	</tr>
-</table>
-<?php }
-
-// XXX js for removing password from the DOM
-// need js to show up in admin side first
-function sdf_print_salesforce_settings_form() { ?>
-<table class="form-table">
-	<tr valign="top">
-		<th scope="row">Salesforce username:</th>
-		<td>
-			<input type="text" id="salesforce_username" name="salesforce_username" value="<?php echo esc_attr(get_option('salesforce_username')); ?>" />
-		</td>
-	</tr>
-	<tr valign="top">
-		<th scope="row">Salesforce password:</th>
-		<td>
-			<input type="password" id="salesforce_password" name="salesforce_password" value="<?php echo esc_attr(get_option('salesforce_password')); ?>" />
-		</td>
-	</tr>
-	<tr valign="top">
-		<th scope="row">Salesforce token:</th>
-		<td>
-			<input type="text" id="salesforce_token" name="salesforce_token" value="<?php echo esc_attr(get_option('salesforce_token')); ?>" />
-		</td>
-	</tr>
-</table>
-<?php }
-
-function sdf_stripe_secret_sanitize($input) {
-	if(strlen($input)) {
-		sdf_include_stripe_api($input);
-		try {
-			$test_customer = Stripe_Customer::create(array('description' => 'test customer'));
-		} catch(Stripe_Error $e) {
-			$message = $e->getJsonBody();
-			$message = $message['error']['message'];
-			add_settings_error(
-				'stripe_api_secret_key', // id, or slug, of the pertinent setting
-				'stripe_api_secret_key_auth_error', // id or slug of the error itself
-				$message,
-				'error' // message type, since this function actually handles everything including updates
-			);
-		}
-		if(isset($test_customer) && method_exists($test_customer, 'delete')) {
-			$test_customer->delete();
-			// add_action('admin_enqueue_scripts', 'sdf_enqueue_admin_scripts'); // see comment on line ~1046
-		}
-	}
-	return $input;
-}
-
-function sdf_salesforce_api_check($input) {
-	if(strlen($input)) {
-		$input = sdf_string_setting_sanitize($input);
-		if(get_option('salesforce_username') && get_option('salesforce_password')) {
-			try {
-				$sforce = sdf_include_salesforce_api($input);
-			} catch(Exception $e) {
-				$message = '<span id="source">Salesforce error:</span> ' . $e->faultstring;
-				add_settings_error(
-					'salesforce_token',
-					'salesforce_token_auth_error',
-					$message,
-					'error'
-				);
-			}
-		}
-	}
-	return $input;
-}
-
-function sdf_string_setting_sanitize($input) {
-	return trim(sanitize_text_field($input));
-}
-
-function sdf_create_menu() {
-	$page = add_options_page(
-		'Spark Form Settings', // the options page html title tag contents
-		'Spark Donation Form', // settings menu link title
-		'manage_options', // capability requirement
-		'spark-form-admin', // options page slug
-		'sdf_options_page' // callback to print markup
-	);
-	add_action('admin_print_styles-' . $page, 'sdf_enqueue_admin_styles' );
-}
-
-function sdf_enqueue_admin_styles() {
-	wp_enqueue_style(
-		'sdf_admin_css', // style handle
-		plugins_url('sdf/css/admin.css') // href
-	);
-}
-
-function sdf_parse() {
-	// stupid wordpress you should be more like your friend drupal.
-	if(!isset($_POST['data'])) {
-		sdf_message_handler('log', __FUNCTION__ . ' No data received');
-		die();
-	} else {
-		$data = sdf_validate($_POST['data']);
-	}
-
-	$sforce = sdf_include_salesforce_api();
-	$Id = '0035000001wG3rjAAC';
-
-	$query = 'SELECT (SELECT 
-							Amount__c,
-							Donation_Date__c
-					FROM 
-						Donations__r)
-					FROM
-						Contact
-					WHERE
-						Contact.Id = \'' . $Id . '\'';
-
-	$response = $sforce->query($query);
-
-
-
-    $records = $response->records[0]->Donations__r->records;
-    $donations_list = array();
-    foreach($records as $donation) {
-    	$li = array();
-    	$date = strtotime($donation->Donation_Date__c);
-
-    	if($date >= strtotime(date('Y') . '01-01')) {
-    		// donations from this calendar year
-    		$li['date'] = $donation->Donation_Date__c;
-    		$li['amount-cents'] = $donation->Amount__c * 100;
-    		$donations_list[] = $li;
-    	}
-    }
-
-if(!count($donations_list)) {
-	echo "You won this time mr bond";
-}
-
-
-	// sdf_do_stripe($data);
-	// sdf_do_salesforce($data);
-
-	// sdf_message_handler('success', 'Thank you for your donation!');
-
-	die(); // prevent trailing 0 from admin-ajax.php
-}
-
-function sdf_validate(&$data) {
-	$required_fields = array(
-		'donation',
-		'first-name',
-		'last-name',
-		'email',
-		'tel',
-		'address1',
-		'city',
-		'state',
-		'zip',
-		'stripe-token'
-	);
-	foreach($required_fields as $key) {
-		if(!array_key_exists($key, $data)) {
-			sdf_message_handler('error', 'Incomplete request.');
-		}
-	}
-
-	$data['email'] = filter_var($data['email'], FILTER_SANITIZE_EMAIL);
-	if(!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
-		sdf_message_handler('error', 'Invalid email.');
-	}
-
-	$hearabout_cats = array(
-		'Renewing Membership',
-		'Friend',
-		'Website',
-		'Search',
-		'Event'
-	);
-	if(!empty($data['hearabout'])) {
-		if(!in_array($data['hearabout'], $hearabout_cats)) {
-			sdf_message_handler('log', 'Invalid hearabout category.');
-			unset($data['hearabout']);
-			unset($data['hearabout-extra']);
-		}
-	}
-
-
-	if(!(strlen($data['first-name']) || strlen($data['last-name']))) {
-		sdf_message_handler('error', 'Invalid request. Name field required');
-	}
-
-	$donation_cats = array(
-		'annual-75',
-		'annual-100',
-		'annual-250',
-		'annual-500',
-		'annual-1000',
-		'annual-2500',
-		'monthly-5',
-		'monthly-10',
-		'monthly-20',
-		'monthly-50',
-		'monthly-100',
-		'monthly-200',
-		'annual-custom',
-		'monthly-custom'
-	);
-	if(!in_array($data['donation'], $donation_cats)) {
-		sdf_message_handler('error', 'Invalid request. Donation amount is required.');
-	}
-
-	if(strpos($data['donation'], 'custom') !== false) {
-
-		if(array_key_exists('annual-custom', $data)) {
-			$donated_value = $data['annual-custom'];
-		} else if(array_key_exists('monthly-custom', $data)) {
-			$donated_value = $data['monthly-custom'];
-		}
-
-		if(!is_numeric($donated_value)) {
-			$donated_value = preg_replace('/([^0-9\\.])/i', '', $donated_value);
-		}
-		if($donated_value <= 0.50) {
-			sdf_message_handler('error', 'Invalid request. Donation amount too small.');
-		} else {
-			$data['amount'] = (int) ($donated_value * 100);
-		}
-	} else {
-		$data['amount'] = sdf_get_amount($data);
-	}
-	
-	$data['recurrence'] = sdf_get_recurrence($data);
-	$data['membership'] = sdf_get_membership($data);
-
-	return $data;
-}
-
-// Get recurrence description
-function sdf_get_recurrence(&$data) {
-	if(array_key_exists('one-time', $data) && !empty($data['one-time'])) {
-		$recurrence = 'Single donation';
-	} else {
-		if(strpos($data['donation'], 'annual') !== false) {
-			$recurrence = 'Annual';
-		} else {
-			$recurrence = 'Monthly';
-		}
-	}
-	return $recurrence;
-}
-
-// Get membership level description
-function sdf_get_membership(&$data) {
-	$amount = $data['amount'];
-	$member = 'Donor';
-
-	if($data['recurrence'] == 'Annual') {
-		if($amount >= 7500 && $amount < 10000) {
-			$member = 'Friend';
-		} else if($amount >= 10000 && $amount < 25000) {
-			$member = 'Member';
-		} else if($amount >= 25000 && $amount < 50000) {
-			$member = 'Affiliate';
-		} else if($amount >= 50000 && $amount < 100000) {
-			$member = 'Sponsor';
-		} else if($amount >= 100000 && $amount < 250000) {
-			$member = 'Investor';
-		} else if($amount >= 250000) {
-			$member = 'Benefactor';
-		}
-	}
-
-	if($data['recurrence'] == 'Monthly') {
-		if($amount >= 500 && $amount < 1000) {
-			$member = 'Friend';
-		} else if($amount >= 1000 && $amount < 2000) {
-			$member = 'Member';
-		} else if($amount >= 2000 && $amount < 5000) {
-			$member = 'Affiliate';
-		} else if($amount >= 5000 && $amount < 10000) {
-			$member = 'Sponsor';
-		} else if($amount >= 10000 && $amount < 20000) {
-			$member = 'Investor';
-		} else if($amount >= 20000) {
-			$member = 'Benefactor';
-		}
-	}
-
-	return $member;
-}
-
-function sdf_get_amount(&$data) {
-	$plan_amounts = array(
-		'annual-75' => 7500,
-		'annual-100' => 10000,
-		'annual-250' => 25000,
-		'annual-500' => 50000,
-		'annual-1000' => 100000,
-		'annual-2500' => 250000,
-		'monthly-5' => 500,
-		'monthly-10' => 1000,
-		'monthly-20' => 2000,
-		'monthly-50' => 5000,
-		'monthly-100' => 10000,
-		'monthly-200' => 20000
-	);
-	if(in_array($data['donation'], array_keys($plan_amounts))) {
-		$amount = $plan_amounts[$data['donation']];
-	}
-	return $amount;
-}
-
-function sdf_get_existing_sf_contact(&$data) {
-	$sforce = sdf_include_salesforce_api();
-	$search_string = 'FIND {' . $data['email'] . '} IN EMAIL FIELDS ' .
-		'RETURNING CONTACT(ID)';
-
-	try {
-		$response = $sforce->search($search_string);
-	} catch(Exception $e) {
-		sdf_message_handler('log', __FUNCTION__ . ' : ' . $e->faultstring);
-	}
-
-	if(count($response)) {
-		$contact_id = array_pop($response->searchRecords)->Id;
-		// we aren't guaranteed to get all these fields.
-		$fields = 'AccountId, Description, First_Active_Date__c, How_did_you_hear__c,' .
-			' Active_Member__c, Renewal_Date__c, Membership_Start_Date__c';
-		try {
-			$contact = $sforce->retrieve($fields, 'Contact', array($contact_id));
-		} catch(Exception $e) {
-			sdf_message_handler('log', __FUNCTION__ . ' : ' . $e->faultstring);
-		}
-		$contact = array_pop($contact);
-	} else {
-		$contact = new stdClass();
-	}
-
-	return $contact;
-}
-
-function sdf_sf_company(&$data, &$contact) {
-	$sforce = sdf_include_salesforce_api();
-	if(!isset($contact->AccountId)) {
-		if(!empty($data['company'])) {
-			$sfcompany = new stdClass();
-			$sfcompany->Name = $data['company'];
-
-			try {
-				$search = $sforce->upsert(
-					'Name', // key for matching
-					array($sfcompany), // data objects
-					'Company' // object type
-				);
-				$company = $search[0]->id;
-			} catch(Exception $e) {
-				sdf_message_handler('log', __FUNCTION__ . ' : ' . $e->faultstring);
-			}
-
-		} else {
-			$company = FRIEND_OF_SPARK;
-		} 
-	} else {
-		$company = $contact->AccountId;
-	}
-	return $company;
-}
-
-function sdf_sf_contact_description(&$data, &$contact) {
-
-	$transaction_desc = $data['recurrence'] . 
-		' - ' . money_format('%n', ($data['amount'] / 100)) .
-		' - ' . date('n/d/y') . ' - Online donation from ' . home_url() . '.';
-
-	if(!empty($data['inhonorof'])) {
-		$transaction_desc .= ' In honor of: ' . $data['inhonorof'];
-	}
-
-	if(isset($contact->Description)) {
-		$desc = $contact->Description . "\n" . $transaction_desc;
-	} else {
-		$desc = $transaction_desc;
-	}
-
-	return $desc;
-}
-
-function sdf_sf_first_active(&$contact) {
-	if(!isset($contact->First_Active_Date__c)) {
-		// then it is today!
-		$date = date(SF_DATE_FORMAT);
-	} else {
-		$date = $contact->First_Active_Date__c;
-	}
-	return $date;
-}
-
-function sdf_sf_hear(&$data, &$contact = null) {
-	if(isset($contact->How_did_you_hear__c)) {
-		$hear = $contact->How_did_you_hear__c;
-	} else {
-		if(!empty($data['hearabout'])) {
-			$hear = ucfirst($data['hearabout'] .
-				(empty($data['hearabout-extra']) ? null : ': ' . $data['hearabout-extra']));
-		} else {
-			$hear = null;
-		}
-	}
-	return $hear;
-}
-
-function sdf_is_member(&$data, &$contact) {
-	if(strpos($data['donation'], 'month') !== false) {
-		$qualify = ($data['amount'] >= 500) ? 1 : 0;
-	} else if(strpos($data['donation'], 'annual') !== false) {
-		$qualify = ($data['amount'] >= 7500) ? 1 : 0;
-	}
-
-	return $qualify;
-}
-
-function sdf_sf_renewal_date(&$data, &$contact, $member) {
-	if(isset($contact->Renewal_Date__c)) { // they have existing membership end date
-		$old_date = $contact->Renewal_Date__c;
-		if(!$member) {
-			$date = $old_date;
-		} else {
-			if(strpos($data['donation'], 'month') !== false) {
-				$date = date(SF_DATE_FORMAT, strtotime('+1 month', strtotime($old_date)));
-			} else if(strpos($data['donation'], 'annual') !== false) {
-				$date = date(SF_DATE_FORMAT, strtotime('+1 year', strtotime($old_date)));
-			}
-		}
-	} else {
-		if(!$member) {
-			$date = null;
-		} else {
-			if(strpos($data['donation'], 'month') !== false) {
-				$date = date(SF_DATE_FORMAT, strtotime('+1 month'));
-			} else if(strpos($data['donation'], 'annual') !== false) {
-				$date = date(SF_DATE_FORMAT, strtotime('+1 year'));
-			}
-		}
-	}	
-	return $date;
-}
-
-function sdf_sf_membership_start(&$contact, $member) {
-	if(!isset($contact->Membership_Start_Date__c)) {
-		if($member) {
-			$date = date(SF_DATE_FORMAT);
-		} else {
-			$date = null;
-		}
-	} else {
-		$date = $contact->Membership_Start_Date__c;
-	}
-	return $date;
-}
-
-function sdf_sf_birthday(&$data) {
-	if(!empty($data['birthday-month']) && !empty($data['birthday-year'])) {
-		$date = date(SF_DATE_FORMAT, strtotime($data['birthday-year'] . '-'
-			. $data['birthday-month'] . '-01'));
-	} else {
-		$date = null;
-	}
-	return $date;
-}
-
-function sdf_sf_gender(&$data) {
-	if(!empty($data['gender'])) {
-		$sex = ($data['gender'] == 'other') ? null : $data['gender'];
-	} else {
-		$sex = null;
-	}
-	return $sex;
-}
-
-function sdf_sf_contact_builder(&$data) {
-	// first, we check to see if a matching customer already exists.
-	$sf_existing_contact = sdf_get_existing_sf_contact($data);
-
-	// now we set up the company (AccountId)
-	$company_id = sdf_sf_company($data, $sf_existing_contact);
-	
-	// now let's do Description.
-	$updated_description = sdf_sf_contact_description($data, $sf_existing_contact);
-
-	// First_Active_Date__c
-	$first_active = sdf_sf_first_active($sf_existing_contact);
-
-	// how did you hear about us?
-	$hear = sdf_sf_hear($data, $sf_existing_contact);
-
-	// is the donor a member? when is the renewal date?
-	$member = sdf_is_member($data, $sf_existing_contact);
-	$renewal = sdf_sf_renewal_date($data, $sf_existing_contact, $member);
-	$member_start = sdf_sf_membership_start($sf_existing_contact, $member);
-
-	// And additional fields.
-	$address = (empty($data['address2'])) ? $data['address1'] : $data['address1'] . "\n" . $data['address2'];
-	$birthday = sdf_sf_birthday($data);
-	$gender = sdf_sf_gender($data);
-
-	// build the object.
-	$contact = new stdClass();
-	$contact->FirstName = $data['first-name'];
-	$contact->LastName = $data['last-name'];
-	$contact->Phone = $data['tel'];
-	$contact->Email = $data['email'];
-	$contact->AccountId = $company_id;
-	$contact->MailingStreet = $address;
-	$contact->MailingCity = $data['city'];
-	$contact->MailingState = $data['state'];
-	$contact->MailingPostalCode = $data['zip'];
-	$contact->MailingCountry = $data['country'];
-	$contact->Birthdate = $birthday;
-	$contact->Description = $updated_description;
-	$contact->Paid__c = ($data['amount'] / 100);
-	$contact->How_did_you_hear__c = $hear;
-	$contact->Active_Member__c = $member;
-	$contact->Membership_Start_Date__c = $member_start;
-	$contact->Renewal_Date__c = $renewal;
-	$contact->Member_Level__c = $data['membership'];
-	$contact->Payment_Type__c = 'Credit Card';
-	$contact->First_Active_Date__c = $first_active;
-	$contact->Gender__c = $gender;
-	$contact->Board_Member_Contact_Owner__c = 'Amanda Brock';
-
-	// remove null fields.
-	foreach($contact as $property => $value) {
-		if(is_null($value)) {
-			unset($contact->$property);
-		}
-	}
-
-	if(isset($sf_existing_contact->Id)) {
-		$contact->Id = $sf_existing_contact->Id;
-	} else {
-		$contact->Id = null;
-	}
-
-	return $contact;
-}
-
-function sdf_sf_upsert(&$contact) {
-	$sforce = sdf_include_salesforce_api();
-	if(isset($contact->Id)) {
-		// update on id.
-		try {
-			$reponse = $sforce->update(array($contact), 'Contact');
-		} catch(Exception $e) {
-			sdf_message_handler('log', __FUNCTION__ . ' : ' . $e->faultstring);
-		}
-	} else {
-		// create new contact.
-		try {
-			$response = $sforce->create(array($contact), 'Contact');
-			$contact->Id = $response->id;
-		} catch(Exception $e) {
-			sdf_message_handler('log', __FUNCTION__ . ' : ' . $e->faultstring);
-		}
-	}
-}
-
-function sdf_sf_emails(&$contact, &$data) {
-	$sforce = sdf_include_salesforce_api();
-
-	// two emails are created here. One for the Spark team,
-	// and one for the donor.
-
-	$donor_email = new SingleEmailMessage();
-	$donor_email->setTemplateId('00X50000001VaHS');
-	$donor_email->setTargetObjectId($contact->Id);
-	$donor_email->setReplyTo('programs@sparksf.org');
-	$donor_email->setSenderDisplayName('Spark');
-
-	try {
-		$response = $sforce->sendSingleEmail(array($donor_email));
-	} catch(Exception $e) {
-  		sdf_message_handler('log', __FUNCTION__ . ': Donor email failure! ' . $e->faultstring);
-	}
-
-	// The Spark team message.
-	$alert_addresses = array(
-		'amanda@sparksf.org',
-		'shannon@sparksf.org',
-	);
-
-	$hear = sdf_sf_hear($data);
-	
-	if(array_key_exists('one-time', $data) && !empty($data['one-time'])) {
-		$recurrence = 'Single donation.';
-	} else {
-		if(strpos($data['donation'], 'annual') !== false) {
-			$recurrence = 'Annual.';
-		} else {
-			$recurrence = 'Monthly.';
-		}
-	}
-
-$body = <<<EOF
-A Donation has been made!
-
-Name: {$contact->FirstName} {$contact->LastName}
-Amount: \${$contact->Paid__c}
-Recurrence: {$recurrence}
-Email: {$contact->Email}
-Location: {$data['city']}, {$data['state']}
-In honor of: {$data['inhonorof']}
-
-NB: this field may not reflect the data in Salesforce.
-How did they hear about Spark?: {$hear}
-
-Sincerely,
-the website.
-EOF;
-
-	$spark_email = new SingleEmailMessage();
-	$spark_email->setSenderDisplayName('Spark Donations');
-	$spark_email->setToAddresses($alert_addresses);
-	$spark_email->setPlainTextBody($body);
-	$spark_email->setSubject('New Donation Alert');
-
-	try {
-		$response = $sforce->sendSingleEmail(array($spark_email));
-	} catch(Exception $e) {
-		sdf_message_handler('log', __FUNCTION__ . ': Alert email failure! ' . $e->faultstring);
-	}
-
-}
-
-function sdf_do_salesforce(&$data) {
-	$contact = sdf_sf_contact_builder($data);
-	sdf_sf_upsert($contact);
-	sdf_sf_emails($contact, $data);
-}
-
-function sdf_do_stripe(&$data) {
-	if(array_key_exists('one-time', $data) && !empty($data['one-time'])) {
-		sdf_single_charge($data['amount'], $data['stripe-token'], $data['email']);
-	} else {
-		// recurring donations. Get the plan.
-		if(strpos($data['donation'], 'custom') !== false) { // it's a custom plan, potentially new.
-			if(strpos($data['donation'], 'annual') !== false) {
-				$recurrence = 'year';
-			} elseif(strpos($data['donation'], 'monthly') !== false) {
-				$recurrence = 'month';
-			}
-			$plan = sdf_create_custom_stripe_plan($recurrence, $data['amount']);
-		} else { // default plans.
-			$plan = sdf_get_stripe_default_plan($data['donation']);
-		}
-		sdf_create_subscription($plan, sdf_create_stripe_customer($data));
-	}
-}
-
-// This function has the potential to stop flow, since card data is validated here.
-
-function sdf_create_stripe_customer(&$data) {
-	sdf_include_stripe_api();
-	$new_customer = array(
-		'card' => $data['stripe-token'],
-		'email' => $data['email'],
-		'description' => $data['name'],
-	);
-
-	$customer;
-	try {
-		$customer = Stripe_Customer::create($new_customer);
-	} catch(Stripe_Error $e) {
-		$body = $e->getJsonBody();
-		sdf_message_handler('error', $body['error']['message']);
-	}
-	return  $customer;
-}
-
-function sdf_get_stripe_default_plan($id) {
-	sdf_include_stripe_api();
-	try {
-		$plan = Stripe_Plan::retrieve($id);
-	} catch(Stripe_Error $e) {
-		$body = $e->getJsonBody();
-		echo $body['error']['message'];
-		die();
-	}
-	return $plan;
-}
-
-function sdf_create_custom_stripe_plan($recurrence, $amount) {
-	sdf_include_stripe_api();
-
-	// the default plan slugs are closer to human readable than the names used by stripe.
-	$plan_id_slug = array(
-		'year' => 'annual-',
-		'month' => 'monthly-'
-	);
-	$plan_id = $plan_id_slug[$recurrence] . ($amount / 100);
-
-	try {
-		$plan = Stripe_Plan::retrieve($plan_id);
-	} catch(Stripe_Error $e) {
-		$errmsg = 'No such plan: ' . $plan_id;
-		$body = $e->getJsonBody();
-
-		if($body['error']['message'] == $errmsg) {
-			$new_plan = array(
-				'id' => $plan_id,
-				'currency' => 'USD',
-				'interval' => $recurrence,
-				'amount' => $amount,
-				'name' => '$' . ($amount / 100) . ' ' . $recurrence . 'ly custom gift'
-			);
-
-			try {
-				$plan = Stripe_Plan::create($new_plan);
-			} catch(Stripe_Error $e) {
-				$body = $e->getJsonBody();
-				sdf_message_handler('log', __FUNCTION__ . ' : ' . $body['error']['message']);
-			}
-
-		} else {
-			sdf_message_handler('log', __FUNCTION__ . ' : ' . $body['error']['message']);
-		}
-	}
-	return $plan;
-}
-
-function sdf_single_charge($amount, $token, $email) {
-	sdf_include_stripe_api();
-	try {
-		Stripe_Charge::create(array(
-			'amount' => $amount, // in pennies
-			'card' => $token,
-			'currency' => 'usd',
-			'description' => $email
-		));
-	} catch(Stripe_Error $e) {
-		$body = $e->getJsonBody();
-		sdf_message_handler('error', $body['error']['message']);
-	}
-}
-
-/* 
-The idea behind this is that since the stripe default plans create is so slow,
-because it's registering each plan individually, that once the private key is 
-set and valid, that we could set off a javascript insertion to the admin side only
-that would call default plan create asynchronously, and take the load off the user.
-However, the js never shows up in the admin side for some reason.
-*/
-
-// add_action('wp_ajax_sdf_stripe_default_plans_create', 'sdf_stripe_default_plans_create');
-
-// function sdf_enqueue_admin_scripts() {
-// 	wp_enqueue_script( 
-// 		'sdf_admin_js', // handle
-// 		plugins_url('sdf/js/admin.js'), // src
-// 		array('jquery') // dependencies
-// 	);
-// 	wp_enqueue_script( 'script-name', get_template_directory_uri() . '/js/example.js', array(), '1.0.0', true );
-// }
-
-// function sdf_stripe_default_plans_callback($old) {
-// 	wp_register_script(
-// 		'sdf_admin_js', // handle
-// 		plugins_url('sdf/js/admin.js'), // src
-// 		array('jquery') // dependencies
-// 	);
-// 	wp_enqueue_script('sdf_admin_js');
-//	wp_register_script( 'script-name', get_template_directory_uri() . '/js/example.js', array(), '1.0.0', true );
-//	add_action('admin_enqueue_scripts', 'sdf_enqueue_admin_scripts');
-//	add_action('admin_print_scripts_' . 'spark-form-admin', 'sdf_enqueue_admin_scripts');
-// }
-
-function sdf_stripe_default_plans_create() {
-	sdf_include_stripe_api();
-	try {
-		$count = Stripe_Plan::all()->count;
-	} catch(Stripe_Error $e) {
-		$body = $e->getJsonBody();
-		sdf_message_handler('log', __FUNCTION__ . ' : ' . $body['error']['message']);
-	}
-
-	if(!$count) {
-		$plans = array(
-			array(
-				'id' => 'annual-75',
-				'amount' => 7500,
-				'currency' => 'USD',
-				'interval' => 'year',
-				'name' => '$75 Annual Gift',
-			),
-			array(
-				'id' => 'annual-100',
-				'amount' => 10000,
-				'currency' => 'USD',
-				'interval' => 'year',
-				'name' => '$100 Annual Gift',
-			),
-			array(
-				'id' => 'annual-250',
-				'amount' => 25000,
-				'currency' => 'USD',
-				'interval' => 'year',
-				'name' => '$250 Annual Gift',
-			),
-			array(
-				'id' => 'annual-500',
-				'amount' => 50000,
-				'currency' => 'USD',
-				'interval' => 'year',
-				'name' => '$500 Annual Gift',
-			),
-			array(
-				'id' => 'annual-1000',
-				'amount' => 100000,
-				'currency' => 'USD',
-				'interval' => 'year',
-				'name' => '$1000 Annual Gift',
-			),
-			array(
-				'id' => 'annual-2500',
-				'amount' => 250000,
-				'currency' => 'USD',
-				'interval' => 'year',
-				'name' => '$2500 Annual Gift',
-			),
-			array(
-				'id' => 'monthly-5',
-				'amount' => 500,
-				'currency' => 'USD',
-				'interval' => 'month',
-				'name' => '$5 Monthly Gift',
-			),
-			array(
-				'id' => 'monthly-10',
-				'amount' => 1000,
-				'currency' => 'USD',
-				'interval' => 'month',
-				'name' => '$10 Monthly Gift',
-			),
-			array(
-				'id' => 'monthly-20',
-				'amount' => 2000,
-				'currency' => 'USD',
-				'interval' => 'month',
-				'name' => '$20 Monthly Gift',
-			),
-			array(
-				'id' => 'monthly-50',
-				'amount' => 5000,
-				'currency' => 'USD',
-				'interval' => 'month',
-				'name' => '$50 Monthly Gift',
-			),
-			array(
-				'id' => 'monthly-100',
-				'amount' => 10000,
-				'currency' => 'USD',
-				'interval' => 'month',
-				'name' => '$100 Monthly Gift',
-			),
-			array(
-				'id' => 'monthly-200',
-				'amount' => 20000,
-				'currency' => 'USD',
-				'interval' => 'month',
-				'name' => '$200 Monthly Gift',
-			),
-		);
-
-		foreach($plans as $plan) {
-			try {
-				Stripe_Plan::create($plan);
-			} catch(Stripe_Error $e) {
-				$body = $e->getJsonBody();
-				sdf_message_handler('log', __FUNCTION__ . ' : ' . $body['error']['message']);
-			}
-		}
-	}
-}
-
-function sdf_create_subscription($plan, $customer) {
-	$sforce = sdf_include_salesforce_api();
-	try {
-		$customer->updateSubscription(array('plan' => $plan->id));	
-	} catch(Stripe_Error $e) {
-		$body = $e->getJsonBody();
-		sdf_message_handler('error', $body['error']['message']);
-	}
-}
-
-function sdf_include_stripe_api($input = null) {
-	require_once(WP_PLUGIN_DIR . '/sdf/stripe/lib/Stripe.php');
-	if(!empty($input)) {
-		Stripe::setApiKey($input);
-	} else {
-		Stripe::setApiKey(get_option('stripe_api_secret_key'));
-	}
-	Stripe::setApiVersion('2013-08-13');
-}
-
-function sdf_include_salesforce_api($input = null) {
-	require_once(WP_PLUGIN_DIR . '/sdf/salesforce/soapclient/SforceEnterpriseClient.php');
-	$sf_object = new SforceEnterpriseClient();
-	$sf_client = $sf_object->createConnection(WP_PLUGIN_DIR . '/sdf/salesforce/soapclient/sdf.wsdl.jsp.xml');
-	if(!empty($input)) {
-		// we expect the input to be a new token.
-		$sf_object->login(get_option('salesforce_username'), get_option('salesforce_password') . $input);
-	} else {
-		$sf_object->login(get_option('salesforce_username'), get_option('salesforce_password') . get_option('salesforce_token'));	
-	}
-	return $sf_object;
-}
-
-function sdf_deactivate() {
-	unregister_setting(
-		'sdf', // option group
-		'stripe_api_secret_key', // option name
-		'sdf_stripe_secret_sanitize' // sanitize callback.
-	);
-	unregister_setting(
-		'sdf',
-		'stripe_api_public_key',
-		'sdf_stripe_secret_sanitize'
-	);
-	unregister_setting(
-		'sdf',
-		'salesforce_username',
-		'sdf_string_setting_sanitize'
-	);
-	unregister_setting(
-		'sdf',
-		'salesforce_password',
-		'sdf_string_setting_sanitize'
-	);
-	unregister_setting(
-		'sdf',
-		'salesforce_token',
-		'sdf_salesforce_api_check'
-	);
-	wp_clear_scheduled_hook(
-		'sdf_bimonthly_hook'
-	);
-}
-
-function sdf_message_handler($type, $message) {
-	// type = ('error' | 'success' | 'log')
-	// all messages are written to sdf.log
-	// rotated every two months
-	// success and error messages are passed as an object to the waiting js
-	// the data structure is json, and should be very simple.
-	// data.type = error | success
-	// data.message = message
-
-	$logmessage = time() . ' - ' . $type . ' - ' . $message . "\n";
-	file_put_contents(WP_PLUGIN_DIR . '/sdf/sdf.log', $logmessage, FILE_APPEND);
-
-	if($type != 'log') {
-		ob_clean();
-		$data = array(
-			'type' => $type,
-			'message' => $message
-		);
-		echo json_encode($data);
-		ob_flush();
-		die();
-	}
-}
-
-function sdf_activate() {
-	if(wp_next_scheduled('sdf_bimonthly_hook') == false) {
-		wp_schedule_event(
-			current_time('timestamp'), // timestamp
-			'bimonthly', // recurrence
-			'sdf_bimonthly_hook' // hook
-		);
-	}
-
-}
-
-function sdf_clean_log() {
-	file_put_contents(WP_PLUGIN_DIR . '/sdf/sdf.log', time() . ' - Cron run.' . "\n");
-}
-
-function sdf_add_bimonthly($schedules) {
-	$schedules['bimonthly'] = array(
-		'interval' => 5300000,
-		'display' => __('Every Two Months')
-	);
-	return $schedules;
-}
-
-function sdf_check_ssl() {
-	if(!(isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on')) {
-		header('HTTP/1.1 301 Moved Permanently');
-        header('Location: https://' . $_SERVER['SERVER_NAME'] . $_SERVER['REQUEST_URI']);
-        exit();
-	}
-}
-
-function sdf_noindex() {
-	echo "<META NAME=\"ROBOTS\" CONTENT=\"NOINDEX, NOFOLLOW\">";
-}
-
-if(is_admin()) {
-	add_action('admin_init', 'sdf_register_settings');
-	add_action('admin_menu', 'sdf_create_menu');
-	// http://codex.wordpress.org/AJAX_in_Plugins#Ajax_on_the_Viewer-Facing_Side
-	add_action('wp_ajax_sdf_parse', 'sdf_parse');
-	add_action('wp_ajax_nopriv_sdf_parse', 'sdf_parse');
-}
-add_action('template_redirect', 'sdf_template');
-add_action('wp_head', 'sdf_ajaxurl');
-add_filter('cron_schedules', 'sdf_add_bimonthly');
-add_action('sdf_bimonthly_hook', 'sdf_clean_log');
-register_activation_hook(__FILE__, 'sdf_activate');
-register_deactivation_hook(__FILE__, 'sdf_deactivate');
