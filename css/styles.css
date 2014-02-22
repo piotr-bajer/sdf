@@ -51,6 +51,7 @@ September 2013
 #sdf_form select {
 	margin-bottom:1em;
 	margin-right: 1em;
+	float: left;
 }
 #sdf_form form > label,
 #js-cc-fields > label {
@@ -70,10 +71,14 @@ September 2013
 	clear:left;
 	white-space: nowrap;
 }
-#sdf_form #copy-personal-info-label,
 #sdf_form #one-time-label {
 	white-space: nowrap;
-	float: none;
+	text-align: left;
+	width: 460px;
+	margin-bottom: 1em;
+}
+#sdf_form #one-time {
+	margin:0.35em 0 0 0;
 }
 #sdf_form fieldset {
 	margin-bottom: 1em;
@@ -113,6 +118,7 @@ September 2013
 }
 #sdf_form input.wider {
 	width:299px;
+	float:left;
 }
 #sdf_form input#cc-cvc {
 	width:47px;
@@ -213,12 +219,14 @@ p.error {
 #sdf_form .faded {
 	opacity: 0.50;
 }
+
+
 #sdf_form .h5-error-msg {
 	position:absolute;
 	color:white;
 	background-color:red;
 	padding:5px;
-	margin-top: -2px;
+	/*margin-top: 0px;*/
 	display: inline-block;
 }
 #sdf_form .h5-error-msg:before {
@@ -233,11 +241,48 @@ p.error {
 	border-color: rgba(255, 0, 0, 0);
 	border-right-color: #F00;
 	border-width: 13px;
-	margin-left: -26px;
+	margin-left: -25px;
+}
+
+#sdf_form .half {
+	position:relative;
+	float:left;
+}
+#sdf_form .half span {
+	width:85%;
+	left:3%;
+	top:38px;
+	z-index: 10;
+}
+#sdf_form .narrow span {
+	width:160%;
+	left:-31%;
+}
+#sdf_form .whole span {
+
+}
+#sdf_form .half .h5-error-msg:before {
+	border-right-color: rgba(255, 0, 0, 0);
+	border-bottom-color: #F00;
+	left: 42%;
+	margin-top: -25px;
+	margin-left: 0;
+}
+#sdf_form .narrow .h5-error-msg:before {
+	left:39%;
+}
+#sdf_form .whole {
+	/*clear:left;*/
+	/*float:left;*/
+	position: relative;
+}
+#sdf_form #bday-separator {
+	float: left;
+	padding:4px 10px;
 }
 
 /* custom positions */
-#sdf_form #invalid-fname,
+/*#sdf_form #invalid-fname,
 #sdf_form #invalid-lname {
 	margin-top: 28px;
 }
@@ -245,15 +290,15 @@ p.error {
 #sdf_form #invalid-lname:before {
 	border-right-color: rgba(255, 0, 0, 0);
 	border-bottom-color: #F00;
-	left: 40%;
-	margin-top: -26px;
+	left: 42%;
+	margin-top: -25px;
 	margin-left: 0;
 }
 #sdf_form #invalid-fname {
-	left: 222px;
+	left: 259px;
 }
 #sdf_form #invalid-lname {
-	left: 383px;
+	left: 450px;
 }
 
 #sdf_form #invalid-bday-month,
@@ -287,8 +332,8 @@ p.error {
 #sdf_form #invalid-bday-year:before,
 #sdf_form #invalid-cc-year:before {
 	left:29%;
-}
-
+}*/
+/*
 #sdf_form #invalid-city,
 #sdf_form #invalid-state,
 #sdf_form #invalid-zip,
@@ -349,3 +394,4 @@ p.error {
 	margin-left: 0;
 	left:42%;
 }
+*/

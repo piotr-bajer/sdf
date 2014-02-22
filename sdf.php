@@ -4,11 +4,11 @@
 	Plugin URI:
 	Description: Create and integrate a form with payment processing and CRM
 	Author: Steve Avery
-	Version: 1.2
+	Version: 1.2.1
 	Author URI: mailto:schavery@gmail.com
 */
 
-// error_reporting(E_ALL); // XXX
+error_reporting(0); // XXX
 defined('ABSPATH') or die("Unauthorized.");
 
 define('ERROR', 0);
@@ -31,7 +31,7 @@ class sdf_data {
 	private static $DONOR_SINGLE_TEMPLATE = '00X50000001VaHS';
 	private static $DONOR_MONTHLY_TEMPLATE = '00X50000001eVEX';
 	private static $DONOR_ANNUAL_TEMPLATE = '00X50000001eVEc';
-	private static $REPLY_TO = 'programs@sparksf.org';
+	private static $REPLY_TO = 'amanda@sparksf.org';
 	private static $DISPLAY_NAME = 'Spark';
 	private static $SPARK_TEAM = array('amanda@sparksf.org', 'shannon@sparksf.org');
 	private static $SF_DATE_FORMAT = 'Y-m-d';
@@ -526,7 +526,7 @@ class sdf_data {
 
 	// Searches SalesForce for the user, and returns their ID, or null
 	private function search_salesforce() {
-		$query = 'FIND {' . $this->data['email'] . '} IN EMAIL FIELDS RETURNING CONTACT(ID)';
+		$query = 'FIND {"' . $this->data['email'] . '"} IN EMAIL FIELDS RETURNING CONTACT(ID)';
 
 		try {
 			$response = static::$sf_cnxn->search($query);
@@ -662,13 +662,27 @@ class sdf_data {
 	private function company() {
 		if(!isset($this->sf_contact->AccountId)) {
 			if(!empty($this->data['company'])) {
-				$company = new stdClass();
-				$company->Name = $data['company'];
+				$search = 'FIND {"' . $this->data['company'] . '"} IN NAME FIELDS RETURNING Account(Id)';
 
 				try {
-					// we upsert: makes it if it doesn't exist, get id otherwise
-					$search = static::$sf_cnxn->upsert('Name', array($company), 'Company');
-					$this->sf_contact->AccountId = $search[0]->id;
+					$records = static::$sf_cnxn->search($search);
+
+					if(count($records->searchRecords)) {
+						$id = $records->searchRecords[0]->Id;
+					} else {
+						$company = new stdClass();
+						$company->Name = $this->data['company'];
+
+						try {
+							$created = static::$sf_cnxn->create(array($company), 'Account');
+							$id = $created[0]->id;
+						} catch(Exception $e) {
+							sdf_message_handler(LOG, __FUNCTION__ . ' : ' . $e->faultstring);
+							$id = static::$FRIEND_OF_SPARK;
+						}
+					}
+
+					$this->sf_contact->AccountId = $id;
 				} catch(Exception $e) {
 					sdf_message_handler(LOG, __FUNCTION__ . ' : ' . $e->faultstring);
 					$this->sf_contact->AccountId = static::$FRIEND_OF_SPARK;
@@ -728,9 +742,7 @@ class sdf_data {
 	}
 
 	private function start_date() {
-		if(!isset($this->sf_contact->Membership_Start_Date__c)) {
-			$this->sf_contact->Membership_Start_Date__c = date(static::$SF_DATE_FORMAT);
-		}
+		$this->sf_contact->Membership_Start_Date__c = date(static::$SF_DATE_FORMAT);
 	}
 
 	// Renewal is always updated to be one more year from now
@@ -791,28 +803,23 @@ class sdf_data {
 				static::$sf_cnxn->update(array($this->sf_contact), 'Contact');
 			} catch(Exception $e) {
 				sdf_message_handler(LOG, __FUNCTION__ . ' : ' . $e->faultstring);
-
-				$body = "Something went wrong, and this contact was not inserted into Salesforce.\n"
-					. "Here is the contact info:\n"
-					. strval($this->sf_contact)
-					. "\nAnd here's the error message:\n"
-					. $e->faultstring;
-
-				$spark_email = new SingleEmailMessage();
-				$spark_email->setSenderDisplayName('Spark Donations');
-				$spark_email->setToAddresses(static::$SPARK_TEAM);
-				$spark_email->setPlainTextBody($body);
-				$spark_email->setSubject('Donation Problem');
-
-				static::$sf_cnxn->sendSingleEmail(array($spark_email));
+				$this->emergency_email($e->faultstring);
 			}
 		} else {
 			// create new contact.
 			try {
-				$response = static::$sf_cnxn->create(array($contact), 'Contact');
-				$this->sf_contact->Id = $response->id;
+				$response = array_pop(static::$sf_cnxn->create(array($this->sf_contact), 'Contact'));
+
+				if(empty($response->success)) {
+					$error = $response->errors[0]->message;
+					$this->emergency_email($error);
+				} else {
+					$this->sf_contact->Id = $response->id;	
+				}
+
 			} catch(Exception $e) {
 				sdf_message_handler(LOG, __FUNCTION__ . ' : ' . $e->faultstring);
+				$this->emergency_email($e->faultstring);
 			}
 		}
 	}
@@ -899,6 +906,25 @@ EOF;
 		return null;
 	}
 
+	// This function is called if something goes wrong in the upsert
+	// or create functions.. that way we don't lose the user data.
+	// Param err: pass in the fault data
+	private function emergency_email($err) {
+		$body = "Something went wrong, and this contact was not inserted into Salesforce.\n"
+			. "Here is the contact info:\n"
+			. strval($this->sf_contact)
+			. "\nAnd here's the error message:\n"
+			. $err;
+
+		$spark_email = new SingleEmailMessage();
+		$spark_email->setSenderDisplayName('Spark Donations');
+		$spark_email->setToAddresses(static::$SPARK_TEAM);
+		$spark_email->setPlainTextBody($body);
+		$spark_email->setSubject('Salesforce Capture Alert');
+
+		static::$sf_cnxn->sendSingleEmail(array($spark_email));
+	}
+
 	// ************************************************************************
 
 } // end sdf_data
@@ -921,7 +947,7 @@ function sdf_message_handler($type, $message) {
 	$logmessage = time() . ' - ' . $type . ' - ' . $message . "\n";
 	file_put_contents(WP_PLUGIN_DIR . '/sdf/sdf.log', $logmessage, FILE_APPEND);
 
-	if($type != LOG) {
+	if($type != 'log') {
 		ob_clean();
 		$data = array(
 			'type' => $type,
@@ -1367,8 +1393,8 @@ function sdf_get_form() { ?>
 			<span id="invalid-email" class="h5-error-msg" style="display:none;">Please enter a valid email.</span>
 			<br>
 			<label for"tel">Phone: <span class="label-required">*</span></label>
-			<input class="h5-phone" maxlength="15" name="tel" id="tel" type="text" data-h5-errorid="invalid-phone" required>
-			<span id="invalid-phone" class="h5-error-msg" style="display:none;">Please enter a valid telephone number.</span>
+			<input maxlength="15" name="tel" id="tel" type="text" data-h5-errorid="invalid-phone" pattern="^\D?(\d{3})\D?\D?(\d{3})\D?(\d{4})$" required>
+			<span id="invalid-phone" class="h5-error-msg" style="display:none;">Please enter a valid telephone number with area code.</span>
 			<br>
 			<label for"address1">Street Address: <span class="label-required">*</span></label>
 			<input class="wider" name="address1" id="address1" type="text" data-h5-errorid="invalid-addr1" required>

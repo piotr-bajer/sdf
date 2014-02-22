@@ -18,3 +18,16 @@
 1391804975 - log - new_donation : '' is not a valid value for the type xsd:date
 1391846778 - error - Invalid request. Donation amount too small.
 1391853399 - success - Thank you for your donation!
+1392685307 - log - company : INVALID_FIELD: Field name provided, Name does not match an External ID, Salesforce Id, or indexed field for Account
+1392685952 - log - company : INVALID_FIELD: Field name provided, Name does not match an External ID, Salesforce Id, or indexed field for Account
+1392685955 - success - Thank you for your donation!
+1392687563 - success - Thank you for your donation!
+1392687873 - success - Thank you for your donation!
+1392687979 - success - Thank you for your donation!
+1392688074 - success - Thank you for your donation!
+1392688286 - success - Thank you for your donation!
+1392688346 - success - Thank you for your donation!
+1392688425 - success - Thank you for your donation!
+1393107539 - success - Thank you for your donation!
+1393108025 - success - Thank you for your donation!
+1393108973 - success - Thank you for your donation!
