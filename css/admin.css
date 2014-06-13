@@ -7,3 +7,6 @@ SDF admin styles
 #setting-error-salesforce_token_auth_error #source {
 	text-decoration: underline;
 }
+#note {
+	font-weight: 400;
+}

@@ -6,6 +6,7 @@
 	Author: Steve Avery
 	Version: 1.2.1
 	Author URI: mailto:schavery@gmail.com
+	TODO: move emails to config file, remove from repo.
 */
 
 error_reporting(0); // XXX
@@ -31,9 +32,7 @@ class sdf_data {
 	private static $DONOR_SINGLE_TEMPLATE = '00X50000001VaHS';
 	private static $DONOR_MONTHLY_TEMPLATE = '00X50000001eVEX';
 	private static $DONOR_ANNUAL_TEMPLATE = '00X50000001eVEc';
-	private static $REPLY_TO = 'amanda@sparksf.org';
 	private static $DISPLAY_NAME = 'Spark';
-	private static $SPARK_TEAM = array('amanda@sparksf.org', 'shannon@sparksf.org');
 	private static $SF_DATE_FORMAT = 'Y-m-d';
 	private static $ONE_TIME = 0;
 	private static $ANNUAL = 1;
@@ -603,6 +602,7 @@ class sdf_data {
 		$this->board_member();
 		$this->birthday();
 		$this->hdyh_type();
+		$this->unextended();
 		$this->cleanup();
 	}
 
@@ -786,8 +786,13 @@ class sdf_data {
 		}
 	}
 
+	// We need to keep track of the individual donation amount,
+	// not extended, not total for this year.
+	private function unextended() {
+		$this->sf_contact->Donation_Each__c = $this->data['amount'];
+	}
+
 	// This function removes empty fields from the contact object
-	// could be a problem with the 
 	private function cleanup() {
 		foreach($this->sf_contact as $property => $value) {
 			if(is_null($value)) {
@@ -855,7 +860,7 @@ class sdf_data {
 		$donor_email = new SingleEmailMessage();
 		$donor_email->setTemplateId($template);
 		$donor_email->setTargetObjectId($this->sf_contact->Id);
-		$donor_email->setReplyTo(static::$REPLY_TO);
+		$donor_email->setReplyTo(get_option('sf_email_reply_to'));
 		$donor_email->setSenderDisplayName(static::$DISPLAY_NAME);
 
 		try {
@@ -882,7 +887,7 @@ EOF;
 
 		$spark_email = new SingleEmailMessage();
 		$spark_email->setSenderDisplayName('Spark Donations');
-		$spark_email->setToAddresses(static::$SPARK_TEAM);
+		$spark_email->setToAddresses(explode(', ', get_option('alert_email_list')));
 		$spark_email->setPlainTextBody($body);
 		$spark_email->setSubject('New Donation Alert');
 
@@ -918,7 +923,7 @@ EOF;
 
 		$spark_email = new SingleEmailMessage();
 		$spark_email->setSenderDisplayName('Spark Donations');
-		$spark_email->setToAddresses(static::$SPARK_TEAM);
+		$spark_email->setToAddresses(explode(', ', get_option('alert_email_list')));
 		$spark_email->setPlainTextBody($body);
 		$spark_email->setSubject('Salesforce Capture Alert');
 
@@ -967,7 +972,7 @@ function sdf_clean_log() {
 		$line = fgets($handle);
 		$linecount++;
 	}
-	ftructate($handle, 0);
+	ftruncate($handle, 0);
 	rewind($handle);
 	fwrite($handle, time() . ' - Cron run. ' . $linecount . ' lines cleared.' . "\n");
 	fclose($handle);
@@ -1055,6 +1060,11 @@ function sdf_deactivate() {
 		'salesforce_token',
 		'sdf_salesforce_api_check'
 	);
+
+	// XXX
+	unregister_setting();
+	unregister_setting();
+
 	wp_clear_scheduled_hook(
 		'sdf_bimonthly_hook'
 	);
@@ -1121,6 +1131,23 @@ function sdf_register_settings() {
 		'sdf_salesforce_section_print',
 		'spark-form-admin'
 	);
+	// email security
+	register_setting(
+		'sdf',
+		'alert_email_list',
+		'sdf_validate_settings_emails'
+	);
+	register_setting(
+		'sdf',
+		'sf_email_reply_to',
+		'sdf_validate_settings_emails'
+	);
+	add_settings_section(
+		'sdf_alert_email',
+		'Alert Emails',
+		'sdf_email_section_print',
+		'spark-form-admin'
+	);
 }
 
 function sdf_stripe_api_section_print() {
@@ -1132,6 +1159,28 @@ function sdf_salesforce_section_print() {
 	echo "<p>Enter your username, password, and the security token.<br>If you reset your password, you will need to <a href='https://na3.salesforce.com/_ui/system/security/ResetApiTokenEdit?retURL=%2Fui%2Fsetup%2FSetup%3Fsetupid%3DPersonalInfo&setupid=ResetApiToken'>reset your security token too.</a></p>";
 	sdf_print_salesforce_settings_form();
 }
+
+function sdf_email_section_print() {
+	echo "<p>Set the email addresses that receive alert emails, and the reply-to address for outgoing mails.</p>";
+	sdf_print_email_settings_form();
+}
+
+function sdf_print_email_settings_form() { ?>
+<table class="form-table">
+	<tr valign="top">
+		<th scope="row">Notification addresses:<br><span id="note">(Separate emails with a comma and space)</span></th>
+		<td>
+			<input class="sdf-wide" type="text" id="alert_email_list" name="alert_email_list" value="<?php echo esc_attr(get_option('alert_email_list')); ?>" />
+		</td>
+	</tr>
+	<tr valign="top">
+		<th scope="row">Reply-to:</th>
+		<td>
+			<input class="sdf-wide" type="text" id="sf_email_reply_to" name="sf_email_reply_to" value="<?php echo esc_attr(get_option('sf_email_reply_to')); ?>" />
+		</td>
+	</tr>
+</table>
+<?php }
 
 function sdf_print_stripe_api_settings_form() { ?>
 <table class="form-table">
@@ -1224,6 +1273,29 @@ function sdf_string_setting_sanitize($input) {
 	return trim(sanitize_text_field($input));
 }
 
+function sdf_validate_settings_emails($input) {
+	// can receive a list or one email.
+	$list = explode(", ", $input);
+	foreach($list as $email) {
+		if(strlen($email)) {
+			if(!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+				$message = '<span id="source">Email error:</span> Email address failed validation.';
+				add_settings_error(
+					'email_alert',
+					'email_value_error',
+					$message,
+					'error'
+				);
+			}
+		}
+	}
+	if(count($list) == 1) {
+		return $input;
+	} else {
+		return implode(', ', $list);
+	}
+}
+
 function sdf_create_menu() {
 	$page = add_options_page(
 		'Spark Form Settings', // the options page html title tag contents
@@ -1309,6 +1381,13 @@ function sdf_check_ssl() {
         exit();
 	}
 }
+
+function sdf_webshim() { ?>
+	<script type="text/javascript">
+		webshim.setOptions('extendNative', true);
+		webshim.polyfill('forms');
+	</script>
+<?php }
 
 function sdf_noindex() {
 	echo "<META NAME=\"ROBOTS\" CONTENT=\"NOINDEX, NOFOLLOW\">";
@@ -1484,7 +1563,7 @@ function sdf_get_form() { ?>
 			<div id="checks">
 				<span>Send checks to:</span><br>
 				Spark<br>
-				110 Pacific Ave. #188<br>
+				101A Clay St. #188<br>
 				San Francisco, CA 94111<br>
 			</div>
 			<div id="contact">

@@ -481,27 +481,27 @@ var sdf = {};
 
 
 
-	sdf.placeholder_pf = function() {
-		var inputs = document.getElementsByTagName('input');
-		for(var i = 0, count = inputs.length; i < count; i++) {
-			if(inputs[i].getAttribute('placeholder')) {
-				inputs[i].style.cssText = 'color:#939393;'
-				inputs[i].value = inputs[i].getAttribute('placeholder');
-				inputs[i].onclick = function(){
-					if(this.value == this.getAttribute('placeholder')) {
-						this.value = '';
-						this.style.cssText = 'color:#000;font-style:normal;'
-					}
-				}
-				inputs[i].onblur = function(){
-					if(this.value == ''){
-						this.value = this.getAttribute('placeholder');
-						this.style.cssText = 'color:#939393;'
-					}
-				}
-			}
-		}
-	}
+	// sdf.placeholder_pf = function() {
+	// 	var inputs = document.getElementsByTagName('input');
+	// 	for(var i = 0, count = inputs.length; i < count; i++) {
+	// 		if(inputs[i].getAttribute('placeholder')) {
+	// 			inputs[i].style.cssText = 'color:#939393;'
+	// 			inputs[i].value = inputs[i].getAttribute('placeholder');
+	// 			inputs[i].onclick = function(){
+	// 				if(this.value == this.getAttribute('placeholder')) {
+	// 					this.value = '';
+	// 					this.style.cssText = 'color:#000;font-style:normal;'
+	// 				}
+	// 			}
+	// 			inputs[i].onblur = function(){
+	// 				if(this.value == ''){
+	// 					this.value = this.getAttribute('placeholder');
+	// 					this.style.cssText = 'color:#939393;'
+	// 				}
+	// 			}
+	// 		}
+	// 	}
+	// }
 
 	// in order to be able to see what blurred me
 	$(document).mousedown(function(e) {
@@ -512,9 +512,9 @@ var sdf = {};
 
 	$(document).ready(function() {
 
-		if(!Modernizr.input.placeholder) {
-			sdf.placeholder_pf();
-		}
+		// if(!Modernizr.input.placeholder) {
+		// 	sdf.placeholder_pf();
+		// }
 
 		sdf.cc_fields_gray();
 
