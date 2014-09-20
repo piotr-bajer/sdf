@@ -10,9 +10,11 @@ wp_enqueue_script('sdf_validation', plugins_url('/sdf/js/jquery.h5validate.min.j
 wp_enqueue_script('sdf_spin', plugins_url('/sdf/js/spin.min.js'));
 
 wp_enqueue_style('sdf_style', plugins_url('/sdf/css/styles.css'), false, '0.1');
-sdf_webshim();
+add_action('wp_head','sdf_webshim');
 
-get_header(); ?>
+get_header();
+// sdf_webshim();
+?>
 
 <div id="main" role="main">
 	<div id="left-content">
