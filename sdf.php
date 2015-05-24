@@ -4,7 +4,7 @@
 	Plugin URI:
 	Description: Create and integrate a form with payment processing and CRM
 	Author: Steve Avery
-	Version: 1.2.1
+	Version: 2.0
 	Author URI: mailto:schavery@gmail.com
 	TODO: move emails to config file, remove from repo.
 */
@@ -34,11 +34,14 @@ class sdf_data {
 	private static $DONOR_ANNUAL_TEMPLATE = '00X50000001eVEc';
 	private static $DISPLAY_NAME = 'Spark';
 	private static $SF_DATE_FORMAT = 'Y-m-d';
+
 	private static $ONE_TIME = 0;
 	private static $ANNUAL = 1;
 	private static $MONTHLY = 2;
+
 	private static $IS_NOT_CUSTOM = 0;
 	private static $IS_CUSTOM = 1;
+
 	private static $IS_NOT_MEMBER = 0;
 	private static $IS_MEMBER = 1;
 
@@ -778,6 +781,9 @@ class sdf_data {
 
 	// Form field hearabout-extra is not being sent to SalesForce
 	// but we do notify Spark Team about it.
+
+	// XXX we want the hearabout-extra field to go into the contact lookup
+	// Referred_By__c
 	private function hdyh_type() {
 		if(!empty($this->data['hearabout'])) {
 			if(!isset($this->sf_contact->How_did_you_hear_about_Spark__c)) {
@@ -1400,7 +1406,7 @@ function sdf_get_form() { ?>
 			<fieldset>
 				<legend>Make an annual gift:</legend>
 				<input class="amount" type="radio" name="donation" id="annual-75" value="annual-75" required><label class="button-look" onclick for="annual-75">$75</label>
-				<input class="amount" type="radio" name="donation" id="annual-100" value="annual-100" checked required><label onclick class="selected button-look" for="annual-100">$100</label>
+				<input class="amount" type="radio" name="donation" id="annual-100" value="annual-100" required><label onclick class="selected button-look" for="annual-100">$100</label>
 				<input class="amount" type="radio" name="donation" id="annual-250" value="annual-250" required><label class="button-look" onclick for="annual-250">$250</label>
 				<input class="amount" type="radio" name="donation" id="annual-500" value="annual-500" required><label class="button-look" onclick for="annual-500">$500</label>
 				<input class="amount" type="radio" name="donation" id="annual-1000" value="annual-1000" required><label class="button-look" onclick for="annual-1000">$1000</label>
@@ -1412,7 +1418,7 @@ function sdf_get_form() { ?>
 				<legend>Or, make a monthly gift:</legend>
 				<input class="amount" type="radio" name="donation" id="monthly-5" value="monthly-5" required><label class="button-look" onclick for="monthly-5">$5</label>
 				<input class="amount" type="radio" name="donation" id="monthly-10" value="monthly-10" required><label class="button-look" onclick for="monthly-10">$10</label>
-				<input class="amount" type="radio" name="donation" id="monthly-20" value="monthly-20" required><label class="button-look" onclick for="monthly-20">$20</label>
+				<input class="amount" type="radio" name="donation" id="monthly-20" value="monthly-20" checked required><label class="button-look" onclick for="monthly-20">$20</label>
 				<input class="amount" type="radio" name="donation" id="monthly-50" value="monthly-50" required><label class="button-look" onclick for="monthly-50">$50</label>
 				<input class="amount" type="radio" name="donation" id="monthly-100" value="monthly-100" required><label class="button-look" onclick for="monthly-100">$100</label>
 				<input class="amount" type="radio" name="donation" id="monthly-200" value="monthly-200" required><label class="button-look" onclick for="monthly-200">$200</label>
@@ -1573,6 +1579,8 @@ function sdf_get_form() { ?>
 	</div>
 <?php } // end function sdf_get_form
 
+
+// TODO: should we move this to its own file?
 function sdf_get_country_select($name_attr) { ?>
 	<select name="<?php echo $name_attr; ?>" id="<?php echo $name_attr; ?>">
 		<option value="">--</option>
