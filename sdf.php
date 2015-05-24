@@ -264,6 +264,8 @@ class sdf_data {
 
 	// This function is public to perform initial setup of plans.
 	// Execute when the api keys are updated
+
+	// XXX should be removed
 	public static function stripe_default_plans() {
 		$plans = array(
 			array(
@@ -406,6 +408,8 @@ class sdf_data {
 
 	// We assume that the custom plan has been created, and try to retrieve it
 	// and if we fail, then we create the plan
+
+	// XXX should consolidate plan logic
 	private function custom_plan() {
 		$plan_id = strtolower($this->data['recurrence-string']) . '-' . $this->data['amount'];
 
@@ -436,6 +440,7 @@ class sdf_data {
 		$this->strp_plan = $plan;
 	}
 
+	// XXX should be moved into one function with custom_plan
 	private function std_plan() {
 		try {
 			$plan = Stripe_Plan::retrieve($this->data['donation']);
@@ -1214,8 +1219,6 @@ function sdf_print_stripe_api_settings_form() { ?>
 </table>
 <?php }
 
-// XXX js for removing password from the DOM
-// need js to show up in admin side first
 function sdf_print_salesforce_settings_form() { ?>
 <table class="form-table">
 	<tr valign="top">
@@ -1590,6 +1593,7 @@ function sdf_get_form() { ?>
 
 
 // TODO: should we move this to its own file?
+// XXX use http://baymard.com/labs/country-selector instead
 function sdf_get_country_select($name_attr) { ?>
 	<select name="<?php echo $name_attr; ?>" id="<?php echo $name_attr; ?>">
 		<option value="">--</option>
