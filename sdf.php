@@ -1574,32 +1574,9 @@ function sdf_get_form() { ?>
 				<input class="wider" type="text" id="cc-name" name="cc-name" data-h5-errorid="invalid-cc-name" required>
 				<span id="invalid-cc-name" class="h5-error-msg" style="display:none;">This field is required.</span>
 				<br>
-				<label for="cc-address1">Billing Address: <span class="label-required">*</span></label>
-				<input class="wider" type="text" id="cc-address1" name="cc-address1" data-h5-errorid="invalid-cc-addr1" required>
-				<span id="invalid-cc-addr1" class="h5-error-msg" style="display:none;">This field is required.</span>
-				<br>
-				<label for="cc-address2">Address 2:</label>
-				<input class="wider" type="text" id="cc-address2" name="cc-address2">
-				<br>
-				<div class="address-padding cf">
-					<div>
-						<label for="cc-city">City: <span class="label-required">*</span></label>
-						<input type="text" id="cc-city" name="cc-city" data-h5-errorid="invalid-cc-city" required>
-						<span id="invalid-cc-city" class="h5-error-msg" style="display:none;">This field is required.</span>
-					</div>
-					<div>
-						<label for="cc-state">State / Province: <span class="label-required">*</span></label>
-						<input class="state-width" type="text" id="cc-state" name="cc-state" maxlength="2" pattern="[a-zA-Z]{2}" data-h5-errorid="invalid-cc-state" required>
-						<span id="invalid-cc-state" class="h5-error-msg" style="display:none;">This field is required. Use the two letter code.</span>
-					</div>
-					<div class="last">
-						<label for="cc-zip">ZIP / Postal Code: <span class="label-required">*</span></label>
-						<input maxlength="10" type="text" id="cc-zip" name="cc-zip" pattern="^\d{5}(-\d{4})?$" data-h5-errorid="invalid-cc-zip" required>
-						<span id="invalid-cc-zip" class="h5-error-msg" style="display:none;">Please enter a valid ZIP/postal code.</span>
-					</div>
-				</div>
-				<label for="cc-country">Country:</label>
-				<?php sdf_get_country_select('cc-country'); ?>
+				<label for="cc-zip">ZIP / Postal Code: <span class="label-required">*</span></label>
+				<input maxlength="10" type="text" id="cc-zip" name="cc-zip" pattern="^\d{5}(-\d{4})?$" data-h5-errorid="invalid-cc-zip" required>
+				<span id="invalid-cc-zip" class="h5-error-msg" style="display:none;">Please enter a valid ZIP/postal code.</span>
 			</div>
 			<input type="hidden" name="stripe-token" id="stripe-token">
 			<div class="button-dark">
