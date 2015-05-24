@@ -1072,8 +1072,6 @@ function sdf_deactivate() {
 		'salesforce_token',
 		'sdf_salesforce_api_check'
 	);
-
-
 	unregister_setting(
 		'sdf',
 		'alert_email_list',
@@ -1082,6 +1080,16 @@ function sdf_deactivate() {
 	unregister_setting(
 		'sdf',
 		'sf_email_reply_to',
+		'sdf_validate_settings_emails'
+	);
+	unregister_setting(
+		'sdf',
+		'spark_address',
+		'sdf_string_setting_sanitize'
+	);
+	unregister_setting(
+		'sdf',
+		'spark_contact_email',
 		'sdf_validate_settings_emails'
 	);
 
@@ -1129,6 +1137,7 @@ function sdf_register_settings() {
 		'sdf_stripe_api_section_print', // callback to print section content
 		'spark-form-admin' // page slug to work on
 	);
+
 	// Salesforce stuff
 	register_setting(
 		'sdf',
@@ -1151,6 +1160,7 @@ function sdf_register_settings() {
 		'sdf_salesforce_section_print',
 		'spark-form-admin'
 	);
+
 	// email security
 	register_setting(
 		'sdf',
@@ -1168,6 +1178,24 @@ function sdf_register_settings() {
 		'sdf_email_section_print',
 		'spark-form-admin'
 	);
+
+	// Donation page address and contact email
+	register_setting(
+		'sdf',
+		'spark_address',
+		'sdf_string_setting_sanitize'
+	);
+	register_setting(
+		'sdf',
+		'spark_contact_email',
+		'sdf_validate_settings_emails'
+	);
+	add_settings_section(
+		'sdf_spark_details',
+		'Spark Details',
+		'sdf_spark_details_print',
+		'spark-form-admin'
+	);
 }
 
 function sdf_stripe_api_section_print() {
@@ -1183,6 +1211,11 @@ function sdf_salesforce_section_print() {
 function sdf_email_section_print() {
 	echo "<p>Set the email addresses that receive alert emails, and the reply-to address for outgoing mails.</p>";
 	sdf_print_email_settings_form();
+}
+
+function sdf_spark_details_print() {
+	echo "<p>Set the Spark SF contact address and contact email.</p>";
+	sdf_print_spark_details_form();
 }
 
 function sdf_print_email_settings_form() { ?>
@@ -1237,6 +1270,24 @@ function sdf_print_salesforce_settings_form() { ?>
 		<th scope="row">Salesforce token:</th>
 		<td>
 			<input type="text" id="salesforce_token" name="salesforce_token" value="<?php echo esc_attr(get_option('salesforce_token')); ?>" />
+		</td>
+	</tr>
+</table>
+<?php }
+
+function sdf_print_spark_details_form() { ?>
+<table class="form-table">
+	<tr valign="top">
+		<th scope="row">Spark's Mailing Address</th>
+		<td>
+			<textarea id="spark_address" name="spark_address" value="<?php echo esc_attr(get_option('spark_address')); ?>"></textarea>
+			<input type="text" id="salesforce_username" name="salesforce_username" value="<?php echo esc_attr(get_option('salesforce_username')); ?>" />
+		</td>
+	</tr>
+	<tr valign="top">
+		<th scope="row">Salesforce password:</th>
+		<td>
+			<input type="password" id="salesforce_password" name="salesforce_password" value="********" />
 		</td>
 	</tr>
 </table>
