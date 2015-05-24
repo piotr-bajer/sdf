@@ -1227,7 +1227,7 @@ function sdf_print_salesforce_settings_form() { ?>
 	<tr valign="top">
 		<th scope="row">Salesforce password:</th>
 		<td>
-			<input type="password" id="salesforce_password" name="salesforce_password" value="<?php echo esc_attr(get_option('salesforce_password')); ?>" />
+			<input type="password" id="salesforce_password" name="salesforce_password" value="********" />
 		</td>
 	</tr>
 	<tr valign="top">
