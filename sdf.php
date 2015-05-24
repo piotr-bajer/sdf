@@ -5,11 +5,10 @@
 	Description: Create and integrate a form with payment processing and CRM
 	Author: Steve Avery
 	Version: 2.0
-	Author URI: mailto:schavery@gmail.com
-	TODO: move emails to config file, remove from repo.
+	Author URI: https://stevenavery.com/
 */
 
-error_reporting(0); // XXX
+error_reporting(0); // XXX remove for debugging
 defined('ABSPATH') or die("Unauthorized.");
 
 define('ERROR', 0);
@@ -1183,7 +1182,7 @@ function sdf_register_settings() {
 	register_setting(
 		'sdf',
 		'spark_address',
-		'sdf_string_setting_sanitize'
+		'sdf_string_no_sanitize'
 	);
 	register_setting(
 		'sdf',
@@ -1257,19 +1256,19 @@ function sdf_print_salesforce_settings_form() { ?>
 	<tr valign="top">
 		<th scope="row">Salesforce username:</th>
 		<td>
-			<input type="text" id="salesforce_username" name="salesforce_username" value="<?php echo esc_attr(get_option('salesforce_username')); ?>" />
+			<input class="sdf-wide" type="text" id="salesforce_username" name="salesforce_username" value="<?php echo esc_attr(get_option('salesforce_username')); ?>" />
 		</td>
 	</tr>
 	<tr valign="top">
 		<th scope="row">Salesforce password:</th>
 		<td>
-			<input type="password" id="salesforce_password" name="salesforce_password" value="********" />
+			<input class="sdf-wide" type="password" id="salesforce_password" name="salesforce_password" value="<?php echo sdf_password_dummy('salesforce_password'); ?>" />
 		</td>
 	</tr>
 	<tr valign="top">
 		<th scope="row">Salesforce token:</th>
 		<td>
-			<input type="text" id="salesforce_token" name="salesforce_token" value="<?php echo esc_attr(get_option('salesforce_token')); ?>" />
+			<input class="sdf-wide" type="text" id="salesforce_token" name="salesforce_token" value="<?php echo esc_attr(get_option('salesforce_token')); ?>" />
 		</td>
 	</tr>
 </table>
@@ -1278,16 +1277,15 @@ function sdf_print_salesforce_settings_form() { ?>
 function sdf_print_spark_details_form() { ?>
 <table class="form-table">
 	<tr valign="top">
-		<th scope="row">Spark's Mailing Address</th>
+		<th scope="row">Spark's mailing address</th>
 		<td>
-			<textarea id="spark_address" name="spark_address" value="<?php echo esc_attr(get_option('spark_address')); ?>"></textarea>
-			<input type="text" id="salesforce_username" name="salesforce_username" value="<?php echo esc_attr(get_option('salesforce_username')); ?>" />
+			<textarea class="sdf-wide" id="spark_address" name="spark_address" rows="3"><?php echo esc_attr(get_option('spark_address')); ?></textarea>
 		</td>
 	</tr>
 	<tr valign="top">
-		<th scope="row">Salesforce password:</th>
+		<th scope="row">Spark's contact email</th>
 		<td>
-			<input type="password" id="salesforce_password" name="salesforce_password" value="********" />
+			<input class="sdf-wide" type="text" id="spark_contact_email" name="spark_contact_email" value="<?php echo esc_attr(get_option('spark_contact_email')); ?>" />
 		</td>
 	</tr>
 </table>
@@ -1309,10 +1307,8 @@ function sdf_stripe_secret_sanitize($input) {
 			);
 		}
 		if($count == 0) {
-			sdf_data::create_std_plans();
-			// this wont work until there's js in the admin side
-			// XXX
-			// add_action('admin_enqueue_scripts', 'sdf_enqueue_admin_scripts');  
+			// XXX don't do this at all
+			sdf_data::create_std_plans(); 
 		}
 	}
 	return $input;
@@ -1340,6 +1336,10 @@ function sdf_salesforce_api_check($input) {
 
 function sdf_string_setting_sanitize($input) {
 	return trim(sanitize_text_field($input));
+}
+
+function sdf_string_no_sanitize($input) {
+	return $input;
 }
 
 function sdf_validate_settings_emails($input) {
@@ -1383,36 +1383,16 @@ function sdf_enqueue_admin_styles() {
 	);
 }
 
-/* 
-The idea behind this is that since the stripe default plans create is so slow,
-because it's registering each plan individually, that once the private key is 
-set and valid, that we could set off a javascript insertion to the admin side only
-that would call default plan create asynchronously, and take the load off the user.
-However, the js never shows up in the admin side for some reason.
-*/
+// If there is a value in the database, we output a dummy value
+// Or if there is no value in the database, we print nothing.
+function sdf_password_dummy($setting) {
+	$string = get_option($setting);
+	for($ii = 0; $ii < strlen($string); $ii++) {
+		$string[$ii] = '*';
+	}
+	return $string;
+}
 
-// add_action('wp_ajax_sdf_stripe_default_plans_create', 'sdf_stripe_default_plans_create');
-
-// function sdf_enqueue_admin_scripts() {
-// 	wp_enqueue_script( 
-// 		'sdf_admin_js', // handle
-// 		plugins_url('sdf/js/admin.js'), // src
-// 		array('jquery') // dependencies
-// 	);
-// 	wp_enqueue_script( 'script-name', get_template_directory_uri() . '/js/example.js', array(), '1.0.0', true );
-// }
-
-// function sdf_stripe_default_plans_callback($old) {
-// 	wp_register_script(
-// 		'sdf_admin_js', // handle
-// 		plugins_url('sdf/js/admin.js'), // src
-// 		array('jquery') // dependencies
-// 	);
-// 	wp_enqueue_script('sdf_admin_js');
-//	wp_register_script( 'script-name', get_template_directory_uri() . '/js/example.js', array(), '1.0.0', true );
-//	add_action('admin_enqueue_scripts', 'sdf_enqueue_admin_scripts');
-//	add_action('admin_print_scripts_' . 'spark-form-admin', 'sdf_enqueue_admin_scripts');
-// }
 
 // ****************************************************************************
 // HTML and redirect functions
@@ -1469,7 +1449,7 @@ function sdf_get_form() { ?>
 			<fieldset>
 				<legend>Make an annual gift:</legend>
 				<input class="amount" type="radio" name="donation" id="annual-75" value="annual-75" required><label class="button-look" onclick for="annual-75">$75</label>
-				<input class="amount" type="radio" name="donation" id="annual-100" value="annual-100" required><label onclick class="selected button-look" for="annual-100">$100</label>
+				<input class="amount" type="radio" name="donation" id="annual-100" value="annual-100" required><label onclick class="button-look" for="annual-100">$100</label>
 				<input class="amount" type="radio" name="donation" id="annual-250" value="annual-250" required><label class="button-look" onclick for="annual-250">$250</label>
 				<input class="amount" type="radio" name="donation" id="annual-500" value="annual-500" required><label class="button-look" onclick for="annual-500">$500</label>
 				<input class="amount" type="radio" name="donation" id="annual-1000" value="annual-1000" required><label class="button-look" onclick for="annual-1000">$1000</label>
@@ -1481,7 +1461,7 @@ function sdf_get_form() { ?>
 				<legend>Or, make a monthly gift:</legend>
 				<input class="amount" type="radio" name="donation" id="monthly-5" value="monthly-5" required><label class="button-look" onclick for="monthly-5">$5</label>
 				<input class="amount" type="radio" name="donation" id="monthly-10" value="monthly-10" required><label class="button-look" onclick for="monthly-10">$10</label>
-				<input class="amount" type="radio" name="donation" id="monthly-20" value="monthly-20" checked required><label class="button-look" onclick for="monthly-20">$20</label>
+				<input class="amount" type="radio" name="donation" id="monthly-20" value="monthly-20" checked required><label class="selected button-look" onclick for="monthly-20">$20</label>
 				<input class="amount" type="radio" name="donation" id="monthly-50" value="monthly-50" required><label class="button-look" onclick for="monthly-50">$50</label>
 				<input class="amount" type="radio" name="donation" id="monthly-100" value="monthly-100" required><label class="button-look" onclick for="monthly-100">$100</label>
 				<input class="amount" type="radio" name="donation" id="monthly-200" value="monthly-200" required><label class="button-look" onclick for="monthly-200">$200</label>
