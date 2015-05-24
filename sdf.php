@@ -984,6 +984,7 @@ function sdf_clean_log() {
 	fclose($handle);
 }
 
+// XXX the duration of the interval does not match the function name
 function sdf_add_bimonthly($schedules) {
 	$schedules['bimonthly'] = array(
 		'interval' => 10000000,
@@ -1067,9 +1068,17 @@ function sdf_deactivate() {
 		'sdf_salesforce_api_check'
 	);
 
-	// XXX
-	unregister_setting();
-	unregister_setting();
+
+	unregister_setting(
+		'sdf',
+		'alert_email_list',
+		'sdf_validate_settings_emails'
+	);
+	unregister_setting(
+		'sdf',
+		'sf_email_reply_to',
+		'sdf_validate_settings_emails'
+	);
 
 	wp_clear_scheduled_hook(
 		'sdf_bimonthly_hook'
