@@ -1631,12 +1631,10 @@ function sdf_get_form() { ?>
 			<hr class="dashed-line">
 			<div id="checks">
 				<span>Send checks to:</span><br>
-				Spark<br>
-				101A Clay St. #188<br>
-				San Francisco, CA 94111<br>
+				<?php echo get_option('spark_address'); ?>
 			</div>
 			<div id="contact">
-				<span>Questions? <a target="_blank" href="mailto:programs@sparksf.org">Contact us.</a></span>
+				<span>Questions? <a target="_blank" href="mailto:<?php echo get_option('spark_contact_email', 'programs@sparksf.org'); ?>">Contact us.</a></span>
 			</div>
 		</form>
 	</div>
