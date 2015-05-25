@@ -1146,7 +1146,7 @@ function sdf_register_settings() {
 	register_setting(
 		'sdf',
 		'salesforce_password',
-		'sdf_string_setting_sanitize'
+		'sdf_sf_password_validate'
 	);
 	register_setting(
 		'sdf',
@@ -1340,6 +1340,20 @@ function sdf_string_setting_sanitize($input) {
 
 function sdf_string_no_sanitize($input) {
 	return $input;
+}
+
+// This function prevents overwriting the saved password
+// with dummy data
+
+// It needs to be specific to salesforce because we need to get
+// the specific option 'salesforce_password',
+// and there's no way to pass another parameter
+function sdf_sf_password_validate($input) {
+	if($input == sdf_password_dummy('salesforce_password')) {
+		return get_option('salesforce_password');
+	} else {
+		return trim($input);
+	}
 }
 
 function sdf_validate_settings_emails($input) {
