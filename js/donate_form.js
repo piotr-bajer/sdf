@@ -73,7 +73,6 @@ var sdf = {};
 
 	sdf.stateBlur = function() {
 		$('#state').val($('#state').val().toUpperCase());
-		$('#cc-state').val($('#cc-state').val().toUpperCase());
 	}
 
 	sdf.copyPersonalInfo = function() {
@@ -92,14 +91,11 @@ var sdf = {};
 			});
 
 			$('#cc-name').val($('#first-name').val() + ' ' + $('#last-name').val());
-			$('#cc-country').val($('#country').val());
 
 			$('#js-cc-fields').fadeTo('fast', 0.5, function() {
 				$('#js-cc-fields input').each(function(k, v) {
 					$(v).prop('readonly', true);
 				});
-
-				$('#cc-country').prop('disabled', true);
 			});
 
 		} else {
@@ -108,8 +104,6 @@ var sdf = {};
 				$('#js-cc-fields input').each(function(k, v) {
 					$(v).prop('readonly', false);
 				});
-
-				$('#cc-country').prop('disabled', false);
 			});
 
 		}
@@ -122,10 +116,8 @@ var sdf = {};
 			$('#js-cc-fields').addClass('faded');
 
 			$('#js-cc-fields input').each(function(k, v) {
-					$(v).prop('readonly', true);
-				});
-
-			$('#cc-country').prop('disabled', true);
+				$(v).prop('readonly', true);
+			});
 		}
 	}
 
@@ -178,12 +170,7 @@ var sdf = {};
 				exp_month: $('#cc-exp-mo').val(),
 				exp_year: $('#cc-exp-year').val(),
 				name: $('#cc-name').val(),
-				address_line1: $('#cc-address1').val(),
-				address_line2: $('#cc-address2').val(),
-				address_city: $('#cc-city').val(),
-				address_state: $('#cc-state').val(),
 				address_zip: $('#cc-zip').val(),
-				address_country: $('#cc-country').val()
 			};
 
 			Stripe.card.createToken(cardData, sdf.stripeResponseHandler);
@@ -479,30 +466,6 @@ var sdf = {};
 		}*/
 	}
 
-
-
-	// sdf.placeholder_pf = function() {
-	// 	var inputs = document.getElementsByTagName('input');
-	// 	for(var i = 0, count = inputs.length; i < count; i++) {
-	// 		if(inputs[i].getAttribute('placeholder')) {
-	// 			inputs[i].style.cssText = 'color:#939393;'
-	// 			inputs[i].value = inputs[i].getAttribute('placeholder');
-	// 			inputs[i].onclick = function(){
-	// 				if(this.value == this.getAttribute('placeholder')) {
-	// 					this.value = '';
-	// 					this.style.cssText = 'color:#000;font-style:normal;'
-	// 				}
-	// 			}
-	// 			inputs[i].onblur = function(){
-	// 				if(this.value == ''){
-	// 					this.value = this.getAttribute('placeholder');
-	// 					this.style.cssText = 'color:#939393;'
-	// 				}
-	// 			}
-	// 		}
-	// 	}
-	// }
-
 	// in order to be able to see what blurred me
 	$(document).mousedown(function(e) {
 		sdf.clicked = e.target;
@@ -511,10 +474,6 @@ var sdf = {};
 	// One function to bind them.
 
 	$(document).ready(function() {
-
-		// if(!Modernizr.input.placeholder) {
-		// 	sdf.placeholder_pf();
-		// }
 
 		sdf.cc_fields_gray();
 
@@ -529,7 +488,7 @@ var sdf = {};
 
 		$('#hearabout').change(sdf.hearAboutChange);
 
-		$('#state, #cc-state').blur(sdf.stateBlur);
+		$('#state').blur(sdf.stateBlur);
 
 		$('#copy-personal-info').click(sdf.copyPersonalInfo);
 
