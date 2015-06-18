@@ -164,7 +164,7 @@ class sdf_data {
 	// Setup functions
 
 	private function set_recurrence() {
-		if(array_key_exists('one-time', $this->data) 
+		if(array_key_exists('one-time', $this->data)
 			&& !empty($this->data['one-time'])) {
 				$recurrence = 'Single donation';
 				$type = static::$ONE_TIME;
@@ -236,7 +236,7 @@ class sdf_data {
 		return $plan_amounts[$this->data['donation']];
 	}
 
-	// Find out how much the amount is for the year if it's monthly 
+	// Find out how much the amount is for the year if it's monthly
 	private function get_ext_amount() {
 		if($this->data['recurrence-type'] == static::$MONTHLY) {
 			$times = 13 - intval(date('n'));
@@ -470,7 +470,7 @@ class sdf_data {
 
 	private function subscribe() {
 		try {
-			$this->strp_customer->updateSubscription(array('plan' => $this->strp_plan->id));	
+			$this->strp_customer->updateSubscription(array('plan' => $this->strp_plan->id));
 		} catch(Stripe_Error $e) {
 			$body = $e->getJsonBody();
 			sdf_message_handler(ERROR, $body['error']['message']);
@@ -484,21 +484,21 @@ class sdf_data {
 	// just like the Stripe API
 	public static function salesforce_api($input = null) {
 		require_once(WP_PLUGIN_DIR . '/sdf/salesforce/soapclient/SforceEnterpriseClient.php');
-		
+
 		$sf_cnxn = new SforceEnterpriseClient();
 		$sf_cnxn->createConnection(WP_PLUGIN_DIR . '/sdf/salesforce/soapclient/sdf.wsdl.jsp.xml');
-		
+
 		if(!empty($input)) {
 			// we expect the input to be a new token.
 			$sf_cnxn->login(get_option('salesforce_username'), get_option('salesforce_password') . $input);
 		} else {
-			$sf_cnxn->login(get_option('salesforce_username'), get_option('salesforce_password') . get_option('salesforce_token'));	
+			$sf_cnxn->login(get_option('salesforce_username'), get_option('salesforce_password') . get_option('salesforce_token'));
 		}
 
 		static::$sf_cnxn = clone $sf_cnxn;
 	}
 
-	// This method queries the data in SalesForce using the provided email, 
+	// This method queries the data in SalesForce using the provided email,
 	// and fills out this->sf_contact
 	private function get_contact() {
 		$id = $this->search_salesforce();
@@ -525,7 +525,7 @@ class sdf_data {
 				sdf_message_handler(LOG, __FUNCTION__ . ' : ' . $e->faultstring);
 			}
 		}
-		
+
 		$this->sf_contact = $contact;
 		$this->sf_contact->Id = $id;
 	}
@@ -551,14 +551,14 @@ class sdf_data {
 	// donor level
 	private function get_donations() {
 		$donations_list = array();
-		
+
 		if($this->sf_contact->Id !== null) {
 			$cutoff_date = strtotime(date('Y') . '-01-01');
 
-			$query = 'SELECT (SELECT 
+			$query = 'SELECT (SELECT
 							Amount__c,
 							Donation_Date__c
-					FROM 
+					FROM
 						Donations__r)
 					FROM
 						Contact
@@ -697,7 +697,7 @@ class sdf_data {
 
 			} else {
 				$this->sf_contact->AccountId = static::$FRIEND_OF_SPARK;
-			} 
+			}
 		}
 	}
 
@@ -707,7 +707,7 @@ class sdf_data {
 	}
 
 	private function address() {
-		$this->sf_contact->MailingStreet = empty($this->data['address2']) ? $this->data['address1'] 
+		$this->sf_contact->MailingStreet = empty($this->data['address2']) ? $this->data['address1']
 			: $this->data['address1'] . "\n" . $this->data['address2'];
 
 		$this->sf_contact->MailingCity = $this->data['city'];
@@ -722,7 +722,7 @@ class sdf_data {
 
 	private function description() {
 		$this->sf_txn = $this->data['recurrence-string']
-			. ' - ' . $this->data['amount-string']. ' - ' 
+			. ' - ' . $this->data['amount-string']. ' - '
 			. date('n/d/y') . ' - Online donation from ' . home_url() . '.';
 
 		if(!empty($this->data['inhonorof'])) {
@@ -778,7 +778,7 @@ class sdf_data {
 	private function birthday() {
 		// Birth_Month_Year__c
 		if(!empty($this->data['birthday-month']) && !empty($this->data['birthday-year'])) {
-			$this->sf_contact->Birth_Month_Year__c = date('m/Y', 
+			$this->sf_contact->Birth_Month_Year__c = date('m/Y',
 				strtotime($this->data['birthday-year'] . '-' . $this->data['birthday-month']));
 		}
 	}
@@ -829,7 +829,7 @@ class sdf_data {
 					$error = $response->errors[0]->message;
 					$this->emergency_email($error);
 				} else {
-					$this->sf_contact->Id = $response->id;	
+					$this->sf_contact->Id = $response->id;
 				}
 
 			} catch(Exception $e) {
@@ -1026,7 +1026,7 @@ function sdf_parse() {
 		$sdf->begin($_POST['data']);
 		unset($_POST['data']);
 	}
-	
+
 	sdf_message_handler(SUCCESS, 'Thank you for your donation!');
 	die(); // prevent trailing 0 from admin-ajax.php
 }
@@ -1109,7 +1109,7 @@ function sdf_options_page() { ?>
 		<?php screen_icon(); ?>
 		<h2>Spark Donation Form</h2>
 		<form method="post" action="options.php">
-			<?php 
+			<?php
 				settings_fields('sdf');
 				do_settings_sections('spark-form-admin');
 				submit_button();
@@ -1308,7 +1308,7 @@ function sdf_stripe_secret_sanitize($input) {
 		}
 		if($count == 0) {
 			// XXX don't do this at all
-			sdf_data::create_std_plans(); 
+			sdf_data::create_std_plans();
 		}
 	}
 	return $input;
@@ -1418,7 +1418,7 @@ function sdf_template() {
 			$return_template = 'templates/page_donation.php';  // goes live on a new slug
 			sdf_theme_redirect($return_template);
 		}
-	}	
+	}
 }
 
 function sdf_theme_redirect($url) {
@@ -1516,9 +1516,9 @@ function sdf_get_form() { ?>
 			<input class="wider" type="text" id="company" name="company">
 			<br>
 			<label for="birthday-month">Birthday:</label>
-			<input maxlength="2" id="birthday-month" class="date-input" name="birthday-month" pattern="^(0?[1-9]|1[012])" placeholder="Month" data-h5-errorid="invalid-bday-month">
+			<input class="h5-birthmonth" maxlength="2" id="birthday-month" class="date-input" name="birthday-month" placeholder="Month" data-h5-errorid="invalid-bday-month">
 			<span id="bday-separator">/</span>
-			<input maxlength="4" id="birthday-year" class="date-input" name="birthday-year" pattern="^(19|20)\d{2}$" placeholder="Year" data-h5-errorid="invalid-bday-year">
+			<input class="h5-birthyear" maxlength="4" id="birthday-year" class="date-input" name="birthday-year" placeholder="Year" data-h5-errorid="invalid-bday-year">
 			<span id="invalid-bday-month" class="h5-error-msg" style="display:none;">Please enter a valid month. Format: MM</span>
 			<span id="invalid-bday-year" class="h5-error-msg" style="display:none;">Please enter a valid year. Format: YYYY</span>
 			<br>
@@ -1535,7 +1535,7 @@ function sdf_get_form() { ?>
 			<span id="invalid-email" class="h5-error-msg" style="display:none;">Please enter a valid email.</span>
 			<br>
 			<label for"tel">Phone: <span class="label-required">*</span></label>
-			<input maxlength="15" name="tel" id="tel" type="text" data-h5-errorid="invalid-phone" pattern="^\D?(\d{3})\D?\D?(\d{3})\D?(\d{4})$" required>
+			<input maxlength="15" name="tel" id="tel" type="text" data-h5-errorid="invalid-phone" class="h5-phone" required>
 			<span id="invalid-phone" class="h5-error-msg" style="display:none;">Please enter a valid telephone number with area code.</span>
 			<br>
 			<label for"address1">Street Address: <span class="label-required">*</span></label>
@@ -1553,12 +1553,12 @@ function sdf_get_form() { ?>
 				</div>
 				<div>
 					<label for"state">State/Province: <span class="label-required">*</span></label>
-					<input class="state-width" name="state" id="state" type="text" maxlength="2" pattern="[a-zA-Z]{2}" data-h5-errorid="invalid-state" required>
+					<input class="state-width h5-state" name="state" id="state" type="text" maxlength="2" data-h5-errorid="invalid-state" required>
 					<span id="invalid-state" class="h5-error-msg" style="display:none;">This field is required. Use the two letter code.</span>
 				</div>
 				<div class="last">
 					<label for"zip">ZIP/Postal Code: <span class="label-required">*</span></label>
-					<input maxlength="10" name="zip" id="zip" type="text" pattern="^\d{5}(-\d{4})?$" data-h5-errorid="invalid-zip" required>
+					<input class="h5-zipcode" maxlength="10" name="zip" id="zip" type="text" data-h5-errorid="invalid-zip" required>
 					<span id="invalid-zip" class="h5-error-msg" style="display:none;">Please enter a valid ZIP/postal code.</span>
 				</div>
 			</div>
@@ -1567,18 +1567,18 @@ function sdf_get_form() { ?>
 			<hr class="dashed-line">
 			<h3>Billing Information:</h3>
 			<label for="cc-number">Credit Card Number: <span class="label-required">*</span></label>
-			<input maxlength="16" type="text" id="cc-number" name="cc-number" pattern="\d{14,16}" data-h5-errorid="invalid-cc-num" required>
+			<input class="h5-creditcard" maxlength="16" type="text" id="cc-number" name="cc-number" data-h5-errorid="invalid-cc-num" required>
 			<span id="invalid-cc-num" class="h5-error-msg" style="display:none;">Please enter a valid credit card number.</span>
 			<br>
 			<label for="cc-cvc">Security Code: <span class="label-required">*</span></label>
-			<input maxlength="4" type="text" id="cc-cvc" name="cc-cvc" pattern="[\d]{3,4}" data-h5-errorid="invalid-cvc" required>
+			<input class="h5-cvc" maxlength="4" type="text" id="cc-cvc" name="cc-cvc" data-h5-errorid="invalid-cvc" required>
 			<span id="invalid-cvc" class="h5-error-msg" style="display:none;">This field is required.</span>
 			<br>
 			<label for="cc-exp-mo">Expiration Date: <span class="label-required">*</span></label>
-			<input maxlength="2" id="cc-exp-mo" class="date-input" name="cc-exp-mo" placeholder="Month" pattern="^(0?[1-9]|1[012])$" data-h5-errorid="invalid-cc-mo" required>
-			<span id="invalid-cc-mo" class="h5-error-msg" style="display:none;">This field is required. Format: MM</span>
+			<input class="date-input h5-cc_expiry_mo" maxlength="2" id="cc-exp-mo" name="cc-exp-mo" placeholder="Month" data-h5-errorid="invalid-cc-mo" required>
+			<span class="h5-error-msg" id="invalid-cc-mo" style="display:none;">This field is required. Format: MM</span>
 			<span id="cc-exp-separator">/</span>
-			<input maxlength="4" id="cc-exp-year" class="date-input" name="cc-exp-year" placeholder="Year" pattern="^(1[0-9])|20[\d]{2}" data-h5-errorid="invalid-cc-year" required>
+			<input class="date-input h5-cc_expiry_year" maxlength="4" id="cc-exp-year" name="cc-exp-year" placeholder="Year" data-h5-errorid="invalid-cc-year" required>
 			<span id="invalid-cc-year" class="h5-error-msg" style="display:none;">This field is required. Format: YYYY</span>
 			<hr class="dashed-line">
 			<label id="copy-personal-info-label" for="copy-personal-info">Copy billing information from above?</label>
@@ -1589,7 +1589,7 @@ function sdf_get_form() { ?>
 				<span id="invalid-cc-name" class="h5-error-msg" style="display:none;">This field is required.</span>
 				<br>
 				<label for="cc-zip">ZIP / Postal Code: <span class="label-required">*</span></label>
-				<input maxlength="10" type="text" id="cc-zip" name="cc-zip" pattern="^\d{5}(-\d{4})?$" data-h5-errorid="invalid-cc-zip" required>
+				<input class="h5-cc_zipcode" maxlength="10" type="text" id="cc-zip" name="cc-zip" data-h5-errorid="invalid-cc-zip" required>
 				<span id="invalid-cc-zip" class="h5-error-msg" style="display:none;">Please enter a valid ZIP/postal code.</span>
 			</div>
 			<input type="hidden" name="stripe-token" id="stripe-token">

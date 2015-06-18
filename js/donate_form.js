@@ -1,7 +1,7 @@
 /*
 File: donate_form.js
 Author: Steve Avery
-Date: September 
+Date: September
 Provides client ajax functions for the donation form.
 */
 
@@ -240,7 +240,7 @@ var sdf = {};
 				data = JSON.parse(data);
 				$('.alert').append('<p class="'	+ data.type + '">' + data.message + '</p>').show();
 				document.getElementsByClassName('alert')[0].scrollIntoView();
-				
+
 				if(data.type == 'error') {
 					// could we figure out what element to highlight in error? that would be good.
 					// don't clear error for now.
@@ -262,7 +262,7 @@ var sdf = {};
 	}
 
 	sdf.custom_amount_create = function(event) {
-		// replace the label contents with the input value. 
+		// replace the label contents with the input value.
 		// set focus in the input element
 
 		// okay since the radio change function is called AFTER this one
@@ -273,7 +273,7 @@ var sdf = {};
 
 		event = event || {};
 		var ele = event.target;
-		
+
 		if($(ele).is('#js-custom-input, #amount-text')
 			|| $.contains(ele, document.getElementById('js-custom-input'))) {
 			// means you have clicked on an empty input!
@@ -303,9 +303,9 @@ var sdf = {};
 
 		// so, when this is called, the next click on the other custom-able label
 		// isn't called, radio change goes first and says, okay destroy other, set this to active
-		// but doesn't give a shot to create new.	
+		// but doesn't give a shot to create new.
 		//$('#sdf_form').off('click', '.custom-label', sdf.custom_amount_create);
-	
+
 	}
 
 	sdf.custom_amount_remove = function() {
@@ -332,7 +332,7 @@ var sdf = {};
 
 	sdf.custom_amount_blur = function() {
 		// when the input loses focus
-		// make the label just have the content of the amount 
+		// make the label just have the content of the amount
 		// from the input and a dollar sign in front, to match the other label styles
 
 		var input = $('#js-custom-input'),
@@ -396,7 +396,7 @@ var sdf = {};
 			//label.off('click', '.custom-label', sdf.custom_amount_create).addClass('custom-label-active');
 			label.removeClass('custom-label-input').addClass('custom-label-active');
 		}
-		
+
 	}
 
 	sdf.custom_amount_focus = function() {
@@ -414,7 +414,7 @@ var sdf = {};
 		setTimeout(function() {
 			$('#js-custom-input').focus();
 		}, 0);
-	}	
+	}
 
 	sdf.radio_change = function(event) {
 		// need to check here so that we don't clear a just created input.
@@ -424,7 +424,7 @@ var sdf = {};
 		if(!('target' in event)) {
 			event.target = sdf.clicked;
 		}
-	
+
 		// problem:
 		// going from custom to custom, the old input is destoryed, and a new one is created,
 		// then this is called. soo, in that case, we want to know if event.target is also a custom!
@@ -496,8 +496,23 @@ var sdf = {};
 			return false;
 		});
 
+		// Names shouldn't contain dashes (-) because I think h5 explodes class on -
+		$.h5Validate.addPatterns({
+			birthmonth: /^(0?[1-9]|1[012])/,
+			birthyear: /^(19|20)\d{2}$/,
+			creditcard: /\d{14,16}/,
+			cc_expiry_mo: /^(0?[1-9]|1[012])$/,
+			cc_expiry_year: /^(1[0-9])|20[\d]{2}/,
+			cc_zipcode: /^\d{5}(-\d{4})?$/,
+			cvc: /[\d]{3,4}/,
+			phone: /^\D?(\d{3})\D?\D?(\d{3})\D?(\d{4})$/,
+			state: /[a-zA-Z]{2}/,
+			zipcode: /^\d{5}(-\d{4})?$/,
+		});
+
 		$('#sdf_form form').h5Validate({
-			errorClass: 'field-error'
+			errorClass: 'field-error',
+			focusout: false
 		});
 
 		$('#cc-exp-year').on('focusout', sdf.futureDate);
