@@ -9,10 +9,18 @@ September 2013
 	display:none;
 }
 
+#sdf_form #js-cc-fields {
+	clear: both;
+}
+
 #sdf_form input.invalid {
 	border: 1px solid red !important;
-	background-color: #FF6666;
+	background-color: #EF4A63;
 	color: #ffffff;
+}
+
+#sdf_form #cc-exp-mo {
+	margin-right: 5px;
 }
 
 #sdf_form .cc-exp-separator {
@@ -24,6 +32,7 @@ September 2013
 	border:2px solid red;
 }
 #sdf_form span.label-required {
+	line-height: 1em;
 	font-weight: 700;
 	color:red;
 	font-size: 1.5em;
@@ -52,20 +61,25 @@ September 2013
 	width:90%;
 	margin:auto;
 }
+
 #sdf_form input,
 #sdf_form select {
-	margin-bottom:1em;
+	margin-bottom: 1em;
 	margin-right: 1em;
-	float: left;
+	line-height: 1.5em;
+	padding-left: .4em;
+	padding-right: .4em;
 }
+
 #sdf_form form > label,
 #js-cc-fields > label {
 	float: left;
 	text-align: right;
 	margin-right: 1em;
 	width: 152px;
-	clear:left;
+	clear: left;
 }
+
 #sdf_form div.wider {
 	margin-top: 1em;
 }
@@ -291,6 +305,15 @@ p.error {
 #sdf_form #bday-separator {
 	float: left;
 	padding:4px 10px;
+}
+
+#sdf_form #copy-personal-info {
+	margin-left: 167px;
+}
+
+#sdf_form #copy-personal-info-label {
+	float: none;
+	margin: 0;
 }
 
 /* custom positions */

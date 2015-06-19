@@ -11,7 +11,7 @@ sdf_new = (function($) {
 
 	var self = this;
 
-	// jquery way to check dom element exists
+	// jquery way to check if dom element exists
 	$.fn.exists = function() { return this.length > 0 }
 
 	self.opts = {
@@ -64,23 +64,6 @@ sdf_new = (function($) {
 		},
 	};
 
-	self.init = function(args) {
-		$.extend(true, self.opts, args); // order matters
-
-		self.elems.submit = $('#' + self.opts.ids.submit);
-		self.elems.form = $('#' + self.opts.ids.form);
-
-		self.add_spinner_loading_element();
-		self.spinner.obj = new Spinner(self.spinner.opts);
-
-		try {
-			self.attach_validation_to_form();
-		} catch (e) {
-			self.show_error(e);
-		}
-
-	}
-
 	self.show_error = function(e) {
 		console.log("Error: " + e.message + ". From: " + e.from);
 	}
@@ -89,7 +72,7 @@ sdf_new = (function($) {
 		return false;
 	}
 
-	self.custom_amount_activate = function(el) {
+	self.activate_custom_amount = function(el) {
 		var input_id = el.attr('for');
 		if (typeof self.elems.saved[input_id] !== 'undefined') {
 			el.after(self.elems.saved[input_id]);
@@ -107,7 +90,11 @@ sdf_new = (function($) {
 		}
 	}
 
-	self.custom_amount_destroy = function(el) {
+	self.destroy_associated_input = function(el) {
+
+		// TODO: I probably should remove the element. DOM stuff is expensive.
+		// Maybe just convert this stuff to shows and hides?
+
 		var input_id = el.attr('for');
 		var to_remove = $('#' + input_id);
 		if (to_remove.exists()) {
@@ -127,8 +114,8 @@ sdf_new = (function($) {
 		}
 
 		// TODO: I should probably add an 'on change' event for any elements that
-		// are already invalied and changed. If they enter something valid I should
-		// immeditately remove the invalid error.
+		// are already invalid and changed. If they enter something valid I should
+		// immeditately remove the error.
 
 		// TODO: Need to populate OR remove inputs when the "Copy billing
 		// information from above?" is checked.
@@ -144,8 +131,8 @@ sdf_new = (function($) {
 		var labels = $('#' + self.opts.ids.form + ' .amount-label');
 		var customs = $('#' + self.opts.ids.form + ' .custom-amount-label');
 
-		// There's a checkbox below the amount radio boxes saying "No thanks, I
-		// only want to make a one-time gift of the amount above.". Should I hide
+		// TODO: There's a checkbox below the amount radio boxes saying "No thanks,
+		// I only want to make a one-time gift of the amount above.". Should I hide
 		// all of the monthly gift boxes if this is checked?
 
 		// onclick for regular buttons
@@ -161,12 +148,12 @@ sdf_new = (function($) {
 				els.prop('checked', false);
 
 				customs.each(function(idx) {
-					self.custom_amount_destroy($(this));
+					self.destroy_associated_input($(this));
 				});
 
 				// I don't think we need this because a label with the 'for' attribute
-				// will automatically check its associated input as checked.
-				// input.id = label.for
+				// will automatically mark its associated input as checked.
+				// input.name = label.for
 				//$('#' + self.opts.ids.form + ' #' + el.attr('for'))
 				//.prop('checked', true);
 
@@ -188,9 +175,9 @@ sdf_new = (function($) {
 				els.prop('checked', false);
 
 				$.each(customs, function(idx) {
-					self.custom_amount_destroy($(this));
+					self.destroy_associated_input($(this));
 				});
-				self.custom_amount_activate(el);
+				self.activate_custom_amount(el);
 
 				el.addClass('selected');
 
@@ -198,7 +185,24 @@ sdf_new = (function($) {
 		});
 	}
 
-	self.add_spinner_loading_element = function() {
+	self.activate_submit_click = function(el) {
+		el.on('click', function(e) {
+			e.preventDefault();
+			if (self.validates()) { // submit form
+				console.log("Validation succeeded.");
+				//self.elems.form.submit();
+			} else { // show errors
+
+				// TODO: Make sure to set correct errors here and updated all previous
+				// errors. Or maybe these just happen in validate()?
+
+				self.hide_loading();
+				console.log('Validation failed.');
+			}
+		});
+	}
+
+	self.create_spinner_loading_element = function() {
 		self.elems.loading = document.createElement('div');
 		self.elems.loading.setAttribute('id', 'loading');
 		self.elems.loading = $(self.elems.loading);
@@ -206,24 +210,19 @@ sdf_new = (function($) {
 		$('body').append(self.elems.loading);
 	}
 
-	self.clear_loading = function() {
+	self.activate_spinner = function() {
+		self.create_spinner_loading_element();
+		self.spinner.obj = new Spinner(self.spinner.opts);
+	}
+
+	self.hide_loading = function() {
 		self.spinner.obj.stop();
 		self.elems.loading.hide();
 	}
 
-	self.activate_submit_click = function(el) {
-		el.on('click', function(e) {
-			e.preventDefault();
-			if (self.validates()) { // submit form
-				console.log("Validated");
-				//self.elems.form.submit();
-			} else { // show errors
-				// TODO: Make sure to set correct errors here and updated all previous
-				// errors.
-				self.clear_loading();
-				console.log('Failure');
-			}
-		});
+	self.show_loading = function() {
+		self.spinner.obj.spin();
+		self.elems.loading.show();
 	}
 
 	self.validates = function() {
@@ -235,15 +234,14 @@ sdf_new = (function($) {
 		var is_valid = true;
 		var items_to_validate = $(self.elems.form).find('[required]');
 
-		self.spinner.obj.spin();
-		self.elems.loading.show();
+		self.show_loading();
 
 		$.each(items_to_validate, function(idx) {
 			var el = $(this);
-			var regex_name =  el.attr('data-regex-name');
-			if (typeof regex_name !== 'undefined') {
+			var regex_data =  el.attr('data-regex-name');
+			if (typeof regex_data !== 'undefined') { // check regex
 
-				if (el.val().match(self.opts.regex[regex_name])) {
+				if (el.val().match(self.opts.regex[regex_data])) {
 					el.removeClass('invalid');
 					//$('#invalid-' + $(el).attr('id')).hide();
 				} else {
@@ -270,7 +268,22 @@ sdf_new = (function($) {
 
 	}
 
-	// return selected items to variable and outside world
+	self.init = function(args) {
+		$.extend(true, self.opts, args); // order matters
+
+		self.elems.submit = $('#' + self.opts.ids.submit);
+		self.elems.form = $('#' + self.opts.ids.form);
+
+		self.activate_spinner();
+
+		try {
+			self.attach_validation_to_form();
+		} catch (e) {
+			self.show_error(e);
+		}
+
+	}
+
 	return {
 		init: init
 	}

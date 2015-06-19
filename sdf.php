@@ -1607,8 +1607,10 @@ function sdf_get_form() { ?>
 			<input class="date-input sdf-cc_expiry_year" maxlength="4" id="cc-exp-year" name="cc-exp-year" placeholder="Year" data-regex-name="birth_year" required>
 			<span id="invalid-cc-exp-year" class="sdf-error-msg" style="display:none;">This field is required. Format: YYYY</span>
 			<hr class="dashed-line">
-			<label id="copy-personal-info-label" for="copy-personal-info">Copy billing information from above?</label>
+
 			<input type="checkbox" id="copy-personal-info" class="js-copy-personal-info">
+			<label id="copy-personal-info-label" for="copy-personal-info">Copy billing information from above?</label>
+
 			<div id="js-cc-fields">
 				<label for="cc-name">Name on Card: <span class="label-required">*</span></label>
 				<input class="wider" type="text" id="cc-name" name="cc-name" required>
