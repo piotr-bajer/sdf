@@ -70,7 +70,6 @@ sdf_new = function($) {
 		self.elems.form = $('#' + self.opts.ids.form);
 
 		self.spinner.obj = new Spinner(self.spinner.opts);
-		self.amount_selector();
 
 		try {
 			self.attach_validation_to_form();
@@ -84,11 +83,62 @@ sdf_new = function($) {
 		console.log("Error: " + e.message + ". From: " + e.from);
 	}
 
-	self.amount_selector = function() {
+	self.amount_validate = function() {
+		var items_to_validate = $(self.elems.form).find('[required]');
+		return false;
+	}
+
+	self.custom_amount_activate = function(el) {
+		var input_id = el.attr('for');
+		if (typeof self.elems.saved[input_id] !== 'undefined') {
+			el.after(self.elems.saved[input_id]);
+			$(self.elems.saved[input_id]).focus();
+		} else {
+			var new_input = document.createElement('input');
+			new_input.name = $(el).attr('for');
+			new_input.class = self.class_prefix + '-custom_amount amount';
+			new_input.placeholder = 'custom amount';
+			new_input.required = true;
+			new_input.type = 'text';
+			new_input.id = input_id;
+			el.after(new_input);
+			$(new_input).focus();
+		}
+	}
+
+	self.custom_amount_destroy = function(el) {
+		var input_id = el.attr('for');
+		var to_remove = $('#' + input_id);
+		if (to_remove.exists()) {
+			self.elems.saved[input_id] = to_remove;
+			to_remove.remove();
+		} // else nothing to remove
+	}
+
+	self.attach_validation_to_form = function() {
+
+		if (!self.elems.form.exists()) {
+			throw { message: 'FormNonExistent', from: 'attach_validation_to_form' }
+		}
+
+		if (!self.elems.submit.exists()) {
+			throw { message: 'SubmitNonExistent', from: 'attach_validation_to_form' }
+		}
+
+		self.activate_amount_clicks();
+		self.activate_submit_click(self.elems.submit);
+
+	}
+
+	self.activate_amount_clicks = function() {
 
 		var els = $('#' + self.opts.ids.form + ' .amount');
 		var labels = $('#' + self.opts.ids.form + ' .amount-label');
 		var customs = $('#' + self.opts.ids.form + ' .custom-amount-label');
+
+		// There's a checkbox below the amount radio boxes saying "No thanks, I
+		// only want to make a one-time gift of the amount above.". Should I hide
+		// all of the monthly gift boxes if this is checked?
 
 		// onclick for regular buttons
 		$.each(labels, function(idx) {
@@ -142,57 +192,15 @@ sdf_new = function($) {
 		});
 	}
 
-	self.amount_validate = function() {
-		var objs_to_validate = $(self.elems.form).find('[required]');
-		return false;
-	}
-
-	self.custom_amount_activate = function(el) {
-		var input_id = el.attr('for');
-		if (typeof self.elems.saved[input_id] !== 'undefined') {
-			el.after(self.elems.saved[input_id]);
-		} else {
-			var	new_input = document.createElement('input');
-			new_input.name = $(el).attr('for');
-			new_input.class = self.class_prefix + '-custom_amount amount';
-			new_input.placeholder = 'custom amount';
-			new_input.required = true;
-			new_input.type = 'text';
-			new_input.id = input_id;
-			el.after(new_input);
-		}
-	}
-
-	self.custom_amount_destroy = function(el) {
-		var input_id = el.attr('for');
-		var to_remove = $('#' + input_id);
-		if (to_remove.exists()) {
-			self.elems.saved[input_id] = to_remove;
-			to_remove.remove();
-		} // else nothing to remove
-	}
-
-	self.attach_validation_to_form = function() {
-
-		if (!self.elems.form.exists()) {
-			throw { message: 'FormNonExistent', from: 'attach_validation_to_form' }
-		}
-
-		if (!self.elems.submit.exists()) {
-			throw { message: 'SubmitNonExistent', from: 'attach_validation_to_form' }
-		}
-
-		self.elems.submit.on('click', function(e) {
+	self.activate_submit_click = function(el) {
+		el.on('click', function(e) {
 			e.preventDefault();
-			if (self.validates()) {
-				// submit form
+			if (self.validates()) { // submit form
 				console.log('Success');
-			} else {
-				// show errors
+			} else { // show errors
 				console.log('Failure');
 			}
 		});
-
 	}
 
 	self.validates = function() {
