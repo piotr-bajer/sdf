@@ -269,13 +269,7 @@ class sdf_data {
 		return $plan_amounts[$this->data['donation']];
 	}
 
-<<<<<<< HEAD
 	// Find out how much the amount is for the year if it's monthly 
-	// We won't need to do this if endpoint works.
-	// we would still use it for the membership calculation.
-=======
-	// Find out how much the amount is for the year if it's monthly
->>>>>>> 543b2807ae0515bf28a31d0102b813a884411361
 	private function get_ext_amount() {
 		if($this->data['recurrence-type'] == static::$MONTHLY) {
 			$times = 13 - intval(date('n'));
@@ -600,24 +594,13 @@ class sdf_data {
 			// the first of the year
 			$cutoff_date = strtotime(date('Y') . '-01-01');
 
-<<<<<<< HEAD
 			$query = 'SELECT 
 							(SELECT Amount__c, Donation_Date__c FROM Donations__r)
 						FROM
 							Contact
 						WHERE
 							Contact.Id = \'' . $this->sf_contact->Id . '\'';
-=======
-			$query = 'SELECT (SELECT
-							Amount__c,
-							Donation_Date__c
-					FROM
-						Donations__r)
-					FROM
-						Contact
-					WHERE
-						Contact.Id = \'' . $this->sf_contact->Id . '\'';
->>>>>>> 543b2807ae0515bf28a31d0102b813a884411361
+
 
 			try {
 				$response = static::$sf_cnxn->query($query);
