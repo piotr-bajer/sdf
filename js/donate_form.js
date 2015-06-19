@@ -92,6 +92,24 @@ sdf_new = (function($) {
 		}
 	}
 
+	self.activate_copy_info = function() {
+		// TODO: this is really hacky, could use some refinement.
+		var input = $('#copy-personal-info');
+		input.change(function(e) {
+			var first = self.elems.form.find('#first-name').val(),
+				last = self.elems.form.find('#last-name').val(),
+				zip = self.elems.form.find('#zip').val();
+			if ($(this).prop('checked') === true) {
+				$('#cc-name').val(first + ' ' + last);
+				$('#cc-zip').val(zip);
+				self.validate(self.elems.form);
+			} else {
+				$('#cc-name').val('');
+				$('#cc-zip').val('');
+			}
+		});
+	}
+
 	self.destroy_associated_input = function(el) {
 
 		// TODO: I probably should remove the element. DOM stuff is expensive.
@@ -129,7 +147,15 @@ sdf_new = (function($) {
 		self.activate_amount_clicks();
 		self.activate_submit_click();
 		self.activate_goto_error();
+		self.activate_copy_info();
+		self.activate_form_change_validate();
 
+	}
+
+	self.activate_form_change_validate = function() {
+		self.elems.form.find('input').change(function (e) {
+			self.validate(self.elems.form);
+		});
 	}
 
 	self.activate_amount_clicks = function() {
@@ -137,7 +163,8 @@ sdf_new = (function($) {
 		var els = $('#' + self.opts.ids.form + ' .amount');
 		var labels = $('#' + self.opts.ids.form + ' .amount-label');
 		var customs = $('#' + self.opts.ids.form + ' .custom-amount-label');
-// TODO: There's a checkbox below the amount radio boxes saying "No thanks,
+
+		// TODO: There's a checkbox below the amount radio boxes saying "No thanks,
 		// I only want to make a one-time gift of the amount above.". Should I hide
 		// all of the monthly gift boxes if this is checked?
 
@@ -203,7 +230,7 @@ sdf_new = (function($) {
 
 	self.goto_element = function(el) {
 		if (!el.exists()) {
-			throw { message: "GotoElementNotExistent", from: "goto_element" }
+			throw { message: "GotoElementNonExistent", from: "goto_element" }
 		}
 		$(window).scrollTop($(el).focus().position().top);
 	}
@@ -221,10 +248,6 @@ sdf_new = (function($) {
 				console.log("Validation succeeded.");
 				//self.elems.form.submit();
 			} else { // show errors
-
-				// TODO: Make sure to set correct errors here and updated all previous
-				// errors. Or maybe this just happens in validate()?
-
 				self.show_errors();
 				self.enable_submit();
 				self.hide_loading();
@@ -317,7 +340,7 @@ sdf_new = (function($) {
 
 			} else { // just check if blank
 
-				if (el.val() !== '') {
+				if (el.val().trim() !== '') {
 					el.removeClass('invalid');
 					$('#invalid-' + $(el).attr('id')).hide();
 				} else {

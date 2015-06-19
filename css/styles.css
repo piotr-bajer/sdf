@@ -44,12 +44,13 @@ September 2013
 }
 
 #sdf_form #cc-exp-mo {
+	float: left;
 	margin-right: 5px;
 }
 
-#sdf_form .cc-exp-separator {
+#sdf_form #cc-exp-separator {
 	float: left;
-	display: inline-block;
+	padding: 4px 10px 4px 0px;
 }
 
 #sdf_form input.field-error,
@@ -158,8 +159,8 @@ September 2013
 #sdf_form select#cc-country {
 	float: left;
 }
-#sdf_form .address-padding input {
-	display: block;
+#sdf_form .address-padding label {
+	float: left;
 }
 #sdf_form input.wider {
 	width:299px;

@@ -1558,30 +1558,30 @@ function sdf_get_form() { ?>
 			<label for"address2">Address 2:</label>
 			<input class="wider" name="address2" id="address2" type="text">
 			<br>
-			<div class="address-padding cf">
-				<div>
-					<label for"city">City: <span class="label-required">*</span></label>
-					<input name="city" id="city" type="text" required>
-				</div>
-				<div>
-					<label for"state">State/Province: <span class="label-required">*</span></label>
-					<input class="state-width sdf-state" name="state" id="state" type="text" maxlength="2" data-regex-name="state" required>
-				</div>
-				<div class="last">
-					<label for"zip">ZIP/Postal Code: <span class="label-required">*</span></label>
-					<input class="sdf-zipcode" maxlength="10" name="zip" id="zip" type="text" data-regex-name="zipcode" required>
-				</div>
-			</div>
+
+			<label for"city">City: <span class="label-required">*</span></label>
+			<input name="city" id="city" type="text" required>
+
+			<label for"state">State/Province: <span class="label-required">*</span></label>
+			<input class="state-width sdf-state" name="state" id="state" type="text" maxlength="2" data-regex-name="state" required>
+
+			<label for"zip">ZIP/Postal Code: <span class="label-required">*</span></label>
+			<input class="sdf-zipcode" maxlength="10" name="zip" id="zip" type="text" data-regex-name="zipcode" required>
+
 			<label for="country">Country:</label>
 			<?php sdf_get_country_select('country'); ?>
 			<hr class="dashed-line">
 			<h3>Billing Information:</h3>
 			<label for="cc-number">Credit Card Number: <span class="label-required">*</span></label>
 			<input class="sdf-creditcard" maxlength="16" type="text" id="cc-number" name="cc-number" data-regex-name="credit_card" required>
-			<br>
+
+			<div style="clear: both; line-height: 0em; height: 1px; font-size: 1px;">&nbsp;</div>
+
 			<label for="cc-cvc">Security Code: <span class="label-required">*</span></label>
 			<input class="sdf-cvc" maxlength="4" type="text" id="cc-cvc" name="cc-cvc" data-regex-name="cvc" required>
-			<br>
+
+			<div style="clear: both; line-height: 0em; height: 1px; font-size: 1px;">&nbsp;</div>
+
 			<label for="cc-exp-mo">Expiration Date: <span class="label-required">*</span></label>
 			<input class="date-input sdf-cc_expiry_mo" maxlength="2" id="cc-exp-mo" name="cc-exp-mo" placeholder="MM" data-regex-name="cc_expiry_month" required>
 			<span id="cc-exp-separator">/</span>
@@ -1598,13 +1598,16 @@ function sdf_get_form() { ?>
 				<label for="cc-zip">ZIP / Postal Code: <span class="label-required">*</span></label>
 				<input class="sdf-cc_zipcode" maxlength="10" type="text" id="cc-zip" name="cc-zip" data-regex-name="cc_zipcode" required>
 			</div>
+
 			<input type="hidden" name="stripe-token" id="stripe-token">
+
 			<div class="button-dark">
 				<a href="javascript:void(0);"id="js-form-submit">Donate Now</a>
 				<span>
 					<img src="/img/button-dark-tip.png">
 				</span>
 			</div>
+
 			<hr class="dashed-line">
 			<div id="checks">
 				<span>Send checks to:</span><br>
@@ -1636,8 +1639,8 @@ function sdf_get_form() { ?>
 			<span id="invalid-cc-cvc" class="sdf-error-msg" style="display:none;">CVC is required. This is the number of the back of your card.</span>
 			<span id="invalid-cc-mo" class="sdf-error-msg" style="display:none;">Credit card month is required. Format: MM</span>
 			<span id="invalid-cc-exp-year" class="sdf-error-msg" style="display:none;">Credit card year is required. Format: YY</span>
-			<span id="invalid-cc-name" class="sdf-error-msg" style="display:none;">This field is required.</span>
-			<span id="invalid-cc-zip" class="sdf-error-msg" style="display:none;">Please enter a valid ZIP/postal code.</span>
+			<span id="invalid-cc-name" class="sdf-error-msg" style="display:none;">Name of credit card holder is required.</span>
+			<span id="invalid-cc-zip" class="sdf-error-msg" style="display:none;">Please enter a valid credit card ZIP/postal code.</span>
 		</div>
 	</div>
 <?php } // end function sdf_get_form
