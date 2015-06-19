@@ -1477,7 +1477,7 @@ function sdf_get_form() { ?>
 					<input class="amount" type="radio" name="donation" id="annual-2500" value="annual-2500" required>
 					<label class="amount-label button-look" for="annual-2500">$2500</label>
 					<label class="custom-amount-label button-look" for="annual-custom">Custom amount</label>
-					<span id="invalid-annual-custom" class="h5-error-msg" style="display:none;">
+					<span id="invalid-annual-custom" class="sdf-error-msg" style="display:none;">
 						This field is required. Please enter a valid value.
 					</span>
 				</fieldset>
@@ -1496,7 +1496,7 @@ function sdf_get_form() { ?>
 					<input class="amount" type="radio" name="donation" id="monthly-200" value="monthly-200" required>
 					<label class="amount-label button-look" for="monthly-200">$200</label>
 					<label class="custom-amount-label button-look" for="monthly-custom">Custom amount</label>
-					<span id="invalid-monthly-custom" class="h5-error-msg" style="display:none;">
+					<span id="invalid-monthly-custom" class="sdf-error-msg" style="display:none;">
 						This field is required. Please enter a valid value.
 					</span>
 				</fieldset>
@@ -1532,20 +1532,20 @@ function sdf_get_form() { ?>
 			<h3>A little about you:</h3>
 
 			<label for"first-name">Name: <span class="label-required">*</span></label>
-			<input name="first-name" id="first-name" type="text" placeholder="First" data-h5-errorid="invalid-fname" required>
-			<span id="invalid-fname" class="h5-error-msg" style="display:none;">This field is required.</span>
-			<input name="last-name" id="last-name" type="text" placeholder="Last" data-h5-errorid="invalid-lname" required>
-			<span id="invalid-lname" class="h5-error-msg" style="display:none;">This field is required.</span>
+			<input name="first-name" id="first-name" type="text" placeholder="First" required>
+			<span id="invalid-fname" class="sdf-error-msg" style="display:none;">This field is required.</span>
+			<input name="last-name" id="last-name" type="text" placeholder="Last" required>
+			<span id="invalid-lname" class="sdf-error-msg" style="display:none;">This field is required.</span>
 			<br>
 			<label for="company">Company:</label>
 			<input class="wider" type="text" id="company" name="company">
 			<br>
 			<label for="birthday-month">Birthday:</label>
-			<input class="h5-birthmonth" maxlength="2" id="birthday-month" class="date-input" name="birthday-month" placeholder="Month" data-h5-errorid="invalid-bday-month">
+			<input class="sdf-birthmonth" maxlength="2" id="birthday-month" class="date-input" name="birthday-month" placeholder="Month">
 			<span id="bday-separator">/</span>
-			<input class="h5-birthyear" maxlength="4" id="birthday-year" class="date-input" name="birthday-year" placeholder="Year" data-h5-errorid="invalid-bday-year">
-			<span id="invalid-bday-month" class="h5-error-msg" style="display:none;">Please enter a valid month. Format: MM</span>
-			<span id="invalid-bday-year" class="h5-error-msg" style="display:none;">Please enter a valid year. Format: YYYY</span>
+			<input class="sdf-birthyear" maxlength="4" id="birthday-year" class="date-input" name="birthday-year" placeholder="Year">
+			<span id="invalid-bday-month" class="sdf-error-msg" style="display:none;">Please enter a valid month. Format: MM</span>
+			<span id="invalid-bday-year" class="sdf-error-msg" style="display:none;">Please enter a valid year. Format: YYYY</span>
 			<br>
 			<label for="gender">Gender:</label>
 			<select name="gender" id="gender">
@@ -1556,16 +1556,16 @@ function sdf_get_form() { ?>
 			</select>
 			<br>
 			<label for"email">E-mail: <span class="label-required">*</span></label>
-			<input class="wider h5-email" name="email" id="email" type="email" data-h5-errorid="invalid-email" required>
-			<span id="invalid-email" class="h5-error-msg" style="display:none;">Please enter a valid email.</span>
+			<input class="wider sdf-email" name="email" id="email" type="email" required>
+			<span id="invalid-email" class="sdf-error-msg" style="display:none;">Please enter a valid email.</span>
 			<br>
 			<label for"tel">Phone: <span class="label-required">*</span></label>
-			<input maxlength="15" name="tel" id="tel" type="text" data-h5-errorid="invalid-phone" class="h5-phone" required>
-			<span id="invalid-phone" class="h5-error-msg" style="display:none;">Please enter a valid telephone number with area code.</span>
+			<input maxlength="15" name="tel" id="tel" type="text" class="sdf-phone" required>
+			<span id="invalid-phone" class="sdf-error-msg" style="display:none;">Please enter a valid telephone number with area code.</span>
 			<br>
 			<label for"address1">Street Address: <span class="label-required">*</span></label>
-			<input class="wider" name="address1" id="address1" type="text" data-h5-errorid="invalid-addr1" required>
-			<span id="invalid-addr1" class="h5-error-msg" style="display:none;">This field is required.</span>
+			<input class="wider" name="address1" id="address1" type="text"  required>
+			<span id="invalid-addr1" class="sdf-error-msg" style="display:none;">This field is required.</span>
 			<br>
 			<label for"address2">Address 2:</label>
 			<input class="wider" name="address2" id="address2" type="text">
@@ -1573,18 +1573,18 @@ function sdf_get_form() { ?>
 			<div class="address-padding cf">
 				<div>
 					<label for"city">City: <span class="label-required">*</span></label>
-					<input name="city" id="city" type="text" data-h5-errorid="invalid-city" required>
-					<span id="invalid-city" class="h5-error-msg" style="display:none;">This field is required.</span>
+					<input name="city" id="city" type="text" required>
+					<span id="invalid-city" class="sdf-error-msg" style="display:none;">This field is required.</span>
 				</div>
 				<div>
 					<label for"state">State/Province: <span class="label-required">*</span></label>
-					<input class="state-width h5-state" name="state" id="state" type="text" maxlength="2" data-h5-errorid="invalid-state" required>
-					<span id="invalid-state" class="h5-error-msg" style="display:none;">This field is required. Use the two letter code.</span>
+					<input class="state-width sdf-state" name="state" id="state" type="text" maxlength="2" required>
+					<span id="invalid-state" class="sdf-error-msg" style="display:none;">This field is required. Use the two letter code.</span>
 				</div>
 				<div class="last">
 					<label for"zip">ZIP/Postal Code: <span class="label-required">*</span></label>
-					<input class="h5-zipcode" maxlength="10" name="zip" id="zip" type="text" data-h5-errorid="invalid-zip" required>
-					<span id="invalid-zip" class="h5-error-msg" style="display:none;">Please enter a valid ZIP/postal code.</span>
+					<input class="sdf-zipcode" maxlength="10" name="zip" id="zip" type="text" required>
+					<span id="invalid-zip" class="sdf-error-msg" style="display:none;">Please enter a valid ZIP/postal code.</span>
 				</div>
 			</div>
 			<label for="country">Country:</label>
@@ -1592,30 +1592,30 @@ function sdf_get_form() { ?>
 			<hr class="dashed-line">
 			<h3>Billing Information:</h3>
 			<label for="cc-number">Credit Card Number: <span class="label-required">*</span></label>
-			<input class="h5-creditcard" maxlength="16" type="text" id="cc-number" name="cc-number" data-h5-errorid="invalid-cc-num" required>
-			<span id="invalid-cc-num" class="h5-error-msg" style="display:none;">Please enter a valid credit card number.</span>
+			<input class="sdf-creditcard" maxlength="16" type="text" id="cc-number" name="cc-number" required>
+			<span id="invalid-cc-num" class="sdf-error-msg" style="display:none;">Please enter a valid credit card number.</span>
 			<br>
 			<label for="cc-cvc">Security Code: <span class="label-required">*</span></label>
-			<input class="h5-cvc" maxlength="4" type="text" id="cc-cvc" name="cc-cvc" data-h5-errorid="invalid-cvc" required>
-			<span id="invalid-cvc" class="h5-error-msg" style="display:none;">This field is required.</span>
+			<input class="sdf-cvc" maxlength="4" type="text" id="cc-cvc" name="cc-cvc" required>
+			<span id="invalid-cvc" class="sdf-error-msg" style="display:none;">This field is required.</span>
 			<br>
 			<label for="cc-exp-mo">Expiration Date: <span class="label-required">*</span></label>
-			<input class="date-input h5-cc_expiry_mo" maxlength="2" id="cc-exp-mo" name="cc-exp-mo" placeholder="Month" data-h5-errorid="invalid-cc-mo" required>
-			<span class="h5-error-msg" id="invalid-cc-mo" style="display:none;">This field is required. Format: MM</span>
+			<input class="date-input sdf-cc_expiry_mo" maxlength="2" id="cc-exp-mo" name="cc-exp-mo" placeholder="Month" required>
+			<span class="sdf-error-msg" id="invalid-cc-mo" style="display:none;">This field is required. Format: MM</span>
 			<span id="cc-exp-separator">/</span>
-			<input class="date-input h5-cc_expiry_year" maxlength="4" id="cc-exp-year" name="cc-exp-year" placeholder="Year" data-h5-errorid="invalid-cc-year" required>
-			<span id="invalid-cc-year" class="h5-error-msg" style="display:none;">This field is required. Format: YYYY</span>
+			<input class="date-input sdf-cc_expiry_year" maxlength="4" id="cc-exp-year" name="cc-exp-year" placeholder="Year" required>
+			<span id="invalid-cc-year" class="sdf-error-msg" style="display:none;">This field is required. Format: YYYY</span>
 			<hr class="dashed-line">
 			<label id="copy-personal-info-label" for="copy-personal-info">Copy billing information from above?</label>
 			<input type="checkbox" id="copy-personal-info" class="js-copy-personal-info">
 			<div id="js-cc-fields">
 				<label for="cc-name">Name on Card: <span class="label-required">*</span></label>
-				<input class="wider" type="text" id="cc-name" name="cc-name" data-h5-errorid="invalid-cc-name" required>
-				<span id="invalid-cc-name" class="h5-error-msg" style="display:none;">This field is required.</span>
+				<input class="wider" type="text" id="cc-name" name="cc-name" required>
+				<span id="invalid-cc-name" class="sdf-error-msg" style="display:none;">This field is required.</span>
 				<br>
 				<label for="cc-zip">ZIP / Postal Code: <span class="label-required">*</span></label>
-				<input class="h5-cc_zipcode" maxlength="10" type="text" id="cc-zip" name="cc-zip" data-h5-errorid="invalid-cc-zip" required>
-				<span id="invalid-cc-zip" class="h5-error-msg" style="display:none;">Please enter a valid ZIP/postal code.</span>
+				<input class="sdf-cc_zipcode" maxlength="10" type="text" id="cc-zip" name="cc-zip" required>
+				<span id="invalid-cc-zip" class="sdf-error-msg" style="display:none;">Please enter a valid ZIP/postal code.</span>
 			</div>
 			<input type="hidden" name="stripe-token" id="stripe-token">
 			<div class="button-dark">

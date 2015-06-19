@@ -7,7 +7,7 @@ Provides client ajax functions for the donation form.
 
 var sdf = {};
 
-sdf_new = function($) {
+sdf_new = (function($) {
 
 	var self = this;
 
@@ -84,7 +84,6 @@ sdf_new = function($) {
 	}
 
 	self.amount_validate = function() {
-		var items_to_validate = $(self.elems.form).find('[required]');
 		return false;
 	}
 
@@ -208,6 +207,10 @@ sdf_new = function($) {
 	}
 
 	self.validate = function() {
+		var items_to_validate = $(self.elems.form).find('[required]');
+		items_to_validate.each(function(idx) {
+			$(this).addClass('invalid');
+		});
 	}
 
 	// return selected items to variable and outside world
@@ -215,7 +218,7 @@ sdf_new = function($) {
 		init: init
 	}
 
-}(jQuery);
+})(jQuery);
 
 jQuery(document).ready(function() {
 	sdf_new.init({
