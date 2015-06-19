@@ -110,7 +110,7 @@ sdf_new = function($) {
 				// will automatically check its associated input as checked.
 				// input.id = label.for
 				//$('#' + self.opts.ids.form + ' #' + el.attr('for'))
-					//.prop('checked', true);
+				//.prop('checked', true);
 
 				// set the clicked label as selected
 				el.addClass('selected');
@@ -120,25 +120,25 @@ sdf_new = function($) {
 
 		// treat the custom labels differently
 		$.each(customs, function(idx) {
-				var el = $(this);
-				el.on('click', function(e) {
-					e.preventDefault();
+			var el = $(this);
+			el.on('click', function(e) {
+				e.preventDefault();
 
-					// update labels and elements with selected and checked properties
-					customs.removeClass('selected');
-					labels.removeClass('selected');
-					els.prop('checked', false);
+				// update labels and elements with selected and checked properties
+				customs.removeClass('selected');
+				labels.removeClass('selected');
+				els.prop('checked', false);
 
-					$.each(customs, function(idx) {
-						self.custom_amount_destroy($(this));
-					});
-
-					self.custom_amount_activate(el);
-
-					// set the clicked label as selected
-					el.addClass('selected');
-
+				$.each(customs, function(idx) {
+					self.custom_amount_destroy($(this));
 				});
+
+				self.custom_amount_activate(el);
+
+				// set the clicked label as selected
+				el.addClass('selected');
+
+			});
 		});
 	}
 
