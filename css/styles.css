@@ -8,17 +8,57 @@ September 2013
 #sdf_form .hideme {
 	display:none;
 }
-#sdf_form input:invalid {
-	background-color: white;
-	color:inherit;
-	box-shadow: none;
-	outline: 0;
+
+#sdf_form #sdf_error_container {
+	font-weight: bold;
+	box-shadow: 0px 0px 8px 8px rgba(0, 0, 0, 0.1);
+	border-radius: 10px;
+	background-color: #EF4A63;
+	color: white;
+	padding: 10px;
+	font-size: 12px;
+	height: auto;
+	z-index: 999;
+	position: fixed;
+	bottom: 10px;
+	right: 10px;
+	max-width: 500px;
 }
+
+#sdf_form .preloader {
+	background: url(../img/button-gray-tip-transparent.png);
+	background-repeat: none;
+	visibility: hidden;
+	height: 1px;
+	width: 1px;
+	background-color: #ffffff;
+}
+
+#sdf_form #js-cc-fields {
+	clear: both;
+}
+
+#sdf_form input.invalid {
+	background-color: #EF4A63;
+	color: #ffffff;
+}
+
+#sdf_form #cc-exp-mo {
+	float: left;
+	margin-right: 5px;
+}
+
+#sdf_form #cc-exp-separator {
+	float: left;
+	padding: 4px 10px 4px 0px;
+}
+
 #sdf_form input.field-error,
 #sdf_form input.field-custom-error {
 	border:2px solid red;
 }
 #sdf_form span.label-required {
+	line-height: 1em;
 	font-weight: 700;
 	color:red;
 	font-size: 1.5em;
@@ -47,20 +87,26 @@ September 2013
 	width:90%;
 	margin:auto;
 }
+
 #sdf_form input,
 #sdf_form select {
-	margin-bottom:1em;
-	margin-right: 1em;
 	float: left;
+	margin-bottom: 1em;
+	margin-right: 1em;
+	line-height: 1.5em;
+	padding-left: .4em;
+	padding-right: .4em;
 }
+
 #sdf_form form > label,
 #js-cc-fields > label {
 	float: left;
 	text-align: right;
 	margin-right: 1em;
 	width: 152px;
-	clear:left;
+	clear: left;
 }
+
 #sdf_form div.wider {
 	margin-top: 1em;
 }
@@ -113,8 +159,8 @@ September 2013
 #sdf_form select#cc-country {
 	float: left;
 }
-#sdf_form .address-padding input {
-	display: block;
+#sdf_form .address-padding label {
+	float: left;
 }
 #sdf_form input.wider {
 	width:299px;
@@ -149,7 +195,7 @@ September 2013
 /* clearfix rules */
 #sdf_form .cf:before,
 #sdf_form .cf:after {
-    content: " "; 
+    content: " ";
     display: table;
 }
 #sdf_form .cf:after {
@@ -219,6 +265,16 @@ p.error {
 	opacity: 0.50;
 }
 
+#sdf_form .sdf-error-msg {
+	display: block;
+	color: white;
+	line-height: 1.4em;
+	padding-bottom: 8px;
+	margin-bottom: 8px;
+	width: 256px;
+	border-bottom: 1px solid #D64259;
+	cursor: pointer;
+}
 
 #sdf_form .h5-error-msg {
 	position:absolute;
@@ -277,7 +333,16 @@ p.error {
 }
 #sdf_form #bday-separator {
 	float: left;
-	padding:4px 10px;
+	padding: 4px 10px;
+}
+
+#sdf_form #copy-personal-info {
+	margin-left: 167px;
+}
+
+#sdf_form #copy-personal-info-label {
+	float: none;
+	margin: 0;
 }
 
 /* custom positions */
@@ -374,7 +439,7 @@ p.error {
 	left:42%;
 }
 
-#sdf_form #invalid-annual-custom, 
+#sdf_form #invalid-annual-custom,
 #sdf_form #invalid-monthly-custom {
 	margin-top: 35px;
 	width:148px;
