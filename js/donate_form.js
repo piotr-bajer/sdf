@@ -83,16 +83,17 @@ sdf_new = (function($) {
 			var new_input = document.createElement('input');
 			new_input.name = $(el).attr('for');
 			new_input.class = self.class_prefix + '-custom_amount amount';
-			new_input.placeholder = 'custom amount';
+			new_input.placeholder = 'Custom amount';
 			new_input.required = true;
 			new_input.type = 'text';
 			new_input.id = input_id;
+			new_input.setAttribute('data-regex-name', 'custom_amount');
 			el.after(new_input);
 			$(new_input).focus();
 		}
 	}
 
-	self.activate_copy_info = function() {
+	self.setup_copy_info = function() {
 		// TODO: this is really hacky, could use some refinement.
 		var input = $('#copy-personal-info');
 		input.change(function(e) {
@@ -137,36 +138,36 @@ sdf_new = (function($) {
 			throw { message: 'ErrorContainerNonExistent', from: 'attach_validation_to_form' }
 		}
 
-		// TODO: I should probably add an 'on change' event for any elements that
-		// are already invalid and changed. If they enter something valid I should
-		// immeditately remove the error.
-
-		// TODO: Need to populate OR remove inputs when the "Copy billing
-		// information from above?" is checked.
-
-		self.activate_amount_clicks();
-		self.activate_submit_click();
-		self.activate_goto_error();
-		self.activate_copy_info();
-		self.activate_form_change_validate();
+		self.setup_amount_clicks();
+		self.setup_submit_event();
+		self.setup_goto_error();
+		self.setup_copy_info();
+		self.setup_form_change_validate();
+		self.setup_close_errors_button();
 
 	}
 
-	self.activate_form_change_validate = function() {
+	self.setup_close_errors_button = function() {
+		var el = document.createElement('div')
+		el.setAttribute('class', 'close-button');
+		el = $(el);
+		self.elems.error_container.append(el);
+		el.on('click', function(e) {
+			self.elems.error_container.hide();
+		});
+	}
+
+	self.setup_form_change_validate = function() {
 		self.elems.form.find('input').change(function (e) {
 			self.validate(self.elems.form);
 		});
 	}
 
-	self.activate_amount_clicks = function() {
+	self.setup_amount_clicks = function() {
 
 		var els = $('#' + self.opts.ids.form + ' .amount');
 		var labels = $('#' + self.opts.ids.form + ' .amount-label');
 		var customs = $('#' + self.opts.ids.form + ' .custom-amount-label');
-
-		// TODO: There's a checkbox below the amount radio boxes saying "No thanks,
-		// I only want to make a one-time gift of the amount above.". Should I hide
-		// all of the monthly gift boxes if this is checked?
 
 		// onclick for regular buttons
 		$.each(labels, function(idx) {
@@ -216,7 +217,7 @@ sdf_new = (function($) {
 		});
 	}
 
-	self.activate_goto_error = function() {
+	self.setup_goto_error = function() {
 		var error_items = self.elems.error_container.find('.sdf-error-msg');
 		$.each(error_items, function(idx) {
 			var el = $(this);
@@ -235,7 +236,7 @@ sdf_new = (function($) {
 		$(window).scrollTop($(el).focus().position().top);
 	}
 
-	self.activate_submit_click = function() {
+	self.setup_submit_event = function() {
 		self.elems.submit.on('click', function(e) {
 			e.preventDefault();
 
@@ -246,7 +247,7 @@ sdf_new = (function($) {
 
 			if (self.validates()) { // submit form
 				console.log("Validation succeeded.");
-				//self.elems.form.submit();
+				self.elems.form.submit();
 			} else { // show errors
 				self.show_errors();
 				self.enable_submit();
@@ -270,7 +271,6 @@ sdf_new = (function($) {
 	}
 
 	self.disable_submit = function() {
-		// TODO: disable click event.
 		self.elems.submit
 			.addClass('disabled')
 			.parent()
@@ -280,7 +280,6 @@ sdf_new = (function($) {
 	}
 
 	self.enable_submit = function() {
-		// TODO: re-add onclick function.
 		self.elems.submit
 			.removeClass('disabled')
 			.parent()

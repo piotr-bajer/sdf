@@ -25,6 +25,15 @@ September 2013
 	max-width: 500px;
 }
 
+#sdf_form #sdf_error_container .close-button {
+	float: right;
+	color: #fff;
+	cursor: pointer;
+	padding: 10px;
+	text-decoration: underline;
+	content: 'Close';
+}
+
 #sdf_form .preloader {
 	background: url(../img/button-gray-tip-transparent.png);
 	background-repeat: none;

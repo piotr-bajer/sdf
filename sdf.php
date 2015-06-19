@@ -31,8 +31,6 @@ class sdf_data {
 	private static $DONOR_SINGLE_TEMPLATE = '00X50000001VaHS';
 	private static $DONOR_MONTHLY_TEMPLATE = '00X50000001eVEX';
 	private static $DONOR_ANNUAL_TEMPLATE = '00X50000001eVEc';
-	private static $RECURRING_TEMPLATE = '00X50000001fRwu';
-
 	private static $DISPLAY_NAME = 'Spark';
 	private static $SF_DATE_FORMAT = 'Y-m-d';
 
@@ -40,7 +38,6 @@ class sdf_data {
 	private static $ANNUAL = 1;
 	private static $MONTHLY = 2;
 
-	// XXX remove
 	private static $IS_NOT_CUSTOM = 0;
 	private static $IS_CUSTOM = 1;
 
@@ -89,32 +86,6 @@ class sdf_data {
 		$this->send_email();
 	}
 
-	// this is an alternative entrypoint to the sdf class.
-	public function do_stripe_endpoint($info) {
-		sdf_message_handler(LOG, 'Endpoint request received.');
-
-		$this->salesforce_api();
-
-		$this->get_contact($info['email']);
-
-		// gets existing donations
-		$this->get_donations();
-
-		// need to update totals in the contact object
-		$this->recalc_sum();
-
-		// add a new line in the description
-		$this->description();
-
-		$this->renewal_date();
-		$this->cleanup();
-
-		$this->upsert();
-		$this->new_donation();
-		$this->send_email();
-
-	}
-
 	// ************************************************************************
 	// Validation functions
 
@@ -140,7 +111,6 @@ class sdf_data {
 		}
 	}
 
-	// XXX change to regex
 	private function donation_category() {
 		$cats = array(
 			'annual-75',
@@ -217,7 +187,7 @@ class sdf_data {
 	// side effect: sets data['custom']
 	private function set_amount() {
 		if(strpos($this->data['donation'], 'custom') !== false) {
-			$this->data['custom'] = static::$IS_CUSTOM; // XXX
+			$this->data['custom'] = static::$IS_CUSTOM;
 
 			if(array_key_exists('annual-custom', $this->data)) {
 				$donated_value = $this->data['annual-custom'];
@@ -228,7 +198,6 @@ class sdf_data {
 			unset($this->data['monthly-custom']);
 			unset($this->data['annual-custom']);
 
-			// XXX move to separate function
 			if(!is_numeric($donated_value)) {
 				// replace anything not numeric or a . with nothing
 				$donated_value = preg_replace('/([^0-9\\.])/i', '', $donated_value);
@@ -237,7 +206,6 @@ class sdf_data {
 			if($donated_value <= 0.50) {
 				sdf_message_handler(ERROR, 'Invalid request. Donation amount too small.');
 			}
-			// end
 		} else {
 			$this->data['custom'] = static::$IS_NOT_CUSTOM;
 			$donated_value = $this->get_std_amount();
@@ -248,7 +216,6 @@ class sdf_data {
 	}
 
 	// returns the amount in cents of standard donations
-	// XXX regex instead?
 	private function get_std_amount() {
 		$plan_amounts = array(
 			'annual-75' => 75,
@@ -269,13 +236,7 @@ class sdf_data {
 		return $plan_amounts[$this->data['donation']];
 	}
 
-<<<<<<< HEAD
-	// Find out how much the amount is for the year if it's monthly 
-	// We won't need to do this if endpoint works.
-	// we would still use it for the membership calculation.
-=======
 	// Find out how much the amount is for the year if it's monthly
->>>>>>> 543b2807ae0515bf28a31d0102b813a884411361
 	private function get_ext_amount() {
 		if($this->data['recurrence-type'] == static::$MONTHLY) {
 			$times = 13 - intval(date('n'));
@@ -435,7 +396,7 @@ class sdf_data {
 
 	private function recurring_charge() {
 		if($this->data['custom'] == static::$IS_CUSTOM) {
-			$this->custom_plan(); // XXX conglomerate the two.
+			$this->custom_plan();
 		} else {
 			$this->std_plan();
 		}
@@ -539,13 +500,8 @@ class sdf_data {
 
 	// This method queries the data in SalesForce using the provided email,
 	// and fills out this->sf_contact
-	private function get_contact($email = null) {
-		if(!empty($email)) {
-			$id = $this->search_salesforce($email);
-		} else {
-			$id = $this->search_salesforce($this->data['email']);	
-		}
-
+	private function get_contact() {
+		$id = $this->search_salesforce();
 		$contact = new stdClass();
 
 		if($id !== null) {
@@ -575,8 +531,8 @@ class sdf_data {
 	}
 
 	// Searches SalesForce for the user, and returns their ID, or null
-	private function search_salesforce($email) {
-		$query = 'FIND {"' . $email . '"} IN EMAIL FIELDS RETURNING CONTACT(ID)';
+	private function search_salesforce() {
+		$query = 'FIND {"' . $this->data['email'] . '"} IN EMAIL FIELDS RETURNING CONTACT(ID)';
 
 		try {
 			$response = static::$sf_cnxn->search($query);
@@ -597,17 +553,8 @@ class sdf_data {
 		$donations_list = array();
 
 		if($this->sf_contact->Id !== null) {
-			// the first of the year
 			$cutoff_date = strtotime(date('Y') . '-01-01');
 
-<<<<<<< HEAD
-			$query = 'SELECT 
-							(SELECT Amount__c, Donation_Date__c FROM Donations__r)
-						FROM
-							Contact
-						WHERE
-							Contact.Id = \'' . $this->sf_contact->Id . '\'';
-=======
 			$query = 'SELECT (SELECT
 							Amount__c,
 							Donation_Date__c
@@ -617,7 +564,6 @@ class sdf_data {
 						Contact
 					WHERE
 						Contact.Id = \'' . $this->sf_contact->Id . '\'';
->>>>>>> 543b2807ae0515bf28a31d0102b813a884411361
 
 			try {
 				$response = static::$sf_cnxn->query($query);
@@ -667,7 +613,7 @@ class sdf_data {
 		$this->cleanup();
 	}
 
-	// Find out if the donation li's will update the contact's membership level
+	// Find out if the donation li's will update the contact's memberhsip level
 	// we want the TOTAL amount of donations for this calendar year
 	// and we want to know whether that passes the 75 dollar cutoff.
 	// then they are a member
@@ -679,7 +625,7 @@ class sdf_data {
 			$sum += $donation['amount'];
 		}
 
-		$sum += $this->data['amount-ext']; // XXX no extension...
+		$sum += $this->data['amount-ext'];
 
 		if($sum >= 75) { // change to intval?
 			$this->data['is-member'] = static::$IS_MEMBER;
@@ -689,7 +635,7 @@ class sdf_data {
 
 		$this->sf_contact->Total_paid_this_year__c = $sum;
 		// last amount paid
-		$this->sf_contact->Paid__c = $this->data['amount-ext']; // XXX this amount, or what we get from the endpoint
+		$this->sf_contact->Paid__c = $this->data['amount-ext'];
 	}
 
 	private function member_level() {
@@ -723,8 +669,7 @@ class sdf_data {
 	private function company() {
 		if(!isset($this->sf_contact->AccountId)) {
 			if(!empty($this->data['company'])) {
-				$search = 'FIND {"' . $this->data['company'] 
-					. '"} IN NAME FIELDS RETURNING Account(Id)';
+				$search = 'FIND {"' . $this->data['company'] . '"} IN NAME FIELDS RETURNING Account(Id)';
 
 				try {
 					$records = static::$sf_cnxn->search($search);
@@ -900,7 +845,7 @@ class sdf_data {
 	private function new_donation() {
 		$donation = new stdClass();
 		$donation->Contact__c = $this->sf_contact->Id;
-		$donation->Amount__c = $this->data['amount-ext']; // XXX
+		$donation->Amount__c = $this->data['amount-ext'];
 		$donation->Description__c = strlen($this->sf_txn) > 255 ? substr($this->sf_txn, 0, 252) . '...' : $this->sf_txn;
 		$donation->Donation_Date__c = date(static::$SF_DATE_FORMAT);
 		$donation->Type__c = 'Membership';
