@@ -130,8 +130,7 @@ sdf_new = (function($) {
 		var els = $('#' + self.opts.ids.form + ' .amount');
 		var labels = $('#' + self.opts.ids.form + ' .amount-label');
 		var customs = $('#' + self.opts.ids.form + ' .custom-amount-label');
-
-		// TODO: There's a checkbox below the amount radio boxes saying "No thanks,
+// TODO: There's a checkbox below the amount radio boxes saying "No thanks,
 		// I only want to make a one-time gift of the amount above.". Should I hide
 		// all of the monthly gift boxes if this is checked?
 
@@ -142,7 +141,6 @@ sdf_new = (function($) {
 
 				e.preventDefault();
 
-				// update labels and elements with selected and checked properties
 				customs.removeClass('selected');
 				labels.removeClass('selected');
 				els.prop('checked', false);
@@ -157,7 +155,6 @@ sdf_new = (function($) {
 				//$('#' + self.opts.ids.form + ' #' + el.attr('for'))
 				//.prop('checked', true);
 
-				// set the clicked label as selected
 				el.addClass('selected');
 
 			});
@@ -188,13 +185,20 @@ sdf_new = (function($) {
 	self.activate_submit_click = function(el) {
 		el.on('click', function(e) {
 			e.preventDefault();
+
+			// XXX: Fix this. Is it getting the image? Is 'this' correctly referenced?
+			$(this).addClass('disabled')
+				.parent()
+				.find('img')
+				.prop('src', '/wp-content/plugins/sdf/img/button-gray-tip-transparent.png');
+
 			if (self.validates()) { // submit form
 				console.log("Validation succeeded.");
 				//self.elems.form.submit();
 			} else { // show errors
 
 				// TODO: Make sure to set correct errors here and updated all previous
-				// errors. Or maybe these just happen in validate()?
+				// errors. Or maybe this just happens in validate()?
 
 				self.hide_loading();
 				console.log('Validation failed.');
@@ -211,6 +215,9 @@ sdf_new = (function($) {
 	}
 
 	self.activate_spinner = function() {
+		// preload the image
+		var img = document.createElement('image');
+		img.src = '/wp-content/plugins/sdf/img/button-gray-tip-transparent.png';
 		self.create_spinner_loading_element();
 		self.spinner.obj = new Spinner(self.spinner.opts);
 	}
@@ -221,24 +228,28 @@ sdf_new = (function($) {
 	}
 
 	self.show_loading = function() {
+
+		// TODO: This actually isn't working for some reason. Need to figure out
+		// why. Is it a style issue? Configuration?
+
 		self.spinner.obj.spin();
 		self.elems.loading.show();
 	}
 
 	self.validates = function() {
-		return self.validate();
+		return self.validate(self.elems.form);
 	}
 
-	self.validate = function() {
+	self.validate = function(form_el) {
 
-		var is_valid = true;
-		var items_to_validate = $(self.elems.form).find('[required]');
+		var is_valid = true,
+			items_to_validate = form_el.find('[required]');
 
 		self.show_loading();
 
 		$.each(items_to_validate, function(idx) {
-			var el = $(this);
-			var regex_data =  el.attr('data-regex-name');
+			var el = $(this),
+				regex_data =  el.attr('data-regex-name');
 			if (typeof regex_data !== 'undefined') { // check regex
 
 				if (el.val().match(self.opts.regex[regex_data])) {
