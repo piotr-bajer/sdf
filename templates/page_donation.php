@@ -9,7 +9,8 @@ wp_enqueue_script('sdf_stripe', "https://js.stripe.com/v2/");
 wp_enqueue_script('sdf_validation', plugins_url('/sdf/js/jquery.h5validate.min.js'), array('jquery'));
 wp_enqueue_script('sdf_spin', plugins_url('/sdf/js/spin.min.js'));
 
-wp_enqueue_style('sdf_style', plugins_url('/sdf/css/styles.css'), false, '0.1');
+// XXX: Caching hack. Remove ?t=time() after this is done.
+wp_enqueue_style('sdf_style', plugins_url('/sdf/css/styles.css?t='.time()), false, '0.1');
 //add_action('wp_head','sdf_webshim');
 
 get_header();

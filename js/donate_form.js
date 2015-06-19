@@ -21,12 +21,12 @@ sdf_new = (function($) {
 			submit: 'js-form-submit',
 		},
 		regex: {
-			birthmonth: /^(0?[1-9]|1[012])/,
-			birthyear: /^(19|20)\d{2}$/,
+			birth_month: /^(0?[1-9]|1[012])/,
+			birth_year: /^(19|20)\d{2}$/,
 			cc_expiry_mo: /^(0?[1-9]|1[012])$/,
 			cc_expiry_year: /^(1[0-9])|20[\d]{2}/,
 			cc_zipcode: /^\d{5}(-\d{4})?$/,
-			creditcard: /\d{14,16}/,
+			credit_card: /\d{14,16}/,
 			custom_amount: /^[$]?\d+([.]\d{2})?$/,
 			cvc: /[\d]{3,4}/,
 			phone: /^\D?(\d{3})\D?\D?(\d{3})\D?(\d{4})$/,
@@ -38,6 +38,7 @@ sdf_new = (function($) {
 	self.elems = {
 		form: {},
 		submit: {},
+		loading: {},
 		saved: [], // save array of elements to revive
 	};
 
@@ -69,6 +70,7 @@ sdf_new = (function($) {
 		self.elems.submit = $('#' + self.opts.ids.submit);
 		self.elems.form = $('#' + self.opts.ids.form);
 
+		self.add_spinner_loading_element();
 		self.spinner.obj = new Spinner(self.spinner.opts);
 
 		try {
@@ -123,6 +125,13 @@ sdf_new = (function($) {
 		if (!self.elems.submit.exists()) {
 			throw { message: 'SubmitNonExistent', from: 'attach_validation_to_form' }
 		}
+
+		// TODO: I should probably add an 'on change' event for any elements that
+		// are already invalied and changed. If they enter something valid I should
+		// immeditately remove the invalid error.
+
+		// TODO: Need to populate OR remove inputs when the "Copy billing
+		// information from above?" is checked.
 
 		self.activate_amount_clicks();
 		self.activate_submit_click(self.elems.submit);
@@ -181,22 +190,37 @@ sdf_new = (function($) {
 				$.each(customs, function(idx) {
 					self.custom_amount_destroy($(this));
 				});
-
 				self.custom_amount_activate(el);
 
-				// set the clicked label as selected
 				el.addClass('selected');
 
 			});
 		});
 	}
 
+	self.add_spinner_loading_element = function() {
+		self.elems.loading = document.createElement('div');
+		self.elems.loading.setAttribute('id', 'loading');
+		self.elems.loading = $(self.elems.loading);
+		self.elems.loading.hide();
+		$('body').append(self.elems.loading);
+	}
+
+	self.clear_loading = function() {
+		self.spinner.obj.stop();
+		self.elems.loading.hide();
+	}
+
 	self.activate_submit_click = function(el) {
 		el.on('click', function(e) {
 			e.preventDefault();
 			if (self.validates()) { // submit form
-				console.log('Success');
+				console.log("Validated");
+				//self.elems.form.submit();
 			} else { // show errors
+				// TODO: Make sure to set correct errors here and updated all previous
+				// errors.
+				self.clear_loading();
 				console.log('Failure');
 			}
 		});
@@ -207,10 +231,43 @@ sdf_new = (function($) {
 	}
 
 	self.validate = function() {
+
+		var is_valid = true;
 		var items_to_validate = $(self.elems.form).find('[required]');
-		items_to_validate.each(function(idx) {
-			$(this).addClass('invalid');
+
+		self.spinner.obj.spin();
+		self.elems.loading.show();
+
+		$.each(items_to_validate, function(idx) {
+			var el = $(this);
+			var regex_name =  el.attr('data-regex-name');
+			if (typeof regex_name !== 'undefined') {
+
+				if (el.val().match(self.opts.regex[regex_name])) {
+					el.removeClass('invalid');
+					//$('#invalid-' + $(el).attr('id')).hide();
+				} else {
+					el.addClass('invalid');
+					//$('#invalid-' + $(el).attr('id')).show();
+					is_valid = false;
+				}
+
+			} else { // just check if blank
+
+				if (el.val() !== '') {
+					el.removeClass('invalid');
+					//$('#invalid-' + $(el).attr('id')).hide();
+				} else {
+					el.addClass('invalid');
+					//$('#invalid-' + $(el).attr('id')).show();
+					is_valid = false;
+				}
+
+			}
 		});
+
+		return is_valid;
+
 	}
 
 	// return selected items to variable and outside world

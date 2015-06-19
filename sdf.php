@@ -1533,9 +1533,9 @@ function sdf_get_form() { ?>
 
 			<label for"first-name">Name: <span class="label-required">*</span></label>
 			<input name="first-name" id="first-name" type="text" placeholder="First" required>
-			<span id="invalid-fname" class="sdf-error-msg" style="display:none;">This field is required.</span>
+			<span id="invalid-first-name" class="sdf-error-msg" style="display:none;">This field is required.</span>
 			<input name="last-name" id="last-name" type="text" placeholder="Last" required>
-			<span id="invalid-lname" class="sdf-error-msg" style="display:none;">This field is required.</span>
+			<span id="invalid-last-name" class="sdf-error-msg" style="display:none;">This field is required.</span>
 			<br>
 			<label for="company">Company:</label>
 			<input class="wider" type="text" id="company" name="company">
@@ -1544,8 +1544,8 @@ function sdf_get_form() { ?>
 			<input class="sdf-birthmonth" maxlength="2" id="birthday-month" class="date-input" name="birthday-month" placeholder="Month">
 			<span id="bday-separator">/</span>
 			<input class="sdf-birthyear" maxlength="4" id="birthday-year" class="date-input" name="birthday-year" placeholder="Year">
-			<span id="invalid-bday-month" class="sdf-error-msg" style="display:none;">Please enter a valid month. Format: MM</span>
-			<span id="invalid-bday-year" class="sdf-error-msg" style="display:none;">Please enter a valid year. Format: YYYY</span>
+			<span id="invalid-birthday-month" class="sdf-error-msg" style="display:none;">Please enter a valid month. Format: MM</span>
+			<span id="invalid-birthday-year" class="sdf-error-msg" style="display:none;">Please enter a valid year. Format: YYYY</span>
 			<br>
 			<label for="gender">Gender:</label>
 			<select name="gender" id="gender">
@@ -1560,12 +1560,12 @@ function sdf_get_form() { ?>
 			<span id="invalid-email" class="sdf-error-msg" style="display:none;">Please enter a valid email.</span>
 			<br>
 			<label for"tel">Phone: <span class="label-required">*</span></label>
-			<input maxlength="15" name="tel" id="tel" type="text" class="sdf-phone" required>
+			<input maxlength="15" name="tel" id="tel" type="text" class="sdf-phone" data-regex-name="phone" required>
 			<span id="invalid-phone" class="sdf-error-msg" style="display:none;">Please enter a valid telephone number with area code.</span>
 			<br>
 			<label for"address1">Street Address: <span class="label-required">*</span></label>
-			<input class="wider" name="address1" id="address1" type="text"  required>
-			<span id="invalid-addr1" class="sdf-error-msg" style="display:none;">This field is required.</span>
+			<input class="wider" name="address1" id="address1" type="text" required>
+			<span id="invalid-address1" class="sdf-error-msg" style="display:none;">This field is required.</span>
 			<br>
 			<label for"address2">Address 2:</label>
 			<input class="wider" name="address2" id="address2" type="text">
@@ -1578,12 +1578,12 @@ function sdf_get_form() { ?>
 				</div>
 				<div>
 					<label for"state">State/Province: <span class="label-required">*</span></label>
-					<input class="state-width sdf-state" name="state" id="state" type="text" maxlength="2" required>
+					<input class="state-width sdf-state" name="state" id="state" type="text" maxlength="2" data-regex-name="state" required>
 					<span id="invalid-state" class="sdf-error-msg" style="display:none;">This field is required. Use the two letter code.</span>
 				</div>
 				<div class="last">
 					<label for"zip">ZIP/Postal Code: <span class="label-required">*</span></label>
-					<input class="sdf-zipcode" maxlength="10" name="zip" id="zip" type="text" required>
+					<input class="sdf-zipcode" maxlength="10" name="zip" id="zip" type="text" data-regex-name="zipcode" required>
 					<span id="invalid-zip" class="sdf-error-msg" style="display:none;">Please enter a valid ZIP/postal code.</span>
 				</div>
 			</div>
@@ -1592,19 +1592,20 @@ function sdf_get_form() { ?>
 			<hr class="dashed-line">
 			<h3>Billing Information:</h3>
 			<label for="cc-number">Credit Card Number: <span class="label-required">*</span></label>
-			<input class="sdf-creditcard" maxlength="16" type="text" id="cc-number" name="cc-number" required>
-			<span id="invalid-cc-num" class="sdf-error-msg" style="display:none;">Please enter a valid credit card number.</span>
+			<input class="sdf-creditcard" maxlength="16" type="text" id="cc-number" name="cc-number" data-regex-name="credit_card" required>
+			<span id="invalid-cc-number" class="sdf-error-msg" style="display:none;">Please enter a valid credit card number.</span>
 			<br>
 			<label for="cc-cvc">Security Code: <span class="label-required">*</span></label>
-			<input class="sdf-cvc" maxlength="4" type="text" id="cc-cvc" name="cc-cvc" required>
-			<span id="invalid-cvc" class="sdf-error-msg" style="display:none;">This field is required.</span>
+			<input class="sdf-cvc" maxlength="4" type="text" id="cc-cvc" name="cc-cvc" data-regex-name="cvc" required>
+			<span id="invalid-cc-cvc" class="sdf-error-msg" style="display:none;">This field is required.</span>
 			<br>
 			<label for="cc-exp-mo">Expiration Date: <span class="label-required">*</span></label>
-			<input class="date-input sdf-cc_expiry_mo" maxlength="2" id="cc-exp-mo" name="cc-exp-mo" placeholder="Month" required>
+			<input class="date-input sdf-cc_expiry_mo" maxlength="2" id="cc-exp-mo" name="cc-exp-mo" placeholder="Month" data-regex-name="birth_month" required>
 			<span class="sdf-error-msg" id="invalid-cc-mo" style="display:none;">This field is required. Format: MM</span>
-			<span id="cc-exp-separator">/</span>
-			<input class="date-input sdf-cc_expiry_year" maxlength="4" id="cc-exp-year" name="cc-exp-year" placeholder="Year" required>
-			<span id="invalid-cc-year" class="sdf-error-msg" style="display:none;">This field is required. Format: YYYY</span>
+			<!-- this is annoying me. I am not sure what it's supposed to look like. XXX -->
+			<!-- span id="cc-exp-separator">/</span -->
+			<input class="date-input sdf-cc_expiry_year" maxlength="4" id="cc-exp-year" name="cc-exp-year" placeholder="Year" data-regex-name="birth_year" required>
+			<span id="invalid-cc-exp-year" class="sdf-error-msg" style="display:none;">This field is required. Format: YYYY</span>
 			<hr class="dashed-line">
 			<label id="copy-personal-info-label" for="copy-personal-info">Copy billing information from above?</label>
 			<input type="checkbox" id="copy-personal-info" class="js-copy-personal-info">
@@ -1614,7 +1615,7 @@ function sdf_get_form() { ?>
 				<span id="invalid-cc-name" class="sdf-error-msg" style="display:none;">This field is required.</span>
 				<br>
 				<label for="cc-zip">ZIP / Postal Code: <span class="label-required">*</span></label>
-				<input class="sdf-cc_zipcode" maxlength="10" type="text" id="cc-zip" name="cc-zip" required>
+				<input class="sdf-cc_zipcode" maxlength="10" type="text" id="cc-zip" name="cc-zip" data-regex-name="cc_zipcode" required>
 				<span id="invalid-cc-zip" class="sdf-error-msg" style="display:none;">Please enter a valid ZIP/postal code.</span>
 			</div>
 			<input type="hidden" name="stripe-token" id="stripe-token">

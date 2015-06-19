@@ -8,12 +8,17 @@ September 2013
 #sdf_form .hideme {
 	display:none;
 }
-#sdf_form input:invalid {
-	background-color: white;
-	color:inherit;
-	box-shadow: none;
-	outline: 0;
+
+#sdf_form input.invalid {
+	border: 1px solid red !important;
+	background-color: #FF6666;
+	color: #ffffff;
 }
+
+#sdf_form .cc-exp-separator {
+	display: inline-block;
+}
+
 #sdf_form input.field-error,
 #sdf_form input.field-custom-error {
 	border:2px solid red;
@@ -149,7 +154,7 @@ September 2013
 /* clearfix rules */
 #sdf_form .cf:before,
 #sdf_form .cf:after {
-    content: " "; 
+    content: " ";
     display: table;
 }
 #sdf_form .cf:after {
@@ -219,6 +224,14 @@ p.error {
 	opacity: 0.50;
 }
 
+#sdf_form .sdf-error-msg {
+	display: inline-block;
+	position: absolute;
+	right: 0px;
+	color: white;
+	background-color: red;
+	padding: 5px;
+}
 
 #sdf_form .h5-error-msg {
 	position:absolute;
@@ -374,7 +387,7 @@ p.error {
 	left:42%;
 }
 
-#sdf_form #invalid-annual-custom, 
+#sdf_form #invalid-annual-custom,
 #sdf_form #invalid-monthly-custom {
 	margin-top: 35px;
 	width:148px;
