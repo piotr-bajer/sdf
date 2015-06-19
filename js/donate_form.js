@@ -88,8 +88,16 @@ sdf_new = (function($) {
 			new_input.type = 'text';
 			new_input.id = input_id;
 			new_input.setAttribute('data-regex-name', 'custom_amount');
+			new_input = $(new_input);
+
+			// TODO: This code is not DRY (see setup_form_change_validate above).
+			// Maybe do something about this?
+			new_input.change(function (e) {
+				self.validate(self.elems.form);
+			});
+
 			el.after(new_input);
-			$(new_input).focus();
+			new_input.focus();
 		}
 	}
 

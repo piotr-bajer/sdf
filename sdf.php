@@ -8,7 +8,7 @@
 	Author URI: https://stevenavery.com/
 */
 
-//error_reporting(0); // XXX remove for debugging
+error_reporting(E_ALL & ~E_NOTICE); // XXX remove for debugging
 defined('ABSPATH') or die("Unauthorized.");
 
 define('ERROR', 0);
@@ -1656,10 +1656,10 @@ function sdf_get_form() { ?>
 
 		<div id="sdf_error_container" style="display: none;">
 			<span id="invalid-annual-custom" class="sdf-error-msg" style="display:none;">
-				This field is required. Please enter a valid value.
+				Please enter an amount to donate.
 			</span>
 			<span id="invalid-monthly-custom" class="sdf-error-msg" style="display:none;">
-				This field is required. Please enter a valid value.
+				Please enter an amount to donate.
 			</span>
 			<span id="invalid-first-name" class="sdf-error-msg" style="display:none;">Name is required.</span>
 			<span id="invalid-last-name" class="sdf-error-msg" style="display:none;">Last name is required.</span>
