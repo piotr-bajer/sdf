@@ -8,7 +8,7 @@
 	Author URI: https://stevenavery.com/
 */
 
-error_reporting(0); // XXX remove for debugging
+//error_reporting(0); // XXX remove for debugging
 defined('ABSPATH') or die("Unauthorized.");
 
 define('ERROR', 0);
@@ -1460,31 +1460,53 @@ function sdf_get_form() { ?>
 	<div id="sdf_form">
 		<form method="post">
 			<h1>Make a Donation</h1>
-			<fieldset>
-				<legend>Make an annual gift:</legend>
-				<input class="amount" type="radio" name="donation" id="annual-75" value="annual-75" required><label class="button-look" onclick for="annual-75">$75</label>
-				<input class="amount" type="radio" name="donation" id="annual-100" value="annual-100" required><label onclick class="button-look" for="annual-100">$100</label>
-				<input class="amount" type="radio" name="donation" id="annual-250" value="annual-250" required><label class="button-look" onclick for="annual-250">$250</label>
-				<input class="amount" type="radio" name="donation" id="annual-500" value="annual-500" required><label class="button-look" onclick for="annual-500">$500</label>
-				<input class="amount" type="radio" name="donation" id="annual-1000" value="annual-1000" required><label class="button-look" onclick for="annual-1000">$1000</label>
-				<input class="amount" type="radio" name="donation" id="annual-2500" value="annual-2500" required><label class="button-look" onclick for="annual-2500">$2500</label>
-				<input class="amount" type="radio" name="donation" id="annual-custom" value="annual-custom" required>
-				<label class="button-look custom-label" onclick for="annual-custom">Custom amount</label><span id="invalid-annual-custom" class="h5-error-msg" style="display:none;">This field is required. Please enter a valid value.</span>
-			</fieldset>
-			<fieldset>
-				<legend>Or, make a monthly gift:</legend>
-				<input class="amount" type="radio" name="donation" id="monthly-5" value="monthly-5" required><label class="button-look" onclick for="monthly-5">$5</label>
-				<input class="amount" type="radio" name="donation" id="monthly-10" value="monthly-10" required><label class="button-look" onclick for="monthly-10">$10</label>
-				<input class="amount" type="radio" name="donation" id="monthly-20" value="monthly-20" checked required><label class="selected button-look" onclick for="monthly-20">$20</label>
-				<input class="amount" type="radio" name="donation" id="monthly-50" value="monthly-50" required><label class="button-look" onclick for="monthly-50">$50</label>
-				<input class="amount" type="radio" name="donation" id="monthly-100" value="monthly-100" required><label class="button-look" onclick for="monthly-100">$100</label>
-				<input class="amount" type="radio" name="donation" id="monthly-200" value="monthly-200" required><label class="button-look" onclick for="monthly-200">$200</label>
-				<input class="amount" type="radio" name="donation" id="monthly-custom" value="monthly-custom" required>
-				<label class="button-look custom-label" onclick for="monthly-custom">Custom amount</label><span id="invalid-monthly-custom" class="h5-error-msg" style="display:none;">This field is required. Please enter a valid value.</span>
-			</fieldset>
-			<label id="one-time-label" for="one-time">No thanks, I only want to make a one-time gift of the amount above.</label>
-			<input type="checkbox" name="one-time" id="one-time">
+
+			<div id="gift_amount_field">
+				<fieldset>
+					<legend>Make an annual gift:</legend>
+					<input class="amount" type="radio" name="donation" id="annual-75" value="annual-75" required>
+					<label class="amount-label button-look" for="annual-75">$75</label>
+					<input class="amount" type="radio" name="donation" id="annual-100" value="annual-100" required>
+					<label class="amount-label button-look" for="annual-100">$100</label>
+					<input class="amount" type="radio" name="donation" id="annual-250" value="annual-250" required>
+					<label class="amount-label button-look" for="annual-250">$250</label>
+					<input class="amount" type="radio" name="donation" id="annual-500" value="annual-500" required>
+					<label class="amount-label button-look" for="annual-500">$500</label>
+					<input class="amount" type="radio" name="donation" id="annual-1000" value="annual-1000" required>
+					<label class="amount-label button-look" for="annual-1000">$1000</label>
+					<input class="amount" type="radio" name="donation" id="annual-2500" value="annual-2500" required>
+					<label class="amount-label button-look" for="annual-2500">$2500</label>
+					<label class="custom-amount-label button-look" for="annual-custom">Custom amount</label>
+					<span id="invalid-annual-custom" class="h5-error-msg" style="display:none;">
+						This field is required. Please enter a valid value.
+					</span>
+				</fieldset>
+				<fieldset>
+					<legend>Or, make a monthly gift:</legend>
+					<input class="amount" type="radio" name="donation" id="monthly-5" value="monthly-5" required>
+					<label class="amount-label button-look" for="monthly-5">$5</label>
+					<input class="amount" type="radio" name="donation" id="monthly-10" value="monthly-10" required>
+					<label class="amount-label button-look" for="monthly-10">$10</label>
+					<input class="amount" type="radio" name="donation" id="monthly-20" value="monthly-20" checked required>
+					<label class="selected amount-label button-look" for="monthly-20">$20</label>
+					<input class="amount" type="radio" name="donation" id="monthly-50" value="monthly-50" required>
+					<label class="amount-label button-look" for="monthly-50">$50</label>
+					<input class="amount" type="radio" name="donation" id="monthly-100" value="monthly-100" required>
+					<label class="amount-label button-look" for="monthly-100">$100</label>
+					<input class="amount" type="radio" name="donation" id="monthly-200" value="monthly-200" required>
+					<label class="amount-label button-look" for="monthly-200">$200</label>
+					<label class="custom-amount-label button-look" for="monthly-custom">Custom amount</label>
+					<span id="invalid-monthly-custom" class="h5-error-msg" style="display:none;">
+						This field is required. Please enter a valid value.
+					</span>
+				</fieldset>
+
+				<label id="one-time-label" for="one-time">No thanks, I only want to make a one-time gift of the amount above.</label>
+				<input type="checkbox" name="one-time" id="one-time">
+			</div>
+
 			<br>
+
 			<hr class="dashed-line">
 			<div class="wider">
 				<label for="hearabout">How did you hear about Spark?</label>
@@ -1504,8 +1526,11 @@ function sdf_get_form() { ?>
 				<label for="inhonorof">Please make this donation in honor of:</label>
 				<input type="text" id="inhonorof" name="inhonorof">
 			</div>
+
 			<hr class="dashed-line">
+
 			<h3>A little about you:</h3>
+
 			<label for"first-name">Name: <span class="label-required">*</span></label>
 			<input name="first-name" id="first-name" type="text" placeholder="First" data-h5-errorid="invalid-fname" required>
 			<span id="invalid-fname" class="h5-error-msg" style="display:none;">This field is required.</span>

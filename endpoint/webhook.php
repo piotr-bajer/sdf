@@ -31,15 +31,25 @@ require_once BASE_PATH . "/wp-load.php";
 require_once "../sdf.php";
 $sdf = new sdf_data();
 $sdf->stripe_api();
-print_r($sdf);
 
 
 // get and unwrap request
 $body = @file_get_contents('php://input');
-$event = json_decode($body);
+$event = json_decode($body, true);
 
-file_put_contents($dir . "/event.txt", $event);
+if($event['type'] == 'charge.succeeded') {
+	$email = $event['data']['object']['receipt_email'];
+	$cents = $event['data']['object']['amount'];
 
-http_response_code(200);
-?>
+	$info = array(
+		'email' => $email,
+		'amount' => $cents
+	);
+
+	// do the rest of the processing in the class
+	$sdf->do_stripe_endpoint($info);
+}
+
+// this must be present or else the charge will be held
+http_response_code(200); ?>
 
