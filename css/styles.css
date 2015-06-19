@@ -9,6 +9,22 @@ September 2013
 	display:none;
 }
 
+#sdf_form #sdf_error_container {
+	font-weight: bold;
+	box-shadow: 0px 0px 8px 8px rgba(0, 0, 0, 0.1);
+	border-radius: 10px;
+	background-color: #EF4A63;
+	color: white;
+	padding: 10px;
+	font-size: 12px;
+	height: auto;
+	z-index: 999;
+	position: fixed;
+	bottom: 10px;
+	right: 10px;
+	max-width: 500px;
+}
+
 #sdf_form .preloader {
 	background: url(../img/button-gray-tip-transparent.png);
 	background-repeat: none;
@@ -23,7 +39,6 @@ September 2013
 }
 
 #sdf_form input.invalid {
-	border: 1px solid red !important;
 	background-color: #EF4A63;
 	color: #ffffff;
 }
@@ -250,12 +265,14 @@ p.error {
 }
 
 #sdf_form .sdf-error-msg {
-	display: inline-block;
-	position: absolute;
-	right: 0px;
+	display: block;
 	color: white;
-	background-color: red;
-	padding: 5px;
+	line-height: 1.4em;
+	padding-bottom: 8px;
+	margin-bottom: 8px;
+	width: 256px;
+	border-bottom: 1px solid #D64259;
+	cursor: pointer;
 }
 
 #sdf_form .h5-error-msg {

@@ -1614,7 +1614,8 @@ function sdf_get_form() { ?>
 				<span>Questions? <a target="_blank" href="mailto:<?php echo get_option('spark_contact_email', 'programs@sparksf.org'); ?>">Contact us.</a></span>
 			</div>
 		</form>
-		<div id="sdf_form_errors">
+
+		<div id="sdf_error_container" style="display: none;">
 			<span id="invalid-annual-custom" class="sdf-error-msg" style="display:none;">
 				This field is required. Please enter a valid value.
 			</span>
@@ -1627,14 +1628,14 @@ function sdf_get_form() { ?>
 			<span id="invalid-birthday-year" class="sdf-error-msg" style="display:none;">Please enter a valid year. Format: YYYY</span>
 			<span id="invalid-email" class="sdf-error-msg" style="display:none;">Please enter a valid email.</span>
 			<span id="invalid-phone" class="sdf-error-msg" style="display:none;">Please enter a valid telephone number with area code.</span>
-			<span id="invalid-address1" class="sdf-error-msg" style="display:none;">This field is required.</span>
+			<span id="invalid-address1" class="sdf-error-msg" style="display:none;">Full Address is required.</span>
 			<span id="invalid-city" class="sdf-error-msg" style="display:none;">City is required.</span>
 			<span id="invalid-state" class="sdf-error-msg" style="display:none;">State is required. Use the two letter code.</span>
 			<span id="invalid-zip" class="sdf-error-msg" style="display:none;">Please enter a valid ZIP/postal code.</span>
 			<span id="invalid-cc-number" class="sdf-error-msg" style="display:none;">Please enter a valid credit card number.</span>
 			<span id="invalid-cc-cvc" class="sdf-error-msg" style="display:none;">CVC is required. This is the number of the back of your card.</span>
 			<span id="invalid-cc-mo" class="sdf-error-msg" style="display:none;">Credit card month is required. Format: MM</span>
-			<span id="invalid-cc-exp-year" class="sdf-error-msg" style="display:none;">Credit card year is required. Format: YYYY</span>
+			<span id="invalid-cc-exp-year" class="sdf-error-msg" style="display:none;">Credit card year is required. Format: YY</span>
 			<span id="invalid-cc-name" class="sdf-error-msg" style="display:none;">This field is required.</span>
 			<span id="invalid-cc-zip" class="sdf-error-msg" style="display:none;">Please enter a valid ZIP/postal code.</span>
 		</div>

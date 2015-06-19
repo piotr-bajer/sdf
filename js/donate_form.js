@@ -18,6 +18,7 @@ sdf_new = (function($) {
 		class_prefix: 'sdf',
 		ids: {
 			form: 'sdf_form',
+			error_container: 'sdf_error_container',
 			submit: 'js-form-submit',
 		},
 		regex: {
@@ -39,6 +40,7 @@ sdf_new = (function($) {
 		form: {},
 		submit: {},
 		loading: {},
+		error_container: {},
 		saved: [], // save array of elements to revive
 	};
 
@@ -113,6 +115,10 @@ sdf_new = (function($) {
 			throw { message: 'SubmitNonExistent', from: 'attach_validation_to_form' }
 		}
 
+		if (!self.elems.error_container.exists()) {
+			throw { message: 'ErrorContainerNonExistent', from: 'attach_validation_to_form' }
+		}
+
 		// TODO: I should probably add an 'on change' event for any elements that
 		// are already invalid and changed. If they enter something valid I should
 		// immeditately remove the error.
@@ -122,6 +128,7 @@ sdf_new = (function($) {
 
 		self.activate_amount_clicks();
 		self.activate_submit_click();
+		self.activate_goto_error();
 
 	}
 
@@ -182,6 +189,25 @@ sdf_new = (function($) {
 		});
 	}
 
+	self.activate_goto_error = function() {
+		var error_items = self.elems.error_container.find('.sdf-error-msg');
+		$.each(error_items, function(idx) {
+			var el = $(this);
+			el.on('click', function(e) {
+				e.preventDefault();
+				var goto_el_id = el.attr('id').replace('invalid-', '');
+				self.goto_element($('#' + goto_el_id));
+			});
+		});
+	}
+
+	self.goto_element = function(el) {
+		if (!el.exists()) {
+			throw { message: "GotoElementNotExistent", from: "goto_element" }
+		}
+		$(window).scrollTop($(el).focus().position().top);
+	}
+
 	self.activate_submit_click = function() {
 		self.elems.submit.on('click', function(e) {
 			e.preventDefault();
@@ -199,12 +225,25 @@ sdf_new = (function($) {
 				// TODO: Make sure to set correct errors here and updated all previous
 				// errors. Or maybe this just happens in validate()?
 
+				self.show_errors();
 				self.enable_submit();
 				self.hide_loading();
 				console.log('Validation failed.');
 			}
 			}, 1000);
 		});
+	}
+
+	self.show_errors = function() {
+		var invalid_items = self.elems.form.find('.invalid');
+		if (invalid_items.exists()) {
+			self.elems.error_container.show();
+			$.each(invalid_items, function(idx) {
+				$('#invalid-' + $(this).attr('name')).show();
+			});
+		} else {
+			self.elems.error_container.hide();
+		}
 	}
 
 	self.disable_submit = function() {
@@ -269,10 +308,10 @@ sdf_new = (function($) {
 
 				if (el.val().match(self.opts.regex[regex_data])) {
 					el.removeClass('invalid');
-					//$('#invalid-' + $(el).attr('id')).hide();
+					$('#invalid-' + $(el).attr('id')).hide();
 				} else {
 					el.addClass('invalid');
-					//$('#invalid-' + $(el).attr('id')).show();
+					$('#invalid-' + $(el).attr('id')).show();
 					is_valid = false;
 				}
 
@@ -280,10 +319,10 @@ sdf_new = (function($) {
 
 				if (el.val() !== '') {
 					el.removeClass('invalid');
-					//$('#invalid-' + $(el).attr('id')).hide();
+					$('#invalid-' + $(el).attr('id')).hide();
 				} else {
 					el.addClass('invalid');
-					//$('#invalid-' + $(el).attr('id')).show();
+					$('#invalid-' + $(el).attr('id')).show();
 					is_valid = false;
 				}
 
@@ -296,23 +335,18 @@ sdf_new = (function($) {
 
 	self.init = function(args) {
 		$.extend(true, self.opts, args); // order matters
-
 		self.elems.submit = $('#' + self.opts.ids.submit);
 		self.elems.form = $('#' + self.opts.ids.form);
-
+		self.elems.error_container = $('#' + self.opts.ids.error_container);
 		self.activate_spinner();
-
 		try {
 			self.attach_validation_to_form();
 		} catch (e) {
 			self.show_error(e);
 		}
-
 	}
 
-	return {
-		init: init
-	}
+	return { init:init }
 
 })(jQuery);
 
