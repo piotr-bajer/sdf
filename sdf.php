@@ -1458,6 +1458,8 @@ function sdf_noindex() {
 
 function sdf_get_form() { ?>
 	<div id="sdf_form">
+		<!-- Use this to preload the donate button. Using js to preload sucks. -->
+		<div class="preloader">&nbsp;</div>
 		<form method="post">
 			<h1>Make a Donation</h1>
 
@@ -1581,10 +1583,9 @@ function sdf_get_form() { ?>
 			<input class="sdf-cvc" maxlength="4" type="text" id="cc-cvc" name="cc-cvc" data-regex-name="cvc" required>
 			<br>
 			<label for="cc-exp-mo">Expiration Date: <span class="label-required">*</span></label>
-			<input class="date-input sdf-cc_expiry_mo" maxlength="2" id="cc-exp-mo" name="cc-exp-mo" placeholder="MM" data-regex-name="birth_month" required>
-			<!-- this is annoying me. I am not sure what it's supposed to look like. XXX -->
-			<!-- span id="cc-exp-separator">/</span -->
-			<input class="date-input sdf-cc_expiry_year" maxlength="4" id="cc-exp-year" name="cc-exp-year" placeholder="YYYY" data-regex-name="birth_year" required>
+			<input class="date-input sdf-cc_expiry_mo" maxlength="2" id="cc-exp-mo" name="cc-exp-mo" placeholder="MM" data-regex-name="cc_expiry_month" required>
+			<span id="cc-exp-separator">/</span>
+			<input class="date-input sdf-cc_expiry_year" maxlength="4" id="cc-exp-year" name="cc-exp-year" placeholder="YY" data-regex-name="cc_expiry_year" required>
 			<hr class="dashed-line">
 
 			<input type="checkbox" id="copy-personal-info" class="js-copy-personal-info">

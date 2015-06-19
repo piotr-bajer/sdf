@@ -9,6 +9,15 @@ September 2013
 	display:none;
 }
 
+#sdf_form .preloader {
+	background: url(../img/button-gray-tip-transparent.png);
+	background-repeat: none;
+	visibility: hidden;
+	height: 1px;
+	width: 1px;
+	background-color: #ffffff;
+}
+
 #sdf_form #js-cc-fields {
 	clear: both;
 }
@@ -24,6 +33,7 @@ September 2013
 }
 
 #sdf_form .cc-exp-separator {
+	float: left;
 	display: inline-block;
 }
 
@@ -64,6 +74,7 @@ September 2013
 
 #sdf_form input,
 #sdf_form select {
+	float: left;
 	margin-bottom: 1em;
 	margin-right: 1em;
 	line-height: 1.5em;
@@ -304,7 +315,7 @@ p.error {
 }
 #sdf_form #bday-separator {
 	float: left;
-	padding:4px 10px;
+	padding: 4px 10px;
 }
 
 #sdf_form #copy-personal-info {

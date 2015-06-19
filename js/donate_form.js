@@ -23,8 +23,8 @@ sdf_new = (function($) {
 		regex: {
 			birth_month: /^(0?[1-9]|1[012])/,
 			birth_year: /^(19|20)\d{2}$/,
-			cc_expiry_mo: /^(0?[1-9]|1[012])$/,
-			cc_expiry_year: /^(1[0-9])|20[\d]{2}/,
+			cc_expiry_month: /^(0?[1-9]|1[0-2])$/,
+			cc_expiry_year: /^\d{2}/,
 			cc_zipcode: /^\d{5}(-\d{4})?$/,
 			credit_card: /\d{14,16}/,
 			custom_amount: /^[$]?\d+([.]\d{2})?$/,
@@ -121,7 +121,7 @@ sdf_new = (function($) {
 		// information from above?" is checked.
 
 		self.activate_amount_clicks();
-		self.activate_submit_click(self.elems.submit);
+		self.activate_submit_click();
 
 	}
 
@@ -182,15 +182,14 @@ sdf_new = (function($) {
 		});
 	}
 
-	self.activate_submit_click = function(el) {
-		el.on('click', function(e) {
+	self.activate_submit_click = function() {
+		self.elems.submit.on('click', function(e) {
 			e.preventDefault();
 
-			// XXX: Fix this. Is it getting the image? Is 'this' correctly referenced?
-			$(this).addClass('disabled')
-				.parent()
-				.find('img')
-				.prop('src', '/wp-content/plugins/sdf/img/button-gray-tip-transparent.png');
+			self.show_loading();
+			self.disable_submit();
+
+			setTimeout(function() { // XXX: remove this. It's just for testing.
 
 			if (self.validates()) { // submit form
 				console.log("Validation succeeded.");
@@ -200,10 +199,31 @@ sdf_new = (function($) {
 				// TODO: Make sure to set correct errors here and updated all previous
 				// errors. Or maybe this just happens in validate()?
 
+				self.enable_submit();
 				self.hide_loading();
 				console.log('Validation failed.');
 			}
+			}, 1000);
 		});
+	}
+
+	self.disable_submit = function() {
+		// TODO: disable click event.
+		self.elems.submit
+			.addClass('disabled')
+			.parent()
+			.find('img')
+			.prop('src', '/wp-content/plugins/sdf/img/button-gray-tip-transparent.png')
+			.click(false);
+	}
+
+	self.enable_submit = function() {
+		// TODO: re-add onclick function.
+		self.elems.submit
+			.removeClass('disabled')
+			.parent()
+			.find('img')
+			.prop('src', '/img/button-dark-tip.png');
 	}
 
 	self.create_spinner_loading_element = function() {
@@ -215,9 +235,6 @@ sdf_new = (function($) {
 	}
 
 	self.activate_spinner = function() {
-		// preload the image
-		var img = document.createElement('image');
-		img.src = '/wp-content/plugins/sdf/img/button-gray-tip-transparent.png';
 		self.create_spinner_loading_element();
 		self.spinner.obj = new Spinner(self.spinner.opts);
 	}
@@ -244,8 +261,6 @@ sdf_new = (function($) {
 
 		var is_valid = true,
 			items_to_validate = form_el.find('[required]');
-
-		self.show_loading();
 
 		$.each(items_to_validate, function(idx) {
 			var el = $(this),
