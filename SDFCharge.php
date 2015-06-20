@@ -24,12 +24,12 @@ class SDFCharge {
 	// entrypoint
 	public function charge($data) {
 		$this->amount = $data['amount'];
-		$this->amount_string = $data['amount_string'];
+		$this->amount_string = $data['amount-string'];
 		$this->token = $data['token'];
 		$this->email = $data['email'];
 		$this->name = $data['name'];
-		$this->recurrence_type = $data['recurrence_type'];
-		$this->recurrence_string = $data['recurrence_string'];
+		$this->recurrence_type = $data['recurrence-type'];
+		$this->recurrence_string = $data['recurrence-string'];
 
 		$this->stripe_api();
 		$this->charge();

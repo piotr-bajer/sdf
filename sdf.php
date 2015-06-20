@@ -11,16 +11,13 @@
 error_reporting(E_ERROR | E_WARNING | E_PARSE); // XXX remove for debugging
 defined('ABSPATH') or die("Unauthorized.");
 
-define('ERROR', 0);
-define('SUCCESS', 1);
-define('LOG', 2);
+require_once WP_PLUGIN_DIR . '/sdf/types.php';
+require_once WP_PLUGIN_DIR . '/sdf/message.php';
+require_once WP_PLUGIN_DIR . '/sdf/SDFCharge.php';
 
 class sdf_data {
 
 	private $data;
-
-	private $strp_plan;
-	private $strp_customer;
 
 	private static $sf_cnxn;
 	private $sf_contact;
@@ -36,9 +33,9 @@ class sdf_data {
 	private static $DISPLAY_NAME = 'Spark';
 	private static $SF_DATE_FORMAT = 'Y-m-d';
 
-	private static $ONE_TIME = 0;
-	private static $ANNUAL = 1;
-	private static $MONTHLY = 2;
+	// private static $ONE_TIME = 0;
+	// private static $ANNUAL = 1;
+	// private static $MONTHLY = 2;
 
 	private static $IS_NOT_CUSTOM = 0;
 	private static $IS_CUSTOM = 1;
@@ -74,9 +71,11 @@ class sdf_data {
 	}
 
 	private function do_stripe() {
-		$this->stripe_api();
-		$this->charge();
+		$stripe = new SDFCharge();
+		$stripe->charge($this->get_stripe_details());
 	}
+
+	
 
 	private function do_salesforce() {
 		$this->salesforce_api();
@@ -91,6 +90,7 @@ class sdf_data {
 	// this is an alternative entrypoint to the sdf class.
 	public function do_stripe_endpoint($info) {
 		sdf_message_handler(LOG, 'Endpoint request received.');
+		static::$IS_ENDPOINT = true;
 
 		$this->salesforce_api();
 
@@ -100,7 +100,7 @@ class sdf_data {
 		$this->get_donations();
 
 		// need to update totals in the contact object
-		$this->recalc_sum();
+		$this->recalc_sum($info['amount']);
 
 		// add a new line in the description
 		$this->description();
@@ -112,6 +112,20 @@ class sdf_data {
 		$this->new_donation();
 		$this->send_email();
 
+	}
+
+	private function get_stripe_details() {
+		$info = array();
+
+		$info['amount'] = $this->data['amount']; // in cents
+		$info['amount-string'] = $this->data['amount-string'];
+		$info['token'] = $this->data['stripe-token'];
+		$info['email'] = $this->data['email'];
+		$info['name'] = $this->data['first-name'] . ' ' . $this->data['last-name'];
+		$info['recurrence-type'] = $this->data['recurrence-type'];
+		$info['recurrence-string'] = $this->data['recurrence-string'];
+
+		return $info;
 	}
 
 	// ************************************************************************
@@ -184,7 +198,7 @@ class sdf_data {
 	private function check_email() {
 		$this->data['email'] = filter_var($this->data['email'], FILTER_SANITIZE_EMAIL);
 		if(!filter_var($this->data['email'], FILTER_VALIDATE_EMAIL)) {
-			sdf_message_handler(ERROR, 'Invalid email address.');
+			sdf_message_handler(MessageTypes::ERROR, 'Invalid email address.');
 		}
 	}
 
@@ -241,8 +255,8 @@ class sdf_data {
 			$donated_value = $this->get_std_amount();
 		}
 
-		$this->data['amount'] = $donated_value;
-		$this->data['amount-string'] = '$' . $donated_value;
+		$this->data['amount'] = $donated_value * 100;
+		$this->data['amount-string'] = '$' . $donated_value;  
 	}
 
 	// returns the amount in cents of standard donations
@@ -280,233 +294,6 @@ class sdf_data {
 	// ************************************************************************
 	// Stripe functions
 
-	// This function is public since we use it to test keys input to
-	// the options page.
-	public static function stripe_api($input = null) {
-		require_once(WP_PLUGIN_DIR . '/sdf/stripe/lib/Stripe.php');
-		if(!empty($input)) {
-			Stripe::setApiKey($input);
-		} else {
-			Stripe::setApiKey(get_option('stripe_api_secret_key'));
-		}
-		Stripe::setApiVersion('2013-08-13');
-	}
-
-	// This function is public to perform initial setup of plans.
-	// Execute when the api keys are updated
-
-	// XXX should be removed
-	public static function stripe_default_plans() {
-		$plans = array(
-			array(
-				'id' => 'annual-75',
-				'amount' => 7500,
-				'currency' => 'USD',
-				'interval' => 'year',
-				'name' => '$75 Annual Gift',
-			),
-			array(
-				'id' => 'annual-100',
-				'amount' => 10000,
-				'currency' => 'USD',
-				'interval' => 'year',
-				'name' => '$100 Annual Gift',
-			),
-			array(
-				'id' => 'annual-250',
-				'amount' => 25000,
-				'currency' => 'USD',
-				'interval' => 'year',
-				'name' => '$250 Annual Gift',
-			),
-			array(
-				'id' => 'annual-500',
-				'amount' => 50000,
-				'currency' => 'USD',
-				'interval' => 'year',
-				'name' => '$500 Annual Gift',
-			),
-			array(
-				'id' => 'annual-1000',
-				'amount' => 100000,
-				'currency' => 'USD',
-				'interval' => 'year',
-				'name' => '$1000 Annual Gift',
-			),
-			array(
-				'id' => 'annual-2500',
-				'amount' => 250000,
-				'currency' => 'USD',
-				'interval' => 'year',
-				'name' => '$2500 Annual Gift',
-			),
-			array(
-				'id' => 'monthly-5',
-				'amount' => 500,
-				'currency' => 'USD',
-				'interval' => 'month',
-				'name' => '$5 Monthly Gift',
-			),
-			array(
-				'id' => 'monthly-10',
-				'amount' => 1000,
-				'currency' => 'USD',
-				'interval' => 'month',
-				'name' => '$10 Monthly Gift',
-			),
-			array(
-				'id' => 'monthly-20',
-				'amount' => 2000,
-				'currency' => 'USD',
-				'interval' => 'month',
-				'name' => '$20 Monthly Gift',
-			),
-			array(
-				'id' => 'monthly-50',
-				'amount' => 5000,
-				'currency' => 'USD',
-				'interval' => 'month',
-				'name' => '$50 Monthly Gift',
-			),
-			array(
-				'id' => 'monthly-100',
-				'amount' => 10000,
-				'currency' => 'USD',
-				'interval' => 'month',
-				'name' => '$100 Monthly Gift',
-			),
-			array(
-				'id' => 'monthly-200',
-				'amount' => 20000,
-				'currency' => 'USD',
-				'interval' => 'month',
-				'name' => '$200 Monthly Gift',
-			),
-		);
-
-		foreach($plans as $plan) {
-			try {
-				Stripe_Plan::create($plan);
-			} catch(Stripe_Error $e) {
-				$body = $e->getJsonBody();
-				sdf_message_handler(LOG, __FUNCTION__ . ' : ' . $body['error']['message']);
-
-				$message = '<span id="source">Salesforce error:</span> ' . $body['error']['message'];
-				add_settings_error(
-					'stripe_plans',
-					'stripe_plans_error',
-					$message,
-					'error'
-				);
-			}
-		}
-	}
-
-	private function charge() {
-		if($this->data['recurrence-type'] == static::$ONE_TIME) {
-			$this->single_charge();
-		} else {
-			$this->recurring_charge();
-		}
-	}
-
-	private function single_charge() {
-		try {
-			$cents = $this->data['amount'] * 100;
-			Stripe_Charge::create(array(
-				'amount' => $cents,
-				'card' => $this->data['stripe-token'],
-				'currency' => 'usd',
-				'description' => $this->data['email']
-			));
-		} catch(Stripe_Error $e) {
-			$body = $e->getJsonBody();
-			sdf_message_handler(ERROR, $body['error']['message']);
-		}
-	}
-
-	private function recurring_charge() {
-		if($this->data['custom'] == static::$IS_CUSTOM) {
-			$this->custom_plan(); // XXX conglomerate the two.
-		} else {
-			$this->std_plan();
-		}
-
-		$this->stripe_customer();
-		$this->subscribe();
-	}
-
-	// We assume that the custom plan has been created, and try to retrieve it
-	// and if we fail, then we create the plan
-
-	// XXX should consolidate plan logic
-	private function custom_plan() {
-		$plan_id = strtolower($this->data['recurrence-string']) . '-' . $this->data['amount'];
-
-		try {
-			$plan = Stripe_Plan::retrieve($plan_id);
-		} catch(Stripe_Error $e) {
-			$recurrence = ($this->data['recurrence-type'] == static::$ANNUAL ? 'year' : 'month');
-
-			$cents = $this->data['amount'] * 100;
-
-			$new_plan = array(
-				'id' => $plan_id,
-				'currency' => 'USD',
-				'interval' => $recurrence,
-				'amount' => $cents,
-				'name' => $this->data['amount-string'] . ' ' . $recurrence . 'ly custom gift'
-			);
-
-			try {
-				$plan = Stripe_Plan::create($new_plan);
-			} catch(Stripe_Error $e) {
-				$body = $e->getJsonBody();
-				sdf_message_handler(LOG, __FUNCTION__ . ' : ' . $body['error']['message']);
-				sdf_message_handler(ERROR, 'Something\'s not right. Please try again.');
-			}
-		}
-
-		$this->strp_plan = $plan;
-	}
-
-	// XXX should be moved into one function with custom_plan
-	private function std_plan() {
-		try {
-			$plan = Stripe_Plan::retrieve($this->data['donation']);
-		} catch(Stripe_Error $e) {
-			$body = $e->getJsonBody();
-			sdf_message_handler(ERROR, $body['error']['message']);
-		}
-
-		$this->strp_plan = $plan;
-	}
-
-	private function stripe_customer() {
-		$info = array(
-			'card' => $this->data['stripe-token'],
-			'email' => $this->data['email'],
-			'description' => $this->data['first-name'] . ' ' . $this->data['last-name']
-		);
-
-		try {
-			$customer = Stripe_Customer::create($info);
-		} catch(Stripe_Error $e) {
-			$body = $e->getJsonBody();
-			sdf_message_handler(ERROR, $body['error']['message']);
-		}
-
-		$this->strp_customer = $customer;
-	}
-
-	private function subscribe() {
-		try {
-			$this->strp_customer->updateSubscription(array('plan' => $this->strp_plan->id));
-		} catch(Stripe_Error $e) {
-			$body = $e->getJsonBody();
-			sdf_message_handler(ERROR, $body['error']['message']);
-		}
-	}
 
 	// ************************************************************************
 	// SalesForce Functions
@@ -653,14 +440,18 @@ class sdf_data {
 	// and we want to know whether that passes the 75 dollar cutoff.
 	// then they are a member
 	// Also sets contact->paid__c and total__c
-	private function recalc_sum() {
+	private function recalc_sum($amount = null) {
 		$sum = 0;
 
 		foreach($this->sf_donations as $donation) {
 			$sum += $donation['amount'];
 		}
 
-		$sum += $this->data['amount-ext']; // XXX no extension...
+		if(!empty($amount)) {
+			$sum += $amount;
+		} else {
+			$sum += $this->data['amount-ext']; // XXX no extension, if we're updating everytime the donation goes through
+		}
 
 		if($sum >= 75) { // change to intval?
 			$this->data['is-member'] = static::$IS_MEMBER;
