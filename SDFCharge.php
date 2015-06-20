@@ -22,7 +22,7 @@ class SDFCharge {
 
 
 	// entrypoint
-	public function do_stripe($data) {
+	public function charge($data) {
 		$this->amount = $data['amount'];
 		$this->amount_string = $data['amount_string'];
 		$this->token = $data['token'];
