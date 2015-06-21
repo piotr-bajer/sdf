@@ -7,7 +7,9 @@ Provides client ajax functions for the donation form.
 
 var sdf = {};
 
-sdf_new = (function($) {
+var sdf_new = sdf_new || {};
+
+sdf_new.validation = (function($) {
 
 	var self = this;
 
@@ -49,7 +51,7 @@ sdf_new = (function($) {
 		opts: {
 			lines: 9, // The number of lines to draw
 			length: 13, // The length of each line
-			width: 7, // The line thickness
+			width: 8, // The line thickness
 			radius: 26, // The radius of the inner circle
 			corners: 0.8, // Corner roundness (0..1)
 			rotate: 30, // The rotation offset
@@ -66,7 +68,7 @@ sdf_new = (function($) {
 		},
 	};
 
-	self.show_error = function(e) {
+	self.log_error = function(e) {
 		console.log("Error: " + e.message + ". From: " + e.from);
 	}
 
@@ -102,7 +104,7 @@ sdf_new = (function($) {
 	}
 
 	self.setup_copy_info = function() {
-		// TODO: this is really hacky, could use some refinement.
+		// TODO: this is really hacky and could use some refinement.
 		var input = $('#copy-personal-info');
 		input.change(function(e) {
 			var first = self.elems.form.find('#first-name').val(),
@@ -111,7 +113,6 @@ sdf_new = (function($) {
 			if ($(this).prop('checked') === true) {
 				$('#cc-name').val(first + ' ' + last);
 				$('#cc-zip').val(zip);
-				self.validate(self.elems.form);
 			} else {
 				$('#cc-name').val('');
 				$('#cc-zip').val('');
@@ -120,10 +121,11 @@ sdf_new = (function($) {
 	}
 
 	self.destroy_associated_input = function(el) {
-
 		// TODO: I probably should remove the element. DOM stuff is expensive.
-		// Maybe just convert this stuff to shows and hides?
-
+		// Maybe just convert this stuff to shows and hides? I am hesitant to do
+		// shows and hides because, again, I don't know what the backend is
+		// expecting. A hidden form element will still get submitted, a destroyed
+		// one will not.
 		var input_id = el.attr('for');
 		var to_remove = $('#' + input_id);
 		if (to_remove.exists()) {
@@ -146,11 +148,11 @@ sdf_new = (function($) {
 			throw { message: 'ErrorContainerNonExistent', from: 'attach_validation_to_form' }
 		}
 
+		self.setup_spinner();
 		self.setup_amount_clicks();
 		self.setup_submit_event();
 		self.setup_goto_error();
 		self.setup_copy_info();
-		self.setup_form_change_validate();
 		self.setup_close_errors_button();
 
 	}
@@ -159,6 +161,7 @@ sdf_new = (function($) {
 		var el = document.createElement('div')
 		el.setAttribute('class', 'close-button');
 		el = $(el);
+		el.text('Hide');
 		self.elems.error_container.append(el);
 		el.on('click', function(e) {
 			self.elems.error_container.hide();
@@ -188,15 +191,29 @@ sdf_new = (function($) {
 				labels.removeClass('selected');
 				els.prop('checked', false);
 
+				// TODO: Really we should just have one input for the amount that gets
+				// populated by all of the label onclicks. This also works for the
+				// "custom" amount field. We could just use 2 inputs, one for annual
+				// and one for monthly, each targeted by their respected set of values.
+				// This way, when the user clicks "custom amount" it will be prefilled
+				// with the amount already selected, and instead of the destroying the
+				// element when we click a preset value, we just hide the input form
+				// element and populate it with the new data. But, it works as is and I
+				// don't want to screw with the input arrangements because that would
+				// entail touching the backend stuff to deal with newly arranged
+				// inputs.
+
 				customs.each(function(idx) {
 					self.destroy_associated_input($(this));
 				});
 
 				// I don't think we need this because a label with the 'for' attribute
 				// will automatically mark its associated input as checked.
+				// On second thought, what if this function kills that action? Maybe I
+				// should keep this enabled.
 				// input.name = label.for
 				//$('#' + self.opts.ids.form + ' #' + el.attr('for'))
-				//.prop('checked', true);
+					//.prop('checked', true);
 
 				el.addClass('selected');
 
@@ -245,24 +262,30 @@ sdf_new = (function($) {
 	}
 
 	self.setup_submit_event = function() {
+		var on_change_initialized = false;
 		self.elems.submit.on('click', function(e) {
 			e.preventDefault();
+
+			// So we don't setup on changes everytime we submit the form. Maybe this
+			// isn't so bad by I am going to leave this for now. Techincally
+			// speaking, we introduce a branch, right? Hopefully we are doing predict
+			// not taken branch prediction. I am just kidding, I am not actually
+			// trying to make this extremely performant, I just wanted to write a nice
+			// little comment here that sent my brain on a thought voyage.
+			if (!on_change_initialized) self.setup_form_change_validate();
 
 			self.show_loading();
 			self.disable_submit();
 
-			setTimeout(function() { // XXX: remove this. It's just for testing.
-
 			if (self.validates()) { // submit form
-				console.log("Validation succeeded.");
+				//console.log("Validation succeeded.");
 				self.elems.form.submit();
 			} else { // show errors
+				//console.log('Validation failed.');
 				self.show_errors();
 				self.enable_submit();
 				self.hide_loading();
-				console.log('Validation failed.');
 			}
-			}, 1000);
 		});
 	}
 
@@ -276,6 +299,10 @@ sdf_new = (function($) {
 		} else {
 			self.elems.error_container.hide();
 		}
+	}
+
+	self.has_errors = function() {
+		return self.elems.form.find('.invalid').exists();
 	}
 
 	self.disable_submit = function() {
@@ -295,30 +322,25 @@ sdf_new = (function($) {
 			.prop('src', '/img/button-dark-tip.png');
 	}
 
+	self.setup_spinner = function() {
+		self.create_spinner_loading_element();
+		self.spinner.obj = new Spinner(self.spinner.opts).spin();
+		self.elems.loading.append(self.spinner.obj.el);
+	}
+
 	self.create_spinner_loading_element = function() {
 		self.elems.loading = document.createElement('div');
-		self.elems.loading.setAttribute('id', 'loading');
+		self.elems.loading.setAttribute('id', 'sdf_loading');
 		self.elems.loading = $(self.elems.loading);
 		self.elems.loading.hide();
 		$('body').append(self.elems.loading);
 	}
 
-	self.activate_spinner = function() {
-		self.create_spinner_loading_element();
-		self.spinner.obj = new Spinner(self.spinner.opts);
-	}
-
 	self.hide_loading = function() {
-		self.spinner.obj.stop();
 		self.elems.loading.hide();
 	}
 
 	self.show_loading = function() {
-
-		// TODO: This actually isn't working for some reason. Need to figure out
-		// why. Is it a style issue? Configuration?
-
-		self.spinner.obj.spin();
 		self.elems.loading.show();
 	}
 
@@ -357,7 +379,12 @@ sdf_new = (function($) {
 				}
 
 			}
+
 		});
+
+		if (!self.has_errors()) {
+			self.elems.error_container.hide();
+		}
 
 		return is_valid;
 
@@ -368,11 +395,10 @@ sdf_new = (function($) {
 		self.elems.submit = $('#' + self.opts.ids.submit);
 		self.elems.form = $('#' + self.opts.ids.form);
 		self.elems.error_container = $('#' + self.opts.ids.error_container);
-		self.activate_spinner();
 		try {
 			self.attach_validation_to_form();
 		} catch (e) {
-			self.show_error(e);
+			self.log_error(e);
 		}
 	}
 
@@ -381,7 +407,7 @@ sdf_new = (function($) {
 })(jQuery);
 
 jQuery(document).ready(function() {
-	sdf_new.init({
+	sdf_new.validation.init({
 		ids: {
 			form: 'sdf_form',
 			custom: '',

@@ -25,6 +25,26 @@ September 2013
 	max-width: 500px;
 }
 
+#sdf_loading {
+	background: #666;
+	opacity: 0.9;
+	color: #FFF;
+	float: left;
+	width: 260px;
+	height: 140px;
+	margin: 0 20px 20px 0;
+	position:fixed;
+	top:0;
+	left:50%;
+	margin-left:-130px;
+}
+
+#sdf_loading .spinner {
+	position: relative;
+	left: 50%;
+	top: 50%;
+}
+
 #sdf_form #sdf_error_container .close-button {
 	float: right;
 	color: #fff;
@@ -228,19 +248,6 @@ September 2013
 }
 #sdf_form #contact {
 	margin-top: 1.5em;
-}
-#loading {
-	background: #666;
-	opacity: 0.9;
-	color: #FFF;
-	float: left;
-	width: 260px;
-	height: 120px;
-	margin: 0 20px 20px 0;
-	position:fixed;
-	top:0;
-	left:50%;
-	margin-left:-130px;
 }
 .alert {
 	padding-top: 1.5em;

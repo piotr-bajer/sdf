@@ -8,7 +8,7 @@
 	Author URI: https://stevenavery.com/
 */
 
-error_reporting(E_ALL & ~E_NOTICE); // XXX remove for debugging
+error_reporting(E_ERROR | E_WARNING | E_PARSE); // XXX remove for debugging
 defined('ABSPATH') or die("Unauthorized.");
 
 define('ERROR', 0);
@@ -1586,7 +1586,7 @@ function sdf_get_form() { ?>
 			<input class="wider sdf-email" name="email" id="email" type="email" required>
 			<br>
 			<label for"tel">Phone: <span class="label-required">*</span></label>
-			<input maxlength="15" name="tel" id="tel" type="text" class="sdf-phone" data-regex-name="phone" required>
+			<input maxlength="15" name="tel" id="tel" type="text" class="sdf-phone" data-regex-name="phone" placeholder="555-555-5555" required>
 			<br>
 			<label for"address1">Street Address: <span class="label-required">*</span></label>
 			<input class="wider" name="address1" id="address1" type="text" required>
@@ -1666,7 +1666,7 @@ function sdf_get_form() { ?>
 			<span id="invalid-birthday-month" class="sdf-error-msg" style="display:none;">Please enter a valid month. Format: MM</span>
 			<span id="invalid-birthday-year" class="sdf-error-msg" style="display:none;">Please enter a valid year. Format: YYYY</span>
 			<span id="invalid-email" class="sdf-error-msg" style="display:none;">Please enter a valid email.</span>
-			<span id="invalid-phone" class="sdf-error-msg" style="display:none;">Please enter a valid telephone number with area code.</span>
+			<span id="invalid-tel" class="sdf-error-msg" style="display:none;">Please enter a valid telephone number with area code.</span>
 			<span id="invalid-address1" class="sdf-error-msg" style="display:none;">Full Address is required.</span>
 			<span id="invalid-city" class="sdf-error-msg" style="display:none;">City is required.</span>
 			<span id="invalid-state" class="sdf-error-msg" style="display:none;">State is required. Use the two letter code.</span>
