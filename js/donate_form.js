@@ -1,15 +1,13 @@
 /*
 File: donate_form.js
-Author: Steve Avery
+Author: Steve Avery, Alex Luecke
 Date: September
 Provides client ajax functions for the donation form.
 */
 
-var sdf = {};
+var sdf = sdf || {};
 
-var sdf_new = sdf_new || {};
-
-sdf_new.validation = (function($) {
+sdf.validation = (function($) {
 
 	var self = this;
 
@@ -407,7 +405,7 @@ sdf_new.validation = (function($) {
 })(jQuery);
 
 jQuery(document).ready(function() {
-	sdf_new.validation.init({
+	sdf.validation.init({
 		ids: {
 			form: 'sdf_form',
 			custom: '',
