@@ -267,7 +267,7 @@ sdf_new.validation = (function($) {
 			e.preventDefault();
 
 			// So we don't setup on changes everytime we submit the form. Maybe this
-			// isn't so bad by I am going to leave this for now. Techincally
+			// isn't so bad but I am going to leave this for now. Techincally
 			// speaking, we introduce a branch, right? Hopefully we are doing predict
 			// not taken branch prediction. I am just kidding, I am not actually
 			// trying to make this extremely performant, I just wanted to write a nice
