@@ -1661,6 +1661,8 @@ function sdf_get_form() { ?>
 			<span id="invalid-monthly-custom" class="sdf-error-msg" style="display:none;">
 				Please enter an amount to donate.
 			</span>
+			<!-- In order for validation to work, each of these error IDs must be the same
+			as the id of the input it is validating with the 'invalid-' prefix -->
 			<span id="invalid-first-name" class="sdf-error-msg" style="display:none;">Name is required.</span>
 			<span id="invalid-last-name" class="sdf-error-msg" style="display:none;">Last name is required.</span>
 			<span id="invalid-birthday-month" class="sdf-error-msg" style="display:none;">Please enter a valid month. Format: MM</span>
@@ -1673,7 +1675,7 @@ function sdf_get_form() { ?>
 			<span id="invalid-zip" class="sdf-error-msg" style="display:none;">Please enter a valid ZIP/postal code.</span>
 			<span id="invalid-cc-number" class="sdf-error-msg" style="display:none;">Please enter a valid credit card number.</span>
 			<span id="invalid-cc-cvc" class="sdf-error-msg" style="display:none;">CVC is required. This is the number of the back of your card.</span>
-			<span id="invalid-cc-mo" class="sdf-error-msg" style="display:none;">Credit card month is required. Format: MM</span>
+			<span id="invalid-cc-exp-mo" class="sdf-error-msg" style="display:none;">Credit card month is required. Format: MM</span>
 			<span id="invalid-cc-exp-year" class="sdf-error-msg" style="display:none;">Credit card year is required. Format: YY</span>
 			<span id="invalid-cc-name" class="sdf-error-msg" style="display:none;">Name of credit card holder is required.</span>
 			<span id="invalid-cc-zip" class="sdf-error-msg" style="display:none;">Please enter a valid credit card ZIP/postal code.</span>
