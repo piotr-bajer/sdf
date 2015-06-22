@@ -392,7 +392,7 @@ sdf.validation = (function($) {
 	self.init = function(args) {
 		$.extend(true, self.opts, args); // order matters
 		self.elems.submit = $('#' + self.opts.ids.submit);
-		self.elems.form = $('#' + self.opts.ids.form);
+		self.elems.form = $('#' + self.opts.ids.form + ' form');
 		self.elems.error_container = $('#' + self.opts.ids.error_container);
 		try {
 			self.attach_validation_to_form();
