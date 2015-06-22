@@ -1,9 +1,9 @@
 <?php
 
 /**
-Capture the events from Stripe,
-so that customers that are charged again will
-be updated in Salesforce.
+* Capture the events from Stripe,
+* so that customers that are charged again will
+* be updated in Salesforce.
 */
 
 // steps
@@ -27,11 +27,9 @@ function find_wordpress_base_path() {
 define('BASE_PATH', find_wordpress_base_path());
 require_once BASE_PATH . "/wp-load.php";
 
-// load the stripe api library
+// load all our goodies
 require_once "../sdf.php";
 $sdf = new sdf_data();
-$sdf->stripe_api();
-
 
 // get and unwrap request
 $body = @file_get_contents('php://input');
@@ -52,4 +50,3 @@ if($event['type'] == 'charge.succeeded') {
 
 // this must be present or else the charge will be held
 http_response_code(200); ?>
-
