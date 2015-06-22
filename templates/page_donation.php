@@ -3,7 +3,7 @@
 	Template Name: Donation Form
 */
 defined('ABSPATH') or die("Unauthorized.");
-// sdf_check_ssl();
+sdf_check_ssl();
 
 wp_enqueue_script('sdf_stripe', "https://js.stripe.com/v2/");
 wp_enqueue_script('sdf_spin', plugins_url('/sdf/js/spin.min.js'));
@@ -16,8 +16,15 @@ wp_enqueue_script('select-to-autocomplete',
 	plugins_url('/sdf/js/jquery.select-to-autocomplete.js'), 
 	array('jquery', 'jquery-ui'));
 
-// XXX: Caching hack. Remove ?t=time() after this is done.
-wp_enqueue_style('sdf_style', plugins_url('/sdf/css/styles.css?t='.time()), false, '0.1');
+if(LIVEMODE) {
+	wp_enqueue_style('sdf_style',
+		plugins_url('/sdf/css/styles.css'));
+} else {
+	wp_enqueue_style('sdf_style',
+		plugins_url('/sdf/css/styles.css?t='.time()),
+		false,
+		'0.1');	
+}
 
 get_header(); ?>
 
@@ -37,11 +44,15 @@ get_header(); ?>
 </div><!-- #main -->
 
 <?php
-	//wp_enqueue_script('sdf_donate_form_js', plugins_url('/sdf/js/donate_form.min.js'), false, '0.2');
-	//wp_enqueue_script('sdf_donate_form_js', plugins_url('/sdf/js/donate_form.js'));
-	// Wordpress is caching like no other. Adding this hack for now. XXX.
-	wp_enqueue_script('sdf_donate_form_js', plugins_url('/sdf/js/donate_form.js?t='.time()));
-	//wp_enqueue_script('sdf_donate_form_js', plugins_url('/sdf/js/donate_form.js'));
+	if(LIVEMODE) {
+		wp_enqueue_script('sdf_donate_form_js',
+			plugins_url('/sdf/js/donate_form.min.js'),
+			false,
+			'0.2');
+	} else {
+		wp_enqueue_script('sdf_donate_form_js',
+			plugins_url('/sdf/js/donate_form.js?t='.time()));
+	}
 ?>
 <script type="text/javascript">
 	Stripe.setPublishableKey("<?php echo get_option('stripe_api_public_key'); ?>");
