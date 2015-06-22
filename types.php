@@ -13,4 +13,9 @@ abstract class MessageTypes {
 	const ERROR = 0;
 	const SUCCESS = 1;
 	const LOG = 2;
+}
+
+abstract class SearchBy {
+	const NAME = 0;
+	const EMAIL = 1;
 } ?>

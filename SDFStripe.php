@@ -8,7 +8,7 @@ require_once WP_PLUGIN_DIR . '/sdf/message.php';
 require_once WP_PLUGIN_DIR . '/sdf/types.php';
 
 
-class SDFCharge {
+class SDFStripe {
 	private $stripe_plan;
 	private $stripe_customer;
 

@@ -20,7 +20,7 @@ function sdf_message_handler($type, $message) {
 		case MessageTypes::LOG: $type = 'log'; break;
 	}
 
-	$logmessage = time() . ' - ' . $type . ' - ' . $message . "\n";
+	$logmessage = time() . ' - ' . $type . ' - ' . $message . PHP_EOL;
 	file_put_contents(WP_PLUGIN_DIR . '/sdf/sdf.log', $logmessage, FILE_APPEND);
 
 	// send data to the requestor
@@ -40,13 +40,15 @@ function sdf_clean_log() {
 	$file = WP_PLUGIN_DIR . '/sdf/sdf.log';
 	$handle = fopen($file, 'r+');
 	$linecount = 0;
+
 	while(!feof($handle)) {
 		$line = fgets($handle);
 		$linecount++;
 	}
+	
 	ftruncate($handle, 0);
 	rewind($handle);
-	fwrite($handle, time() . ' - Cron run. ' . $linecount . ' lines cleared.' . "\n");
+	fwrite($handle, time() . ' - Cron run. ' . $linecount . ' lines cleared.' . PHP_EOL);
 	fclose($handle);
 }
 
