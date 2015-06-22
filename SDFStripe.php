@@ -1,6 +1,6 @@
 <?php
 /**
-Do the stripe parts of the donation.
+*Do the stripe parts of the donation.
 */
 
 // include the message handler
@@ -31,14 +31,14 @@ class SDFStripe {
 		$this->recurrence_type = $data['recurrence-type'];
 		$this->recurrence_string = $data['recurrence-string'];
 
-		$this->stripe_api();
-		$this->charge();
+		$this->api();
+		$this->invoice();
 	}
 
 
 	// This function is public since we use it to test keys input to
 	// the options page.
-	public static function stripe_api($input = null) {
+	public static function api($input = null) {
 		require_once(WP_PLUGIN_DIR . '/sdf/stripe/lib/Stripe.php');
 		if(!empty($input)) {
 			Stripe::setApiKey($input);
@@ -48,7 +48,7 @@ class SDFStripe {
 		Stripe::setApiVersion('2013-08-13');
 	}
 
-	private function charge() {
+	private function invoice() {
 		if($this->recurrence_type == RecurrenceTypes::ONE_TIME) {
 			$this->single_charge();
 		} else {
