@@ -3,20 +3,23 @@
 	Template Name: Donation Form
 */
 defined('ABSPATH') or die("Unauthorized.");
-sdf_check_ssl();
+// sdf_check_ssl();
+
 wp_enqueue_script('sdf_stripe', "https://js.stripe.com/v2/");
-//wp_enqueue_script('sdf_webshim', plugins_url('/sdf/js/webshim-gh-pages/js-webshim/minified/polyfiller.js'), array('jquery'));
-wp_enqueue_script('sdf_validation', plugins_url('/sdf/js/jquery.h5validate.min.js'), array('jquery'));
 wp_enqueue_script('sdf_spin', plugins_url('/sdf/js/spin.min.js'));
+
+wp_enqueue_script('jquery-ui', 
+	plugins_url('/sdf/js/jquery-ui.min.js'), 
+	array('jquery'));
+
+wp_enqueue_script('select-to-autocomplete', 
+	plugins_url('/sdf/js/jquery.select-to-autocomplete.js'), 
+	array('jquery', 'jquery-ui'));
 
 // XXX: Caching hack. Remove ?t=time() after this is done.
 wp_enqueue_style('sdf_style', plugins_url('/sdf/css/styles.css?t='.time()), false, '0.1');
-//wp_enqueue_style('sdf_style', plugins_url('/sdf/css/styles.css', false, '0.1'));
-//add_action('wp_head','sdf_webshim');
 
-get_header();
-// sdf_webshim();
-?>
+get_header(); ?>
 
 <div id="main" role="main">
 	<div id="left-content">
@@ -27,11 +30,12 @@ get_header();
 		<?php endif; ?>
 		<?php if(!post_password_required()): ?>
 			<div class="alert"></div>
-			<?php sdf_get_form(); ?>
+			<?php require 'form.html'; ?>
 		<?php endif; ?>
 	</div><!-- #left-content -->
 	<?php get_sidebar(); ?>
 </div><!-- #main -->
+
 <?php
 	//wp_enqueue_script('sdf_donate_form_js', plugins_url('/sdf/js/donate_form.min.js'), false, '0.2');
 	//wp_enqueue_script('sdf_donate_form_js', plugins_url('/sdf/js/donate_form.js'));
@@ -41,5 +45,9 @@ get_header();
 ?>
 <script type="text/javascript">
 	Stripe.setPublishableKey("<?php echo get_option('stripe_api_public_key'); ?>");
+
+	(function($){
+		$('#country').selectToAutocomplete();
+	})(jQuery);
 </script>
 <?php get_footer(); ?>
