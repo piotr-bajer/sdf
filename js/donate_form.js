@@ -276,8 +276,18 @@ sdf.validation = (function($) {
 			self.disable_submit();
 
 			if (self.validates()) { // submit form
-				//console.log("Validation succeeded.");
-				self.elems.form.submit();
+				var cardData = {
+					name:        $('#cc-name').val(),
+					number:      $('#cc-number').val(),
+					cvc:         $('#cc-cvc').val(),
+					exp_month:   $('#cc-exp-mo').val(),
+					exp_year:    $('#cc-exp-year').val(),
+					address_zip: $('#cc-zip').val()
+				}
+
+				Stripe.card.createToken(cardData, self.stripe_response_handler);
+
+				// self.elems.form.submit();
 			} else { // show errors
 				//console.log('Validation failed.');
 				self.show_errors();
@@ -285,6 +295,56 @@ sdf.validation = (function($) {
 				self.hide_loading();
 			}
 		});
+	}
+
+	self.stripe_response_handler = function(status, response) {
+		var data = {};
+		response = (typeof response !== 'undefined') ? response : {};
+
+		if(response.error) {
+
+			$('.alert').append('<p class="error">' + response.error.message + '</p>');
+			document.getElementsByClassName('alert')[0].scrollIntoView();
+
+			self.enable_submit();
+			self.hide_loading();
+
+		} else {
+			$('#stripe-token').val(response.id);
+			data = $('#sdf_form form').serializeObject();
+
+			// remove the card data before sending to our server.
+			$.each(data, function(k, v) {
+				if(k.substring(0, 3) === 'cc-') {
+					delete data[k];
+				}
+			});
+
+			$.post(ajaxurl, {
+				action: 'sdf_parse',
+				data: data,
+			}, function(data) {
+				self.hide_loading();
+
+				data = JSON.parse(data);
+
+				$('.alert').append('<p class="'	+ data.type + '">' + data.message + '</p>').show();
+				document.getElementsByClassName('alert')[0].scrollIntoView();
+				
+				if(data.type == 'error') {
+					// don't clear error for now.
+					self.enable_submit();
+
+				} else {
+					// send to confirmation page
+					setTimeout(function() {
+						window.location.href = window.location.protocol + '//'
+							+ window.location.hostname + '/donation-confirmation/';
+					}, 2500);
+				}
+			});
+		}
+	
 	}
 
 	self.show_errors = function() {
