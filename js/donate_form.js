@@ -14,6 +14,23 @@ sdf.validation = (function($) {
 	// jquery way to check if dom element exists
 	$.fn.exists = function() { return this.length > 0 }
 
+	// convert form data to javascript object
+	$.fn.serializeObject = function() {
+		var o = {};
+		var a = this.serializeArray();
+		$.each(a, function() {
+			if (o[this.name] !== undefined) {
+				if (!o[this.name].push) {
+					o[this.name] = [o[this.name]];
+				}
+				o[this.name].push(this.value || '');
+			} else {
+				o[this.name] = this.value || '';
+			}
+		});
+		return o;
+	}
+
 	self.opts = {
 		class_prefix: 'sdf',
 		ids: {
