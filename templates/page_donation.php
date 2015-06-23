@@ -10,8 +10,8 @@ wp_enqueue_script('sdf_validation', plugins_url('/sdf/js/jquery.h5validate.min.j
 wp_enqueue_script('sdf_spin', plugins_url('/sdf/js/spin.min.js'));
 
 // XXX: Caching hack. Remove ?t=time() after this is done.
-//wp_enqueue_style('sdf_style', plugins_url('/sdf/css/styles.css?t='.time()), false, '0.1');
-wp_enqueue_style('sdf_style', plugins_url('/sdf/css/styles.css', false, '0.1'));
+wp_enqueue_style('sdf_style', plugins_url('/sdf/css/styles.css?t='.time()), false, '0.1');
+//wp_enqueue_style('sdf_style', plugins_url('/sdf/css/styles.css', false, '0.1'));
 //add_action('wp_head','sdf_webshim');
 
 get_header();
@@ -36,8 +36,8 @@ get_header();
 	//wp_enqueue_script('sdf_donate_form_js', plugins_url('/sdf/js/donate_form.min.js'), false, '0.2');
 	//wp_enqueue_script('sdf_donate_form_js', plugins_url('/sdf/js/donate_form.js'));
 	// Wordpress is caching like no other. Adding this hack for now. XXX.
-	//wp_enqueue_script('sdf_donate_form_js', plugins_url('/sdf/js/donate_form.js?t='.time()));
-	wp_enqueue_script('sdf_donate_form_js', plugins_url('/sdf/js/donate_form.js'));
+	wp_enqueue_script('sdf_donate_form_js', plugins_url('/sdf/js/donate_form.js?t='.time()));
+	//wp_enqueue_script('sdf_donate_form_js', plugins_url('/sdf/js/donate_form.js'));
 ?>
 <script type="text/javascript">
 	Stripe.setPublishableKey("<?php echo get_option('stripe_api_public_key'); ?>");

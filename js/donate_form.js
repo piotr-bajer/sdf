@@ -81,13 +81,13 @@ sdf.validation = (function($) {
 			$(self.elems.saved[input_id]).focus();
 		} else {
 			var new_input = document.createElement('input');
-			new_input.name = $(el).attr('for');
-			new_input.class = self.class_prefix + '-custom_amount amount';
-			new_input.placeholder = 'Custom amount';
-			new_input.required = true;
-			new_input.type = 'text';
-			new_input.id = input_id;
+			new_input.setAttribute('class', self.class_prefix + '-custom_amount amount');
+			new_input.setAttribute('placeholder', 'Custom amount');
+			new_input.setAttribute('required', '');
+			new_input.setAttribute('type', 'text');
+			new_input.setAttribute('id', input_id);
 			new_input.setAttribute('data-regex-name', 'custom_amount');
+			new_input.name = $(el).attr('for');
 			new_input = $(new_input);
 
 			// TODO: This code is not DRY (see setup_form_change_validate above).
@@ -367,7 +367,8 @@ sdf.validation = (function($) {
 
 			} else { // just check if blank
 
-				if (el.val().trim() !== '') {
+				// IE doesn't support "".trim(). Fantastic.
+				if ($.trim(el.val()) !== '') {
 					el.removeClass('invalid');
 					$('#invalid-' + $(el).attr('id')).hide();
 				} else {
