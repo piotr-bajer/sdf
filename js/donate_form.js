@@ -43,11 +43,11 @@ sdf.validation = (function($) {
 			birth_year: /^(19|20)\d{2}$/,
 			cc_expiry_month: /^(0?[1-9]|1[0-2])$/,
 			cc_expiry_year: /^\d{2}/,
-			cc_zipcode: /^\d{5}(-\d{4})?$/,
+			cc_zipcode: /^\d{5}(-\d{4})?$/, // XXX remove
 			credit_card: /\d{14,16}/,
 			custom_amount: /^[$]?\d+([.]\d{2})?$/,
 			cvc: /[\d]{3,4}/,
-			phone: /^\D?(\d{3})\D?\D?(\d{3})\D?(\d{4})$/,
+			phone: /^[+]?([0-9]*[\.\s\-\(\)]|[0-9]+){3,24}$/,
 			state: /[a-zA-Z]{2}/,
 			zipcode: /^\d{5}(-\d{4})?$/,
 		},
