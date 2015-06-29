@@ -170,5 +170,26 @@ class UCSalesforce extends \SDF\Salesforce {
 
 		return $id;
 	}
+
+
+	// Get the string describing hearabout and hearabout-extra
+	// This is a backup for referrals that are not other members
+	// of spark (like Events)
+	// Unused.
+	private function hdyh(&$info) {
+		$begin = "How did they hear about Spark? ";
+		if(isset(self::$contact->How_did_you_hear_about_Spark__c)) {
+			if(isset($info['hearabout-extra'])
+						&& !empty($info['hearabout-extra'])) {
+
+				$str = self::$contact->How_did_you_hear_about_Spark__c
+						. ": " . $info['hearabout-extra'];
+						
+				return $begin . $str;
+			}
+			return $begin . self::$contact->How_did_you_hear_about_Spark__c;
+		}
+		return null;
+	}
 	
 } // end class ?>

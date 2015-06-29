@@ -18,66 +18,64 @@ class AsyncSalesforce extends \SDF\Salesforce {
 	private static $DONOR_SINGLE_TEMPLATE = '00X50000001VaHS';
 	private static $DONOR_MONTHLY_TEMPLATE = '00X50000001eVEX';
 	private static $DONOR_ANNUAL_TEMPLATE = '00X50000001eVEc';
-	private static $RECURRING_TEMPLATE = '00X50000001fRwu';
+	// private static $RECURRING_TEMPLATE = '00X50000001fRwu';
 
 	public function init(&$info) {
 		try {
+
+			// We need this in a few places
+			$info['dollar-amount'] = $info['amount'] / 100;
 	
 			parent::api();
 			self::$contact = parent::get_contact($info['email']);
 
-			// We need to get the invoice details from the charge
-
+			// Get the other donations we need to know about
 			self::get_donations();
 
-		// need to update totals in the contact object
-		$this->recalc_sum($info['amount']);
+			// add a new line in the description
+			// do this before calculating sum, so that
+			// we know the recurrence type
+			self::description($info);
 
-		// add a new line in the description
-		$this->description();
+			// Calculate the totals, so we know what level
+			// the donor is
+			self::recalc_sum($info);
 
-		$this->renewal_date();
-		$this->cleanup();
 
-		$this->upsert();
-		$this->new_donation();
-		$this->send_email();
 
-		// $this->get_contact();
-		// $this->get_donations();
-		// $this->update();
-		// $this->upsert();
-		// $this->new_donation();
-		// $this->send_email();
+			// Directly update some fields
+			self::$contact->Payment_Type__c = 'Credit Card';
+			self::$contact->Paid__c = $info['dollar-amount'];
+			self::$contact->Donation_Each__c = $this->data['amount'];
+			self::$contact->Renewal_Date__c = 
+					date(parent::$DATE_FORMAT, strtotime('+1 year'));
 
-		/*
-		// these ones need to be triggered on the async side
-		$this->set_constant();
-	
-		$this->description();
+			self::$contact->Membership_Start_Date__c =
+					date(parent::$DATE_FORMAT);
 
-		$this->type();
-		$this->start_date();
-		$this->renewal_date();
+			parent::cleanup();
+			parent::upsert();
 
-		$this->first_active();
-
-		$this->unextended();
-		$this->cleanup();
-		*/
+			self::new_donation();
+			self::send_email();
+		} catch(Exception $e) {
+			sdf_message_handler(MessageTypes::LOG,
+					__FUNCTION__ . ' : General failure in AsyncSalesforce. ' 
+					. $e->faultstring);
+		}
 	}
 
 
 
 	// Find out how much the amount is for the year if it's monthly 
-	// XXX
-	private function get_ext_amount() {
-		if($this->data['recurrence-type'] == RecurrenceTypes::MONTHLY) {
+	private function get_ext_amount($recurrence, $dollar_amount) {
+		if($recurrence == RecurrenceTypes::MONTHLY) {
 			$times = 13 - intval(date('n'));
-			$this->data['amount-ext'] = $times * $this->data['amount'];
 		} else {
-			$this->data['amount-ext'] = $this->data['amount'];
+			$times = 1;
 		}
+
+		return $times * $dollar_amount;
 	}
 
 
@@ -100,7 +98,7 @@ class AsyncSalesforce extends \SDF\Salesforce {
 
 			try {
 
-				$response = static::$connection->query($query);
+				$response = parent::$connection->query($query);
 				$records = $response->records[0]->Donations__r->records;
 
 				foreach($records as $donation) {
@@ -116,201 +114,181 @@ class AsyncSalesforce extends \SDF\Salesforce {
 				}
 
 			} catch(Exception $e) {
-				sdf_message_handler(LOG, __FUNCTION__ . ' : ' . $e->faultstring);
+				// It's okay if there's no donations returned here,
+				// though our calculation will be wrong
+				sdf_message_handler(MessageTypes::LOG,
+						__FUNCTION__ . ' : ' . $e->faultstring);
 			}
 		}
 
 		$this->donations = $donations_list;
 	}
 
-	// Find out if the donation li's will update the contact's membership level
+
+	private function description(&$info) {
+		// Get the recurrence string from the invoice data
+		$invoice = json_decode($info['invoice']);
+
+		// This means the user is signed up for recurring donations
+		if($invoice['lines']['data'][0]['type'] == 'subscription') {
+			if($invoice['lines']['data'][0]['plan']['interval'] == 'year') {
+				$info['recurrence-string'] = 'Annual';
+				$info['recurrence-type'] = RecurrenceTypes::ANNUAL;
+			} else {
+				$info['recurrence-string'] = 'Monthly';
+				$info['recurrence-type'] = RecurrenceTypes::MONTHLY;
+			}
+		} else {
+			$info['recurrence-string'] = 'One time';
+			$info['recurrence-type'] = RecurrenceTypes::ONE_TIME;
+		}
+
+		setlocale(LC_MONETARY, 'en_US.UTF-8');
+
+		$fmt = $info['recurrence-string'] . ' - %.2n - ' 
+				. date('n/d/y') . ' - Online donation from '
+				. home_url() . '.';
+
+		$desc = money_format($fmt, $info['dollar-amount']);
+		$info['desc'] = $desc;
+
+		// if(!empty($this->data['inhonorof'])) {
+		// 	$this->transaction .= ' In honor of: ' 
+		// 			. $this->data['inhonorof'];
+		// }
+
+		if(isset(self::$contact->Description)) {
+			self::$contact->Description .= "\n" . $desc;
+		} else {
+			self::$contact->Description = $desc;
+		}
+	}
+
+
+	// Find out if the donation li's will update the 
+	// contact's membership level
 	// we want the TOTAL amount of donations for this calendar year
 	// and we want to know whether that passes the 75 dollar cutoff.
-	// then they are a member
-	// Also sets contact->paid__c and total__c
-	private function recalc_sum($amount = null) {
+	private function recalc_sum(&$info) {
 		$sum = 0;
 
 		foreach($this->donations as $donation) {
 			$sum += $donation['amount'];
 		}
 
-		if(!empty($amount)) {
-			$sum += $amount;
-		} else {
-			$sum += $this->data['amount-ext']; // XXX no extension, if we're updating everytime the donation goes through
-		}
-
-		if($sum >= 75) { // change to intval?
-			$this->data['is-member'] = static::$IS_MEMBER;
-		} else {
-			$this->data['is-member'] = static::$IS_NOT_MEMBER;
-		}
+		$sum += $info['dollar-amount'];
 
 		self::$contact->Total_paid_this_year__c = $sum;
-		// last amount paid
-		self::$contact->Paid__c = $this->data['amount-ext']; // XXX this amount, or what we get from the endpoint
-	}
 
-	private function member_level() {
-		$amount = self::$contact->Total_paid_this_year__c;
+		// now we'll take into account the donations we expect
+		// for the rest of the year from this donor.
+		$sum += self::get_ext_amount($info['recurrence-type'],
+				$info['dollar_amount']);
+
+
+		if($sum >= 75) { 
+			self::$contact->Type__c = 'Spark Member';
+		} else {
+			self::$contact->Type__c = 'Donor';
+		}
+		
+
+		// Get text label for membership level
 		$level = 'Donor';
 
-		if($amount >= 75 && $amount < 100) {
+		if($sum >= 75 && $sum < 100) {
 			$level = 'Friend';
-		} else if($amount >= 100 && $amount < 250) {
+		} else if($sum >= 100 && $sum < 250) {
 			$level = 'Member';
-		} else if($amount >= 250 && $amount < 500) {
+		} else if($sum >= 250 && $sum < 500) {
 			$level = 'Affiliate';
-		} else if($amount >= 500 && $amount < 1000) {
+		} else if($sum >= 500 && $sum < 1000) {
 			$level = 'Sponsor';
-		} else if($amount >= 1000 && $amount < 2500) {
+		} else if($sum >= 1000 && $sum < 2500) {
 			$level = 'Investor';
-		} else if($amount >= 2500) {
+		} else if($sum >= 2500) {
 			$level = 'Benefactor';
 		}
 
 		self::$contact->Member_Level__c = $level;
 	}
 
-	// Set the values that will always be the same
-	private function set_constant() {
-		self::$contact->Payment_Type__c = 'Credit Card';
-	}
 
-
-
-
-
-
-	// XXX
-	private function description() {
-		$this->transaction = $this->data['recurrence-string']
-			. ' - ' . $this->data['amount-string']. ' - '
-			. date('n/d/y') . ' - Online donation from ' . home_url() . '.';
-
-		if(!empty($this->data['inhonorof'])) {
-			$this->transaction .= ' In honor of: ' . $this->data['inhonorof'];
-		}
-
-		if(isset(self::$contact->Description)) {
-			$desc = self::$contact->Description . "\n" . $this->transaction;
-		} else {
-			$desc = $this->transaction;
-		}
-
-		self::$contact->Description = $desc;
-	}
-
-
-	// SalesForce Type - Donor or Member
-	private function type() {
-		$type = $this->data['is-member'] == static::$IS_MEMBER ? 'Spark Member' : 'Donor';
-		self::$contact->Type__c = $type;
-	}
-
-	private function start_date() {
-		self::$contact->Membership_Start_Date__c = date(parent::$DATE_FORMAT);
-	}
-
-	// Renewal is always updated to be one more year from now
-	private function renewal_date() {
-		self::$contact->Renewal_Date__c = date(parent::$DATE_FORMAT, strtotime('+1 year'));
-	}
-
-
-	// We need to keep track of the individual donation amount,
-	// not extended, not total for this year.
-	private function unextended() {
-		self::$contact->Donation_Each__c = $this->data['amount'];
-	}
-
-
-
-
-
-	// Uses transaction to hold donation description
 	// Create the donation line item child object
-	// Called after insert, because we have to have the contact id
-	private function new_donation() {
+	private function new_donation(&$info) {
 		$donation = new stdClass();
 		$donation->Contact__c = self::$contact->Id;
-		$donation->Amount__c = $this->data['amount-ext']; // XXX
-		$donation->Description__c = strlen($this->transaction) > 255 ? substr($this->transaction, 0, 252) . '...' : $this->transaction;
+		$donation->Amount__c = $info['amount'] / 100;
 		$donation->Donation_Date__c = date(parent::$DATE_FORMAT);
 		$donation->Type__c = 'Membership';
 
+		if(strlen($info['desc']) > 255) {
+			$donation->Description__c =
+					substr($info['desc'], 0, 252) . '...';
+		} else {
+			$donation->Description__c = $info['desc'];
+		}
+
 		try {
-			static::$connection->create(array($donation), 'Donation__c');
+			parent::$connection->create(array($donation), 'Donation__c');
 		} catch(Exception $e) {
-			sdf_message_handler(LOG, __FUNCTION__ . ' : ' . $e->faultstring);
+			sdf_message_handler(MessageTypes::LOG,
+					__FUNCTION__ . ' : ' . $e->faultstring);
 		}
 	}
 
+
 	// Send an email to the Spark team
 	// Send an email to our lovely donor
-	private function send_email() {
+	private function send_email(&$info) {
 
-		switch($this->data['recurrence-type']) {
-			case static::$MONTHLY: $template = static::$DONOR_MONTHLY_TEMPLATE; break;
-			case static::$ANNUAL: $template = static::$DONOR_ANNUAL_TEMPLATE; break;
-			case static::$ONE_TIME: $template = static::$DONOR_SINGLE_TEMPLATE; break;
+		switch($info['recurrence-type']) {
+			case RecurrenceTypes::MONTHLY: 
+					$template = self::$DONOR_MONTHLY_TEMPLATE; break;
+			case RecurrenceTypes::ANNUAL: 
+					$template = self::$DONOR_ANNUAL_TEMPLATE; break;
+			case RecurrenceTypes::ONE_TIME: 
+					$template = self::$DONOR_SINGLE_TEMPLATE; break;
 		}
 
 		$donor_email = new SingleEmailMessage();
 		$donor_email->setTemplateId($template);
 		$donor_email->setTargetObjectId(self::$contact->Id);
 		$donor_email->setReplyTo(get_option('sf_email_reply_to'));
-		$donor_email->setSenderDisplayName(static::$DISPLAY_NAME);
+		$donor_email->setSenderDisplayName(self::$DISPLAY_NAME);
 
 		try {
-			static::$connection->sendSingleEmail(array($donor_email));
+			parent::$connection->sendSingleEmail(array($donor_email));
 		} catch(Exception $e) {
-			sdf_message_handler(LOG, __FUNCTION__ . ': Donor email failure! ' . $e->faultstring);
+			sdf_message_handler(MessageTypes::LOG,
+					__FUNCTION__ . ' : Donor email failure! ' 
+					. $e->faultstring);
 		}
 
 		// Alert email
-		$hear = $this->hdyh();
-		$honor = empty($this->data['inhonorof']) ? null : 'In honor of: ' . $this->data['inhonorof'];
-
 		$body = <<<EOF
 A donation has been made!
 
 Name: {self::$contact->FirstName} {self::$contact->LastName}
-Amount: {$this->data['amount-string']}
-Recurrence: {$this->data['recurrence-string']}
+Amount: ${$info['dollar-amount']}
+Recurrence: {$info['recurrence-string']}
 Email: {self::$contact->Email}
-Location: {$this->data['city']}, {$this->data['state']}
-{$honor}
-{$hear}
+Location: {self::$contact->MailingCity}, {self::$contact->MailingState}
 EOF;
 
 		$spark_email = new SingleEmailMessage();
 		$spark_email->setSenderDisplayName('Spark Donations');
-		$spark_email->setToAddresses(explode(', ', get_option('alert_email_list')));
 		$spark_email->setPlainTextBody($body);
 		$spark_email->setSubject('New Donation Alert');
+		$spark_email->setToAddresses(explode(', ', 
+				get_option('alert_email_list')));
 
 		try {
-			static::$connection->sendSingleEmail(array($spark_email));
+			parent::$connection->sendSingleEmail(array($spark_email));
 		} catch(Exception $e) {
-			sdf_message_handler(LOG, __FUNCTION__ . ': Alert email failure! ' . $e->faultstring);
+			sdf_message_handler(MessageTypes::LOG,
+					__FUNCTION__ . ' : Alert email failure! ' 
+					. $e->faultstring);
 		}
 	}
-
-	// Get the string describing hearabout and hearabout-extra
-	private function hdyh() {
-		$begin = "How did they hear about Spark? ";
-		if(isset(self::$contact->How_did_you_hear_about_Spark__c)) {
-			if(isset($this->data['hearabout-extra']) && !empty($this->data['hearabout-extra'])) {
-				$str = self::$contact->How_did_you_hear_about_Spark__c . ": " . $this->data['hearabout-extra'];
-				return $begin . $str;
-			}
-			return $begin . self::$contact->How_did_you_hear_about_Spark__c;
-		}
-		return null;
-	}
-
-
-
 } // end class ?>
