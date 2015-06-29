@@ -24,24 +24,23 @@ function find_wordpress_base_path() {
     return null;
 }
 
-define('BASE_PATH', find_wordpress_base_path());
-require_once BASE_PATH . "/wp-load.php";
-
-// load all our goodies
-require_once "../sdf.php";
-$sdf = new sdf_data();
+require_once find_wordpress_base_path() . "/wp-load.php";
+require_once 'SDF.php';
+$sdf = new SDF();
 
 // get and unwrap request
 $body = @file_get_contents('php://input');
 $event = json_decode($body, true);
 
 if($event['type'] == 'charge.succeeded') {
-	$email = $event['data']['object']['receipt_email'];
-	$cents = $event['data']['object']['amount'];
-
+	$email   = $event['data']['object']['receipt_email'];
+	$cents   = $event['data']['object']['amount'];
+	$invoice = $event['data']['object']['invoice'];
+	
 	$info = array(
-		'email' => $email,
-		'amount' => $cents
+		'email'      => $email,
+		'amount'     => $cents,
+		'invoice-id' => $invoice
 	);
 
 	// do the rest of the processing in the class

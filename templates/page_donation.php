@@ -9,21 +9,21 @@ wp_enqueue_script('sdf_stripe', "https://js.stripe.com/v2/");
 wp_enqueue_script('sdf_spin', plugins_url('/sdf/js/spin.min.js'));
 
 wp_enqueue_script('jquery-ui', 
-	plugins_url('/sdf/js/jquery-ui.min.js'), 
-	array('jquery'));
+		plugins_url('/sdf/js/jquery-ui.min.js'), 
+		array('jquery'));
 
 wp_enqueue_script('select-to-autocomplete', 
-	plugins_url('/sdf/js/jquery.select-to-autocomplete.js'), 
-	array('jquery', 'jquery-ui'));
+		plugins_url('/sdf/js/jquery.select-to-autocomplete.js'), 
+		array('jquery', 'jquery-ui'));
 
 if(LIVEMODE) {
 	wp_enqueue_style('sdf_style',
-		plugins_url('/sdf/css/styles.css'));
+			plugins_url('/sdf/css/styles.css'));
 } else {
 	wp_enqueue_style('sdf_style',
-		plugins_url('/sdf/css/styles.css?t='.time()),
-		false,
-		'0.1');	
+			plugins_url('/sdf/css/styles.css?t='.time()),
+			array(),
+			'0.2');	
 }
 
 get_header(); ?>
@@ -46,12 +46,10 @@ get_header(); ?>
 <?php
 	if(LIVEMODE) {
 		wp_enqueue_script('sdf_donate_form_js',
-			plugins_url('/sdf/js/donate_form.min.js'),
-			false,
-			'0.2');
+				plugins_url('/sdf/js/donate_form.js'));
 	} else {
 		wp_enqueue_script('sdf_donate_form_js',
-			plugins_url('/sdf/js/donate_form.js?t='.time()));
+				plugins_url('/sdf/js/donate_form.js?t='.time()));
 	}
 ?>
 <script type="text/javascript">

@@ -8,8 +8,8 @@
 */
 
 require_once WP_PLUGIN_DIR . '/sdf/message.php';
-require_once WP_PLUGIN_DIR . '/sdf/SDFStripe.php';
-require_once WP_PLUGIN_DIR . '/sdf/SDFSalesforce.php';
+require_once WP_PLUGIN_DIR . '/sdf/Stripe.php';
+require_once WP_PLUGIN_DIR . '/sdf/Salesforce.php';
 
 
 function sdf_activate() {
@@ -456,4 +456,4 @@ function sdf_settings_link($links) {
 }
  
 $plugin = plugin_basename(__FILE__); 
-add_filter('plugin_action_links_' . $plugin, 'sdf_settings_link' );
+

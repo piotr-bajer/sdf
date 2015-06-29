@@ -3,12 +3,12 @@
 *Do the stripe parts of the donation.
 */
 
-// include the message handler
+namespace SDF;
+
 require_once WP_PLUGIN_DIR . '/sdf/message.php';
 require_once WP_PLUGIN_DIR . '/sdf/types.php';
 
-
-class SDFStripe {
+class Stripe {
 	private $stripe_plan;
 	private $stripe_customer;
 
@@ -22,24 +22,24 @@ class SDFStripe {
 
 
 	// entrypoint
-	public function charge($data) {
-		$this->amount = $data['amount'];
-		$this->amount_string = $data['amount-string'];
-		$this->token = $data['token'];
-		$this->email = $data['email'];
-		$this->name = $data['name'];
-		$this->recurrence_type = $data['recurrence-type'];
-		$this->recurrence_string = $data['recurrence-string'];
+	public function charge(&$data) {
+		self::$amount            = $data['amount-cents'];
+		self::$amount_string     = $data['amount-string'];
+		self::$token             = $data['token'];
+		self::$email             = $data['email'];
+		self::$name              = $data['name'];
+		self::$recurrence_type   = $data['recurrence-type'];
+		self::$recurrence_string = $data['recurrence-string'];
 
-		$this->api();
-		$this->invoice();
+		self::api();
+		self::invoice();
 	}
 
 
 	// This function is public since we use it to test keys input to
 	// the options page.
 	public static function api($input = null) {
-		require_once(WP_PLUGIN_DIR . '/sdf/stripe/lib/Stripe.php');
+		require_once(WP_PLUGIN_DIR . '/sdf/lib/stripe/lib/Stripe.php');
 		if(!empty($input)) {
 			Stripe::setApiKey($input);
 		} else {
@@ -49,10 +49,10 @@ class SDFStripe {
 	}
 
 	private function invoice() {
-		if($this->recurrence_type == RecurrenceTypes::ONE_TIME) {
-			$this->single_charge();
+		if(self::$recurrence_type == RecurrenceTypes::ONE_TIME) {
+			self::single_charge();
 		} else {
-			$this->recurring_charge();
+			self::recurring_charge();
 		}
 	}
 
@@ -66,14 +66,15 @@ class SDFStripe {
 			));
 		} catch(Stripe_Error $e) {
 			$body = $e->getJsonBody();
-			sdf_message_handler(MessageTypes::ERROR, $body['error']['message']);
+			sdf_message_handler(MessageTypes::ERROR,
+					$body['error']['message']);
 		}
 	}
 
 	private function recurring_charge() {
-		$this->plan();
-		$this->stripe_customer();
-		$this->subscribe();
+		self::plan();
+		self::stripe_customer();
+		self::subscribe();
 	}
 
 	// We assume that the plan has been created, and try to retrieve it
@@ -84,17 +85,20 @@ class SDFStripe {
 		try {
 			$plan = Stripe_Plan::retrieve($plan_id);
 		} catch(Stripe_Error $e) {
-			$recurrence = 
-				($this->recurrence_type == RecurrenceTypes::ANNUAL ? 'year' : 'month');
+			if(self::$recurrence_type == RecurrenceTypes::ANNUAL) {
+				$recurrence = 'year';
+			} else {
+				$recurrence = 'month';
+			}
 
-			$cents = $this->amount * 100;
+			$cents = self::$amount * 100;
 
 			$new_plan = array(
 				'id' => $plan_id,
 				'currency' => 'USD',
 				'interval' => $recurrence,
 				'amount' => $cents,
-				'name' => $this->amount_string . ' ' . $recurrence . 'ly gift'
+				'name' => self::$amount_string . ' ' . $recurrence . 'ly gift'
 			);
 
 			try {
@@ -106,34 +110,38 @@ class SDFStripe {
 			}
 		}
 
-		$this->stripe_plan = $plan;
+		self::$stripe_plan = $plan;
 	}
 
 	// Create the basic customer
 	private function stripe_customer() {
 		$info = array(
-			'card' => $this->token,
-			'email' => $this->email,
-			'description' => $this->name
+			'card' => self::$token,
+			'email' => self::$email,
+			'description' => self::$name
 		);
 
 		try {
 			$customer = Stripe_Customer::create($info);
 		} catch(Stripe_Error $e) {
 			$body = $e->getJsonBody();
-			sdf_message_handler(MessageTypes::ERROR, $body['error']['message']);
+			sdf_message_handler(MessageTypes::ERROR,
+					$body['error']['message']);
 		}
 
-		$this->stripe_customer = $customer;
+		self::$stripe_customer = $customer;
 	}
 
 	// sign up for the plan.
 	private function subscribe() {
 		try {
-			$this->stripe_customer->updateSubscription(array('plan' => $this->stripe_plan->id));
+			self::$stripe_customer->updateSubscription(
+					array('plan' => self::$stripe_plan->id));
+
 		} catch(Stripe_Error $e) {
 			$body = $e->getJsonBody();
-			sdf_message_handler(MessageTypes::ERROR, $body['error']['message']);
+			sdf_message_handler(MessageTypes::ERROR,
+					$body['error']['message']);
 		}
 	}
 } // end class ?>
