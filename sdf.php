@@ -31,7 +31,7 @@ class SDF {
 	private $data;
 
 	public function begin($postdata) {
-		self::$data = $postdata;
+		$this->data = $postdata;
 
 		self::required_fields();
 		self::hearabout_category();
@@ -79,22 +79,22 @@ class SDF {
 	private function get_sf_init_details() {
 		$info = array();
 
-		$info['first-name']      = self::$data['first-name'];
-		$info['last-name']       = self::$data['last-name'];
-		$info['email']           = self::$data['email'];
-		$info['phone']           = self::$data['tel'];
-		$info['address1']        = self::$data['address1'];
-		$info['address2']        = self::$data['address2'];
-		$info['city']            = self::$data['city'];
-		$info['state']           = self::$data['state'];
-		$info['zip']             = self::$data['zip'];
-		$info['country']         = self::$data['country'];
-		$info['company']         = self::$data['company'];
-		$info['birthday-month']  = self::$data['birthday-month'];
-		$info['birthday-year']   = self::$data['birthday-year'];
-		$info['gender']          = self::$data['gender'];
-		$info['hearabout']       = self::$data['hearabout'];
-		$info['hearabout-extra'] = self::$data['hearabout-extra'];
+		$info['first-name']      = $this->data['first-name'];
+		$info['last-name']       = $this->data['last-name'];
+		$info['email']           = $this->data['email'];
+		$info['phone']           = $this->data['tel'];
+		$info['address1']        = $this->data['address1'];
+		$info['address2']        = $this->data['address2'];
+		$info['city']            = $this->data['city'];
+		$info['state']           = $this->data['state'];
+		$info['zip']             = $this->data['zip'];
+		$info['country']         = $this->data['country'];
+		$info['company']         = $this->data['company'];
+		$info['birthday-month']  = $this->data['birthday-month'];
+		$info['birthday-year']   = $this->data['birthday-year'];
+		$info['gender']          = $this->data['gender'];
+		$info['hearabout']       = $this->data['hearabout'];
+		$info['hearabout-extra'] = $this->data['hearabout-extra'];
 
 		return $info;
 	}
@@ -102,13 +102,13 @@ class SDF {
 	private function get_stripe_details() {
 		$info = array();
 
-		$info['amount-cents']      = self::$data['amount-cents'];
-		$info['amount-string']     = self::$data['amount-string'];
-		$info['token']             = self::$data['stripe-token'];
-		$info['email']             = self::$data['email'];
-		$info['name']              = self::$data['full-name'];
-		$info['recurrence-type']   = self::$data['recurrence-type'];
-		$info['recurrence-string'] = self::$data['recurrence-string'];
+		$info['amount-cents']      = $this->data['amount-cents'];
+		$info['amount-string']     = $this->data['amount-string'];
+		$info['token']             = $this->data['stripe-token'];
+		$info['email']             = $this->data['email'];
+		$info['name']              = $this->data['full-name'];
+		$info['recurrence-type']   = $this->data['recurrence-type'];
+		$info['recurrence-string'] = $this->data['recurrence-string'];
 
 		return $info;
 	}
@@ -128,8 +128,8 @@ class SDF {
 		);
 
 		foreach($fields as $key) {
-			if(!array_key_exists($key, self::$data)
-				|| empty(self::$data[$key])) {
+			if(!array_key_exists($key, $this->data)
+				|| empty($this->data[$key])) {
 				sdf_message_handler(MessageTypes::ERROR,
 						'Error: Missing required fields.');
 			}
@@ -145,8 +145,8 @@ class SDF {
 			'Event'
 		);
 
-		if(!empty(self::$data['hearabout'])) {
-			if(!in_array(self::$data['hearabout'], $cats)) {
+		if(!empty($this->data['hearabout'])) {
+			if(!in_array($this->data['hearabout'], $cats)) {
 				sdf_message_handler(MessageTypes::LOG,
 						'Invalid hearabout category.');
 
@@ -157,9 +157,9 @@ class SDF {
 	}
 
 	private function check_email() {
-		self::$data['email'] = filter_var(
-				self::$data['email'], FILTER_SANITIZE_EMAIL);
-		if(!filter_var(self::$data['email'], FILTER_VALIDATE_EMAIL)) {
+		$this->data['email'] = filter_var(
+				$this->data['email'], FILTER_SANITIZE_EMAIL);
+		if(!filter_var($this->data['email'], FILTER_VALIDATE_EMAIL)) {
 
 			sdf_message_handler(MessageTypes::ERROR,
 					'Invalid email address.');
@@ -167,18 +167,18 @@ class SDF {
 	}
 
 	private function set_full_name() {
-		self::$data['full-name'] = 
-				self::$data['first-name'] . ' ' . self::$data['last-name'];
+		$this->data['full-name'] = 
+				$this->data['first-name'] . ' ' . $this->data['last-name'];
 	}
 
 	private function set_recurrence() {
-		if(array_key_exists('one-time', self::$data)
-				&& !empty(self::$data['one-time'])) {
+		if(array_key_exists('one-time', $this->data)
+				&& !empty($this->data['one-time'])) {
 
 			$recurrence = 'Single donation';
 			$type = RecurrenceTypes::ONE_TIME;
 		} else {
-			if(strpos(self::$data['donation'], 'annual') !== false) {
+			if(strpos($this->data['donation'], 'annual') !== false) {
 				$recurrence = 'Annual';
 				$type = RecurrenceTypes::ANNUAL;
 			} else {
@@ -187,22 +187,22 @@ class SDF {
 			}
 		}
 
-		self::$data['recurrence-type'] = $type;
-		self::$data['recurrence-string'] = $recurrence;
+		$this->data['recurrence-type'] = $type;
+		$this->data['recurrence-string'] = $recurrence;
 	}
 
 	private function set_amount() {
-		if(array_key_exists('annual-custom', self::$data)) {
-			$donated_value = self::$data['annual-custom'];
-			unset(self::$data['annual-custom']);
-		} elseif(array_key_exists('monthly-custom', self::$data)) {
-			$donated_value = self::$data['monthly-custom'];
-			unset(self::$data['monthly-custom']);
+		if(array_key_exists('annual-custom', $this->data)) {
+			$donated_value = $this->data['annual-custom'];
+			unset($this->data['annual-custom']);
+		} elseif(array_key_exists('monthly-custom', $this->data)) {
+			$donated_value = $this->data['monthly-custom'];
+			unset($this->data['monthly-custom']);
 		} else {
-			$donation = explode('-', self::$data['donation']);
+			$donation = explode('-', $this->data['donation']);
 			$donated_value = array_pop($donation);
 			$donated_value = (float) $donated_value / 100;
-			unset(self::$data['donation']);
+			unset($this->data['donation']);
 		}
 		
 		if(!is_numeric($donated_value)) {
@@ -215,8 +215,8 @@ class SDF {
 					'Invalid request. Donation amount too small.');
 		}
 
-		self::$data['amount-cents'] = $donated_value * 100;
-		self::$data['amount-string'] = '$' . $donated_value;  
+		$this->data['amount-cents'] = $donated_value * 100;
+		$this->data['amount-string'] = '$' . $donated_value;  
 	}
 
 } // end class sdf_data

@@ -10,7 +10,6 @@ require_once WP_PLUGIN_DIR . '/sdf/message.php';
 
 class AsyncSalesforce extends \SDF\Salesforce {
 
-	private $transaction;
 	private $donations;
 	private $contact;
 
@@ -27,7 +26,7 @@ class AsyncSalesforce extends \SDF\Salesforce {
 			$info['dollar-amount'] = $info['amount'] / 100;
 	
 			parent::api();
-			self::$contact = parent::get_contact($info['email']);
+			$this->contact = parent::get_contact($info['email']);
 
 			// Get the other donations we need to know about
 			self::get_donations();
@@ -44,13 +43,13 @@ class AsyncSalesforce extends \SDF\Salesforce {
 
 
 			// Directly update some fields
-			self::$contact->Payment_Type__c = 'Credit Card';
-			self::$contact->Paid__c = $info['dollar-amount'];
-			self::$contact->Donation_Each__c = $this->data['amount'];
-			self::$contact->Renewal_Date__c = 
+			$this->contact->Payment_Type__c = 'Credit Card';
+			$this->contact->Paid__c = $info['dollar-amount'];
+			$this->contact->Donation_Each__c = $this->data['amount'];
+			$this->contact->Renewal_Date__c = 
 					date(parent::$DATE_FORMAT, strtotime('+1 year'));
 
-			self::$contact->Membership_Start_Date__c =
+			$this->contact->Membership_Start_Date__c =
 					date(parent::$DATE_FORMAT);
 
 			parent::cleanup();
@@ -84,7 +83,7 @@ class AsyncSalesforce extends \SDF\Salesforce {
 	private function get_donations() {
 		$donations_list = array();
 
-		if(self::$contact->Id !== null) {
+		if($this->contact->Id !== null) {
 			// the first of the year
 			$cutoff_date = strtotime(date('Y') . '-01-01');
 
@@ -93,7 +92,7 @@ class AsyncSalesforce extends \SDF\Salesforce {
 						FROM
 							Contact
 						WHERE
-							Contact.Id = \'' . self::$contact->Id . '\'';
+							Contact.Id = \'' . $this->contact->Id . '\'';
 
 
 			try {
@@ -157,10 +156,10 @@ class AsyncSalesforce extends \SDF\Salesforce {
 		// 			. $this->data['inhonorof'];
 		// }
 
-		if(isset(self::$contact->Description)) {
-			self::$contact->Description .= "\n" . $desc;
+		if(isset($this->contact->Description)) {
+			$this->contact->Description .= "\n" . $desc;
 		} else {
-			self::$contact->Description = $desc;
+			$this->contact->Description = $desc;
 		}
 	}
 
@@ -178,7 +177,7 @@ class AsyncSalesforce extends \SDF\Salesforce {
 
 		$sum += $info['dollar-amount'];
 
-		self::$contact->Total_paid_this_year__c = $sum;
+		$this->contact->Total_paid_this_year__c = $sum;
 
 		// now we'll take into account the donations we expect
 		// for the rest of the year from this donor.
@@ -187,9 +186,9 @@ class AsyncSalesforce extends \SDF\Salesforce {
 
 
 		if($sum >= 75) { 
-			self::$contact->Type__c = 'Spark Member';
+			$this->contact->Type__c = 'Spark Member';
 		} else {
-			self::$contact->Type__c = 'Donor';
+			$this->contact->Type__c = 'Donor';
 		}
 		
 
@@ -210,14 +209,14 @@ class AsyncSalesforce extends \SDF\Salesforce {
 			$level = 'Benefactor';
 		}
 
-		self::$contact->Member_Level__c = $level;
+		$this->contact->Member_Level__c = $level;
 	}
 
 
 	// Create the donation line item child object
 	private function new_donation(&$info) {
 		$donation = new stdClass();
-		$donation->Contact__c = self::$contact->Id;
+		$donation->Contact__c = $this->contact->Id;
 		$donation->Amount__c = $info['amount'] / 100;
 		$donation->Donation_Date__c = date(parent::$DATE_FORMAT);
 		$donation->Type__c = 'Membership';
@@ -253,7 +252,7 @@ class AsyncSalesforce extends \SDF\Salesforce {
 
 		$donor_email = new SingleEmailMessage();
 		$donor_email->setTemplateId($template);
-		$donor_email->setTargetObjectId(self::$contact->Id);
+		$donor_email->setTargetObjectId($this->contact->Id);
 		$donor_email->setReplyTo(get_option('sf_email_reply_to'));
 		$donor_email->setSenderDisplayName(self::$DISPLAY_NAME);
 
@@ -269,11 +268,11 @@ class AsyncSalesforce extends \SDF\Salesforce {
 		$body = <<<EOF
 A donation has been made!
 
-Name: {self::$contact->FirstName} {self::$contact->LastName}
+Name: {$this->contact->FirstName} {$this->contact->LastName}
 Amount: ${$info['dollar-amount']}
 Recurrence: {$info['recurrence-string']}
-Email: {self::$contact->Email}
-Location: {self::$contact->MailingCity}, {self::$contact->MailingState}
+Email: {$this->contact->Email}
+Location: {$this->contact->MailingCity}, {$this->contact->MailingState}
 EOF;
 
 		$spark_email = new SingleEmailMessage();

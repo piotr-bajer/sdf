@@ -18,7 +18,7 @@ class UCSalesforce extends \SDF\Salesforce {
 		try {
 
 			parent::api();
-			self::$contact = parent::get_contact($info['email']);
+			$this->contact = parent::get_contact($info['email']);
 			self::merge_contact($info);
 			parent::upsert();
 
@@ -38,25 +38,25 @@ class UCSalesforce extends \SDF\Salesforce {
 
 		// Set basic member level, update later when we
 		// get capture confirmation
-		if(!isset(self::$contact->Member_Level__c)) {
-			self::$contact->Member_Level__c = 'Donor';
+		if(!isset($this->contact->Member_Level__c)) {
+			$this->contact->Member_Level__c = 'Donor';
 		}
 
 		// This person is obviously active, since they're
 		// submitting their information on this form
-		self::$contact->Contact_Status__c = 'Active';
-		self::$contact->Active_Member__c = true;
+		$this->contact->Contact_Status__c = 'Active';
+		$this->contact->Active_Member__c = true;
 
 		// Setup their company
-		if(!isset(self::$contact->AccountId)) {
+		if(!isset($this->contact->AccountId)) {
 			if(!isset($info['company'])) {
-				self::$contact->AccountId = static::$FRIEND_OF_SPARK;
+				$this->contact->AccountId = static::$FRIEND_OF_SPARK;
 			} else {
 				$id = self::company($info['company']);
 				if(is_null($id)) {
-					self::$contact->AccountId = static::$FRIEND_OF_SPARK;
+					$this->contact->AccountId = static::$FRIEND_OF_SPARK;
 				} else {
-					self::$contact->AccountId = $id;
+					$this->contact->AccountId = $id;
 				}
 			}
 		}
@@ -65,45 +65,45 @@ class UCSalesforce extends \SDF\Salesforce {
 		// We just blindly take whatever the contact submits.
 		// To improve this, we should notify the team when there
 		// is an existing value, and the new value is different.
-		self::$contact->FirstName = $info['first-name'];
-		self::$contact->LastName  = $info['last-name'];
+		$this->contact->FirstName = $info['first-name'];
+		$this->contact->LastName  = $info['last-name'];
 
 		// Address, taking the same strategy as name.
 		if(empty($info['address2'])) {
-			self::$contact->MailingStreet = $info['address1'];
+			$this->contact->MailingStreet = $info['address1'];
 		} else {
-			self::$contact->MailingStreet = 
+			$this->contact->MailingStreet = 
 					$info['address1']
 					. "\n"
 					. $info['address2'];
 		}
 
-		self::$contact->MailingCity       = $info['city'];
-		self::$contact->MailingState      = $info['state'];
-		self::$contact->MailingPostalCode = $info['zip'];
-		self::$contact->MailingCountry    = $info['country'];
+		$this->contact->MailingCity       = $info['city'];
+		$this->contact->MailingState      = $info['state'];
+		$this->contact->MailingPostalCode = $info['zip'];
+		$this->contact->MailingCountry    = $info['country'];
 
 		// Phone number
-		self::$contact->Phone = $info['tel'];
+		$this->contact->Phone = $info['tel'];
 
 		// Email
 		// This is safe because the contact's email will
 		// either be null or the given address
-		self::$contact->Email = $info['email'];
+		$this->contact->Email = $info['email'];
 
-		if(!isset(self::$contact->First_Active_Date__c)) {
-			self::$contact->First_Active_Date__c =
+		if(!isset($this->contact->First_Active_Date__c)) {
+			$this->contact->First_Active_Date__c =
 					date(parent::$DATE_FORMAT);
 		}
 
 		// Same strategy as name.
 		if(!empty($info['gender'])) {
-			self::$contact->Gender__c = ucfirst($info['gender']);
+			$this->contact->Gender__c = ucfirst($info['gender']);
 		}
 	
 		// Every contact needs an 'Owner'
-		if(!isset(self::$contact->Board_Member_Contact_Owner__c)) {
-			self::$contact->Board_Member_Contact_Owner__c = 'Amanda Brock';
+		if(!isset($this->contact->Board_Member_Contact_Owner__c)) {
+			$this->contact->Board_Member_Contact_Owner__c = 'Amanda Brock';
 		}
 	
 		// Birth month and year
@@ -115,14 +115,14 @@ class UCSalesforce extends \SDF\Salesforce {
 
 			// if strtotime bailed out, we will too
 			if($birthday != false) {
-				self::$contact->Birth_Month_Year__c = date('m/Y', $birthday);
+				$this->contact->Birth_Month_Year__c = date('m/Y', $birthday);
 			}
 		}
 
 
 		if(!empty($info['hearabout'])) {
-			if(!isset(self::$contact->How_did_you_hear_about_Spark__c)) {
-				self::$contact->How_did_you_hear_about_Spark__c =
+			if(!isset($this->contact->How_did_you_hear_about_Spark__c)) {
+				$this->contact->How_did_you_hear_about_Spark__c =
 						ucfirst($info['hearabout']);
 			}
 
@@ -130,11 +130,11 @@ class UCSalesforce extends \SDF\Salesforce {
 			if($info['hearabout'] == 'Friend') {
 				if(!empty($info['hearabout-extra'])) {
 
-					if(!isset(self::$contact->Referred_By__c)) {
+					if(!isset($this->contact->Referred_By__c)) {
 						$id = search_salesforce(SearchBy::NAME,
 								$info['hearabout-extra']);
 
-						self::$contact->Referred_By__c = $id;
+						$this->contact->Referred_By__c = $id;
 					}
 				}
 			}
@@ -178,16 +178,16 @@ class UCSalesforce extends \SDF\Salesforce {
 	// Unused.
 	private function hdyh(&$info) {
 		$begin = "How did they hear about Spark? ";
-		if(isset(self::$contact->How_did_you_hear_about_Spark__c)) {
+		if(isset($this->contact->How_did_you_hear_about_Spark__c)) {
 			if(isset($info['hearabout-extra'])
 						&& !empty($info['hearabout-extra'])) {
 
-				$str = self::$contact->How_did_you_hear_about_Spark__c
+				$str = $this->contact->How_did_you_hear_about_Spark__c
 						. ": " . $info['hearabout-extra'];
 						
 				return $begin . $str;
 			}
-			return $begin . self::$contact->How_did_you_hear_about_Spark__c;
+			return $begin . $this->contact->How_did_you_hear_about_Spark__c;
 		}
 		return null;
 	}

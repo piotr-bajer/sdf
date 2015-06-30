@@ -23,13 +23,13 @@ class Stripe {
 
 	// entrypoint
 	public function charge(&$data) {
-		self::$amount            = $data['amount-cents'];
-		self::$amount_string     = $data['amount-string'];
-		self::$token             = $data['token'];
-		self::$email             = $data['email'];
-		self::$name              = $data['name'];
-		self::$recurrence_type   = $data['recurrence-type'];
-		self::$recurrence_string = $data['recurrence-string'];
+		$this->$amount            = $data['amount-cents'];
+		$this->$amount_string     = $data['amount-string'];
+		$this->$token             = $data['token'];
+		$this->$email             = $data['email'];
+		$this->$name              = $data['name'];
+		$this->$recurrence_type   = $data['recurrence-type'];
+		$this->$recurrence_string = $data['recurrence-string'];
 
 		self::api();
 		self::invoice();
@@ -49,7 +49,7 @@ class Stripe {
 	}
 
 	private function invoice() {
-		if(self::$recurrence_type == RecurrenceTypes::ONE_TIME) {
+		if($this->recurrence_type == RecurrenceTypes::ONE_TIME) {
 			self::single_charge();
 		} else {
 			self::recurring_charge();
@@ -85,40 +85,42 @@ class Stripe {
 		try {
 			$plan = \Stripe_Plan::retrieve($plan_id);
 		} catch(\Stripe_Error $e) {
-			if(self::$recurrence_type == RecurrenceTypes::ANNUAL) {
+			if($this->$recurrence_type == RecurrenceTypes::ANNUAL) {
 				$recurrence = 'year';
 			} else {
 				$recurrence = 'month';
 			}
 
-			$cents = self::$amount * 100;
+			$cents = $this->amount * 100;
 
 			$new_plan = array(
 				'id' => $plan_id,
 				'currency' => 'USD',
 				'interval' => $recurrence,
 				'amount' => $cents,
-				'name' => self::$amount_string . ' ' . $recurrence . 'ly gift'
+				'name' => $this->amount_string . ' ' . $recurrence . 'ly gift'
 			);
 
 			try {
 				$plan = \Stripe_Plan::create($new_plan);
 			} catch(\Stripe_Error $e) {
 				$body = $e->getJsonBody();
-				sdf_message_handler(MessageTypes::LOG, __FUNCTION__ . ' : ' . $body['error']['message']);
-				sdf_message_handler(MessageTypes::ERROR, 'Something\'s not right. Please try again.');
+				sdf_message_handler(MessageTypes::LOG,
+						__FUNCTION__ . ' : ' . $body['error']['message']);
+				sdf_message_handler(MessageTypes::ERROR,
+						'Something\'s not right. Please try again.');
 			}
 		}
 
-		self::$stripe_plan = $plan;
+		$this->stripe_plan = $plan;
 	}
 
 	// Create the basic customer
 	private function stripe_customer() {
 		$info = array(
-			'card' => self::$token,
-			'email' => self::$email,
-			'description' => self::$name
+			'card' => $this->token,
+			'email' => $this->email,
+			'description' => $this->name
 		);
 
 		try {
@@ -129,13 +131,13 @@ class Stripe {
 					$body['error']['message']);
 		}
 
-		self::$stripe_customer = $customer;
+		$this->stripe_customer = $customer;
 	}
 
 	// sign up for the plan.
 	private function subscribe() {
 		try {
-			self::$stripe_customer->updateSubscription(
+			$this->stripe_customer->updateSubscription(
 					array('plan' => self::$stripe_plan->id));
 
 		} catch(\Stripe_Error $e) {
