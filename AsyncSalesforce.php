@@ -11,7 +11,7 @@ require_once WP_PLUGIN_DIR . '/sdf/message.php';
 class AsyncSalesforce extends \SDF\Salesforce {
 
 	private $donations;
-	private $contact;
+	protected $contact;
 
 	private static $DISPLAY_NAME = 'Spark';
 	private static $DONOR_SINGLE_TEMPLATE = '00X50000001VaHS';
@@ -215,7 +215,7 @@ class AsyncSalesforce extends \SDF\Salesforce {
 
 	// Create the donation line item child object
 	private function new_donation(&$info) {
-		$donation = new stdClass();
+		$donation = new \stdClass();
 		$donation->Contact__c = $this->contact->Id;
 		$donation->Amount__c = $info['amount'] / 100;
 		$donation->Donation_Date__c = date(parent::$DATE_FORMAT);

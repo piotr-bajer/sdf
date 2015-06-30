@@ -49,7 +49,7 @@ class Salesforce {
 	// This method queries the data in SalesForce using the provided email
 	protected function get_contact($email = null) {
 
-		$contact = new stdClass();
+		$contact = new \stdClass();
 		$id = null;
 
 		try {
@@ -118,14 +118,14 @@ class Salesforce {
 
 	// Send the data to Salesforce
 	protected function upsert() {
-		if(isset(self::$contact->Id)) {
+		if(isset($this->contact->Id)) {
 			// update on id.
-			self::$connection->update(array(self::$contact), 'Contact');
+			self::$connection->update(array($this->contact), 'Contact');
 
 		} else {
 			// create new contact.
 			$response = array_pop(self::$connection->create(
-					array(self::$contact), 'Contact'));
+					array($this->contact), 'Contact'));
 
 			if(empty($response->success)) {
 				$e = new \Exception();

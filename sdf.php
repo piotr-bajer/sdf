@@ -129,7 +129,7 @@ class SDF {
 		foreach($fields as $key) {
 			if(!array_key_exists($key, $this->data)
 				|| empty($this->data[$key])) {
-				sdf_message_handler(MessageTypes::ERROR,
+				sdf_message_handler(\SDF\MessageTypes::ERROR,
 						'Error: Missing required fields.');
 			}
 		}
@@ -146,7 +146,7 @@ class SDF {
 
 		if(!empty($this->data['hearabout'])) {
 			if(!in_array($this->data['hearabout'], $cats)) {
-				sdf_message_handler(MessageTypes::LOG,
+				sdf_message_handler(\SDF\MessageTypes::LOG,
 						'Invalid hearabout category.');
 
 				unset($data['hearabout']);
@@ -160,7 +160,7 @@ class SDF {
 				$this->data['email'], FILTER_SANITIZE_EMAIL);
 		if(!filter_var($this->data['email'], FILTER_VALIDATE_EMAIL)) {
 
-			sdf_message_handler(MessageTypes::ERROR,
+			sdf_message_handler(\SDF\MessageTypes::ERROR,
 					'Invalid email address.');
 		}
 	}
@@ -175,14 +175,14 @@ class SDF {
 				&& !empty($this->data['one-time'])) {
 
 			$recurrence = 'Single donation';
-			$type = RecurrenceTypes::ONE_TIME;
+			$type = \SDF\RecurrenceTypes::ONE_TIME;
 		} else {
 			if(strpos($this->data['donation'], 'annual') !== false) {
 				$recurrence = 'Annual';
-				$type = RecurrenceTypes::ANNUAL;
+				$type = \SDF\RecurrenceTypes::ANNUAL;
 			} else {
 				$recurrence = 'Monthly';
-				$type = RecurrenceTypes::MONTHLY;
+				$type = \SDF\RecurrenceTypes::MONTHLY;
 			}
 		}
 
@@ -209,7 +209,7 @@ class SDF {
 		}
 
 		if($donated_value <= 0.50) {
-			sdf_message_handler(MessageTypes::ERROR,
+			sdf_message_handler(\SDF\MessageTypes::ERROR,
 					'Invalid request. Donation amount too small.');
 		}
 
@@ -223,14 +223,14 @@ class SDF {
 // Ajax response function
 function sdf_parse() {
 	if(!isset($_POST['data'])) {
-		sdf_message_handler(MessageTypes::LOG,
+		sdf_message_handler(\SDF\MessageTypes::LOG,
 				__FUNCTION__ . ' No data received');
 
 	} else {
 		$sdf = new SDF();
 		$sdf->begin($_POST['data']);
 		unset($_POST['data']);
-		sdf_message_handler(MessageTypes::SUCCESS,
+		sdf_message_handler(\SDF\MessageTypes::SUCCESS,
 				'Thank you for your donation!');
 	}
 	

@@ -138,7 +138,7 @@ class Stripe {
 	private function subscribe() {
 		try {
 			$this->stripe_customer->updateSubscription(
-					array('plan' => self::$stripe_plan->id));
+					array('plan' => $this->stripe_plan->id));
 
 		} catch(\Stripe_Error $e) {
 			$body = $e->getJsonBody();

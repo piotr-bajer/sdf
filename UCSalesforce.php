@@ -10,7 +10,7 @@ require_once WP_PLUGIN_DIR . '/sdf/message.php';
 
 class UCSalesforce extends \SDF\Salesforce {
 
-	private $contact;
+	protected $contact;
 
 	private static $FRIEND_OF_SPARK = '00130000007qhRG';
 
@@ -152,7 +152,7 @@ class UCSalesforce extends \SDF\Salesforce {
 			if(count($records->searchRecords)) {
 				$id = $records->searchRecords[0]->Id;
 			} else {
-				$company = new stdClass();
+				$company = new \stdClass();
 				$company->Name = $name;
 
 				$created = static::$connection->create(

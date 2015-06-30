@@ -1,7 +1,7 @@
 <?php
 /**
-message handler
-*/
+ * message handler
+ */
 
 require_once WP_PLUGIN_DIR . '/sdf/types.php';
 
@@ -15,9 +15,9 @@ function sdf_message_handler($type, $message) {
 	// data.message = message
 
 	switch($type) {
-		case MessageTypes::ERROR: $type = 'error'; break;
-		case MessageTypes::SUCCESS: $type = 'success'; break;
-		case MessageTypes::LOG: $type = 'log'; break;
+		case \SDF\MessageTypes::ERROR: $type = 'error'; break;
+		case \SDF\MessageTypes::SUCCESS: $type = 'success'; break;
+		case \SDF\MessageTypes::LOG: $type = 'log'; break;
 	}
 
 	$logmessage = time() . ' - ' . $type . ' - ' . $message . PHP_EOL;
@@ -48,7 +48,9 @@ function sdf_clean_log() {
 	
 	ftruncate($handle, 0);
 	rewind($handle);
-	fwrite($handle, time() . ' - Cron run. ' . $linecount . ' lines cleared.' . PHP_EOL);
+	fwrite($handle, time() . ' - Cron run. '
+			. $linecount . ' lines cleared.' . PHP_EOL);
+	
 	fclose($handle);
 }
 

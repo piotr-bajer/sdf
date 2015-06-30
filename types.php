@@ -1,7 +1,9 @@
 <?php
 /**
-Define some static types for the other classes
+ * Define some static types for the other classes
 */
+
+namespace SDF;
 
 abstract class RecurrenceTypes {
 	const ONE_TIME = 0;
