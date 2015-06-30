@@ -29,7 +29,7 @@ class Salesforce {
 		require_once(WP_PLUGIN_DIR
 				. '/sdf/lib/salesforce/soapclient/SforceEnterpriseClient.php');
 
-		$connection = new SforceEnterpriseClient();
+		$connection = new \SforceEnterpriseClient();
 		$connection->createConnection(
 				WP_PLUGIN_DIR . '/sdf/lib/salesforce/soapclient/sdf.wsdl.jsp.xml');
 
@@ -76,7 +76,7 @@ class Salesforce {
 				$contact = array_pop(self::$connection->retrieve(
 						$fieldlist, 'Contact', array($id)));
 			}
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			// We can catch this error here because
 			// we'll just use the form values everywhere
 			sdf_message_handler(MessageTypes::LOG,
@@ -128,7 +128,7 @@ class Salesforce {
 					array(self::$contact), 'Contact'));
 
 			if(empty($response->success)) {
-				$e = new Exception();
+				$e = new \Exception();
 				$e->faultstring = $response->errors[0]->message;
 				throw $e;
 			} 
@@ -145,7 +145,7 @@ class Salesforce {
 			. "\n\nAnd here's the error message:\n"
 			. $error_message;
 
-		$spark_email = new SingleEmailMessage();
+		$spark_email = new \SingleEmailMessage();
 		$spark_email->setSenderDisplayName('Spark Donations');
 		$spark_email->setToAddresses(explode(', ',
 		 		get_option('alert_email_list')));

@@ -41,11 +41,11 @@ class Stripe {
 	public static function api($input = null) {
 		require_once(WP_PLUGIN_DIR . '/sdf/lib/stripe/lib/Stripe.php');
 		if(!empty($input)) {
-			Stripe::setApiKey($input);
+			\Stripe::setApiKey($input);
 		} else {
-			Stripe::setApiKey(get_option('stripe_api_secret_key'));
+			\Stripe::setApiKey(get_option('stripe_api_secret_key'));
 		}
-		Stripe::setApiVersion('2013-08-13');
+		\Stripe::setApiVersion('2013-08-13');
 	}
 
 	private function invoice() {
@@ -58,13 +58,13 @@ class Stripe {
 
 	private function single_charge() {
 		try {
-			Stripe_Charge::create(array(
+			\Stripe_Charge::create(array(
 				'amount' => $this->amount,
 				'card' => $this->token,
 				'currency' => 'usd',
 				'description' => $this->email
 			));
-		} catch(Stripe_Error $e) {
+		} catch(\Stripe_Error $e) {
 			$body = $e->getJsonBody();
 			sdf_message_handler(MessageTypes::ERROR,
 					$body['error']['message']);
@@ -83,8 +83,8 @@ class Stripe {
 		$plan_id = strtolower($this->recurrence_string) . '-' . $this->amount;
 
 		try {
-			$plan = Stripe_Plan::retrieve($plan_id);
-		} catch(Stripe_Error $e) {
+			$plan = \Stripe_Plan::retrieve($plan_id);
+		} catch(\Stripe_Error $e) {
 			if(self::$recurrence_type == RecurrenceTypes::ANNUAL) {
 				$recurrence = 'year';
 			} else {
@@ -102,8 +102,8 @@ class Stripe {
 			);
 
 			try {
-				$plan = Stripe_Plan::create($new_plan);
-			} catch(Stripe_Error $e) {
+				$plan = \Stripe_Plan::create($new_plan);
+			} catch(\Stripe_Error $e) {
 				$body = $e->getJsonBody();
 				sdf_message_handler(MessageTypes::LOG, __FUNCTION__ . ' : ' . $body['error']['message']);
 				sdf_message_handler(MessageTypes::ERROR, 'Something\'s not right. Please try again.');
@@ -122,8 +122,8 @@ class Stripe {
 		);
 
 		try {
-			$customer = Stripe_Customer::create($info);
-		} catch(Stripe_Error $e) {
+			$customer = \Stripe_Customer::create($info);
+		} catch(\Stripe_Error $e) {
 			$body = $e->getJsonBody();
 			sdf_message_handler(MessageTypes::ERROR,
 					$body['error']['message']);
@@ -138,7 +138,7 @@ class Stripe {
 			self::$stripe_customer->updateSubscription(
 					array('plan' => self::$stripe_plan->id));
 
-		} catch(Stripe_Error $e) {
+		} catch(\Stripe_Error $e) {
 			$body = $e->getJsonBody();
 			sdf_message_handler(MessageTypes::ERROR,
 					$body['error']['message']);
