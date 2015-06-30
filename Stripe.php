@@ -23,13 +23,13 @@ class Stripe {
 
 	// entrypoint
 	public function charge(&$data) {
-		$this->$amount            = $data['amount-cents'];
-		$this->$amount_string     = $data['amount-string'];
-		$this->$token             = $data['token'];
-		$this->$email             = $data['email'];
-		$this->$name              = $data['name'];
-		$this->$recurrence_type   = $data['recurrence-type'];
-		$this->$recurrence_string = $data['recurrence-string'];
+		$this->amount            = $data['amount-cents'];
+		$this->amount_string     = $data['amount-string'];
+		$this->token             = $data['token'];
+		$this->email             = $data['email'];
+		$this->name              = $data['name'];
+		$this->recurrence_type   = $data['recurrence-type'];
+		$this->recurrence_string = $data['recurrence-string'];
 
 		self::api();
 		self::invoice();
@@ -85,7 +85,7 @@ class Stripe {
 		try {
 			$plan = \Stripe_Plan::retrieve($plan_id);
 		} catch(\Stripe_Error $e) {
-			if($this->$recurrence_type == RecurrenceTypes::ANNUAL) {
+			if($this->recurrence_type == RecurrenceTypes::ANNUAL) {
 				$recurrence = 'year';
 			} else {
 				$recurrence = 'month';
