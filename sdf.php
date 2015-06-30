@@ -23,6 +23,8 @@ require_once WP_PLUGIN_DIR . '/sdf/message.php';
 require_once WP_PLUGIN_DIR . '/sdf/wordpress.php';
 require_once WP_PLUGIN_DIR . '/sdf/Stripe.php';
 require_once WP_PLUGIN_DIR . '/sdf/Salesforce.php';
+require_once WP_PLUGIN_DIR . '/sdf/UCSalesforce.php';
+require_once WP_PLUGIN_DIR . '/sdf/AsyncSalesforce.php';
 
 class SDF {
 

@@ -142,7 +142,7 @@ class UCSalesforce extends \SDF\Salesforce {
 	}
 
 	// Find the company by name, or create a new company
-	private function company($name)f{
+	private function company($name) {
 		$search = 'FIND {"' . seld::data['company'] 
 			. '"} IN NAME FIELDS RETURNING Account(Id)';
 
