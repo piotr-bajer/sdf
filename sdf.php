@@ -201,7 +201,6 @@ class SDF {
 		} else {
 			$donation = explode('-', $this->data['donation']);
 			$donated_value = array_pop($donation);
-			$donated_value = (float) $donated_value / 100;
 			unset($this->data['donation']);
 		}
 		
