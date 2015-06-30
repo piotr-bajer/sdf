@@ -39,7 +39,6 @@ class SDF {
 		self::set_full_name();
 		self::set_amount();
 		self::set_recurrence();
-		self::get_ext_amount();
 
 		self::do_stripe();
 		self::do_init_salesforce();
