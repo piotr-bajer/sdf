@@ -321,7 +321,7 @@ function sdf_print_spark_details_form() { ?>
 // Test the given stripe credential
 function sdf_stripe_secret_sanitize($input) {
 	if(strlen($input)) {
-		SDFStripe::api($input);
+		\SDF\Stripe::api($input);
 		try {
 			$count = Stripe_Plan::all()->count;
 		} catch(Stripe_Error $e) {
@@ -348,7 +348,7 @@ function sdf_salesforce_api_check($input) {
 			&& get_option('salesforce_password')) {
 
 			try {
-				SDFSalesforce::api($input);
+				\SDF\Salesforce::api($input);
 			} catch(Exception $e) {
 				$message = '<span id="source">Salesforce error:</span> ' 
 					. htmlspecialchars($e->faultstring);
