@@ -211,7 +211,7 @@ class SDF {
 			$donated_value = preg_replace('/[^\d]/i', '', $donated_value);
 		}
 
-		if($donated_value <= 0.50) {
+		if($donated_value <= 50) {
 			sdf_message_handler(\SDF\MessageTypes::ERROR,
 					'Invalid request. Donation amount too small.');
 		}
