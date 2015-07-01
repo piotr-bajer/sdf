@@ -25,7 +25,7 @@ function find_wordpress_base_path() {
 }
 
 require_once find_wordpress_base_path() . "/wp-load.php";
-require_once 'SDF.php';
+require_once 'sdf.php';
 $sdf = new SDF();
 
 // get and unwrap request
