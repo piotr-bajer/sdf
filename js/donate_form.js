@@ -117,7 +117,7 @@ sdf.validation = (function($) {
 	}
 
 	self.destroy_associated_input = function(el) {
-		// TODO: I probably should remove the element. DOM stuff is expensive.
+		// TODO: I probably shouldn't remove the element. DOM stuff is expensive.
 		// Maybe just convert this stuff to shows and hides? I am hesitant to do
 		// shows and hides because, again, I don't know what the backend is
 		// expecting. A hidden form element will still get submitted, a destroyed
@@ -327,7 +327,7 @@ sdf.validation = (function($) {
 
 				$('.alert').append('<p class="'	+ data.type + '">' + data.message + '</p>').show();
 				document.getElementsByClassName('alert')[0].scrollIntoView();
-				
+
 				if(data.type == 'error') {
 					// don't clear error for now.
 					self.enable_submit();
