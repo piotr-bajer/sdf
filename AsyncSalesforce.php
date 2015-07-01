@@ -142,8 +142,6 @@ class AsyncSalesforce extends \SDF\Salesforce {
 			$info['recurrence-type'] = RecurrenceTypes::ONE_TIME;
 		}
 
-		setlocale(LC_MONETARY, 'en_US.UTF-8');
-
 		$fmt = $info['recurrence-string'] . ' - %.2n - ' 
 				. date('n/d/y') . ' - Online donation from '
 				. home_url() . '.';

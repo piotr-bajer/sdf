@@ -31,6 +31,8 @@ class SDF {
 	private $data;
 
 	public function begin($postdata) {
+		setlocale(LC_MONETARY, 'en_US.UTF-8');
+
 		$this->data = $postdata;
 
 		self::required_fields();
@@ -47,6 +49,7 @@ class SDF {
 
 	// this is an alternative entrypoint to the sdf class.
 	public function do_stripe_endpoint(&$info) {
+		setlocale(LC_MONETARY, 'en_US.UTF-8');
 		sdf_message_handler(MessageTypes::LOG, 'Endpoint request received.');
 
 		// get the plan details attached to this charge
@@ -204,8 +207,8 @@ class SDF {
 		}
 		
 		if(!is_numeric($donated_value)) {
-			// replace anything not numeric or a . with nothing
-			$donated_value = preg_replace('/([^0-9\\.])/i', '', $donated_value);
+			// replace anything not numeric with nothing
+			$donated_value = preg_replace('/[^\d]/i', '', $donated_value);
 		}
 
 		if($donated_value <= 0.50) {
@@ -213,8 +216,8 @@ class SDF {
 					'Invalid request. Donation amount too small.');
 		}
 
-		$this->data['amount-cents'] = $donated_value * 100;
-		$this->data['amount-string'] = '$' . $donated_value;  
+		$this->data['amount-cents'] = $donated_value;
+		$this->data['amount-string'] = money_format('%.2n', $donated_value / 100);  
 	}
 
 } // end class sdf_data
