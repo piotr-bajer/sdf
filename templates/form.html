@@ -1,44 +1,39 @@
 <div id="sdf_form">
-	<!-- Use this to preload the donate button. Using js to preload sucks. -->
+	<!-- Use this to preload the donate button. -->
 	<div class="preloader">&nbsp;</div>
 	<form method="post">
 		<h1>Make a Donation</h1>
 
 		<div id="gift_amount_field">
-			<fieldset>
+			<fieldset class="donation-fieldset">
 				<legend>Make an annual gift:</legend>
-				<input class="amount" type="radio" name="donation" id="annual-75" value="annual-75" required>
-				<label class="amount-label button-look" for="annual-75">$75</label>
-				<input class="amount" type="radio" name="donation" id="annual-100" value="annual-100" required>
-				<label class="amount-label button-look" for="annual-100">$100</label>
-				<input class="amount" type="radio" name="donation" id="annual-250" value="annual-250" required>
-				<label class="amount-label button-look" for="annual-250">$250</label>
-				<input class="amount" type="radio" name="donation" id="annual-500" value="annual-500" required>
-				<label class="amount-label button-look" for="annual-500">$500</label>
-				<input class="amount" type="radio" name="donation" id="annual-1000" value="annual-1000" required>
-				<label class="amount-label button-look" for="annual-1000">$1000</label>
-				<input class="amount" type="radio" name="donation" id="annual-2500" value="annual-2500" required>
-				<label class="amount-label button-look" for="annual-2500">$2500</label>
-				<label class="custom-amount-label button-look" for="annual-custom">Custom amount</label>
+
+				<a class="amount-label annual button-look">$75</a>
+				<a class="amount-label annual button-look">$100</a>
+				<a class="amount-label annual button-look">$250</a>
+				<a class="amount-label annual button-look">$500</a>
+				<a class="amount-label annual button-look">$1000</a>
+				<a class="amount-label annual button-look">$2500</a>
+
+				<a class="custom-amount-label annual button-look">Custom amount</a>
 			</fieldset>
-			<fieldset>
+			<fieldset class="donation-fieldset">
 				<legend>Or, make a monthly gift:</legend>
-				<input class="amount" type="radio" name="donation" id="monthly-5" value="monthly-5" required>
-				<label class="amount-label button-look" for="monthly-5">$5</label>
-				<input class="amount" type="radio" name="donation" id="monthly-10" value="monthly-10" required>
-				<label class="amount-label button-look" for="monthly-10">$10</label>
-				<input class="amount" type="radio" name="donation" id="monthly-20" value="monthly-20" checked required>
-				<label class="selected amount-label button-look" for="monthly-20">$20</label>
-				<input class="amount" type="radio" name="donation" id="monthly-50" value="monthly-50" required>
-				<label class="amount-label button-look" for="monthly-50">$50</label>
-				<input class="amount" type="radio" name="donation" id="monthly-100" value="monthly-100" required>
-				<label class="amount-label button-look" for="monthly-100">$100</label>
-				<input class="amount" type="radio" name="donation" id="monthly-200" value="monthly-200" required>
-				<label class="amount-label button-look" for="monthly-200">$200</label>
-				<label class="custom-amount-label button-look" for="monthly-custom">Custom amount</label>
+
+				<a class="amount-label monthly button-look">$5</a>
+				<a class="amount-label monthly button-look">$10</a>
+				<a class="selected amount-label monthly button-look">$20</a>
+				<a class="amount-label monthly button-look">$50</a>
+				<a class="amount-label monthly button-look">$100</a>
+				<a class="amount-label monthly button-look">$200</a>
+
+				<a class="custom-amount-label monthly button-look">Custom amount</a>
 			</fieldset>
+
 			<input type="checkbox" name="one-time" id="one-time">
 			<label id="one-time-label" for="one-time">No thanks, I only want to make a one-time gift of the amount above.</label>
+
+			
 		</div>
 
 		<br>
@@ -110,8 +105,8 @@
 		<input class="sdf-zipcode" maxlength="10" name="zip" id="zip" type="text" required>
 
 		<label for="country">Country:</label>
-		<select name="country" id="country" autofocus="autofocus" autocorrect="off" autocomplete="off">
-			<option value="" selected="selected">Select Country</option>
+		<select name="country" id="country" =autocorrect="off" autocomplete="off" class="wider">
+			<option value="United States" data-relevancy-booster="3.5" data-alternative-spellings="US USA United States of America">United States</option>
 			<option value="Afghanistan" data-alternative-spellings="AF افغانستان">Afghanistan</option>
 			<option value="Åland Islands" data-alternative-spellings="AX Aaland Aland" data-relevancy-booster="0.5">Åland Islands</option>
 			<option value="Albania" data-alternative-spellings="AL">Albania</option>
@@ -347,7 +342,6 @@
 			<option value="Ukraine" data-alternative-spellings="UA Ukrayina Україна">Ukraine</option>
 			<option value="United Arab Emirates" data-alternative-spellings="AE UAE الإمارات">United Arab Emirates</option>
 			<option value="United Kingdom" data-alternative-spellings="GB Great Britain England UK Wales Scotland Northern Ireland" data-relevancy-booster="2.5">United Kingdom</option>
-			<option value="United States" data-relevancy-booster="3.5" data-alternative-spellings="US USA United States of America">United States</option>
 			<option value="United States Minor Outlying Islands" data-alternative-spellings="UM">United States Minor Outlying Islands</option>
 			<option value="Uruguay" data-alternative-spellings="UY">Uruguay</option>
 			<option value="Uzbekistan" data-alternative-spellings="UZ Ўзбекистон O'zbekstan O‘zbekiston">Uzbekistan</option>
@@ -379,18 +373,11 @@
 		<input class="date-input sdf-cc_expiry_mo" maxlength="2" id="cc-exp-mo" name="cc-exp-mo" placeholder="MM" data-regex-name="cc_expiry_month" required>
 		<span id="cc-exp-separator">/</span>
 		<input class="date-input sdf-cc_expiry_year" maxlength="4" id="cc-exp-year" name="cc-exp-year" placeholder="YY" data-regex-name="cc_expiry_year" required>
-		<hr class="dashed-line">
 
-		<input type="checkbox" id="copy-personal-info" class="js-copy-personal-info">
-		<label id="copy-personal-info-label" for="copy-personal-info">Copy billing information from above?</label>
+		<div style="clear: both; line-height: 0em; height: 1px; font-size: 1px;">&nbsp;</div>
 
-		<div id="js-cc-fields">
-			<label for="cc-name">Name on Card: <span class="label-required">*</span></label>
-			<input class="wider" type="text" id="cc-name" name="cc-name" required>
-			<br>
-			<label for="cc-zip">ZIP / Postal Code: <span class="label-required">*</span></label>
-			<input class="sdf-cc_zipcode" maxlength="10" type="text" id="cc-zip" name="cc-zip" required>
-		</div>
+		<label for="cc-zip">ZIP / Postal Code: <span class="label-required">*</span></label>
+		<input class="sdf-cc_zipcode" maxlength="10" type="text" id="cc-zip" name="cc-zip" required>
 
 		<input type="hidden" name="stripe-token" id="stripe-token">
 

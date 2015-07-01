@@ -116,23 +116,6 @@ sdf.validation = (function($) {
 		}
 	}
 
-	self.setup_copy_info = function() {
-		// TODO: this is really hacky and could use some refinement.
-		var input = $('#copy-personal-info');
-		input.change(function(e) {
-			var first = self.elems.form.find('#first-name').val(),
-				last = self.elems.form.find('#last-name').val(),
-				zip = self.elems.form.find('#zip').val();
-			if ($(this).prop('checked') === true) {
-				$('#cc-name').val(first + ' ' + last);
-				$('#cc-zip').val(zip);
-			} else {
-				$('#cc-name').val('');
-				$('#cc-zip').val('');
-			}
-		});
-	}
-
 	self.destroy_associated_input = function(el) {
 		// TODO: I probably should remove the element. DOM stuff is expensive.
 		// Maybe just convert this stuff to shows and hides? I am hesitant to do
@@ -165,7 +148,6 @@ sdf.validation = (function($) {
 		self.setup_amount_clicks();
 		self.setup_submit_event();
 		self.setup_goto_error();
-		self.setup_copy_info();
 		self.setup_close_errors_button();
 
 	}
@@ -198,7 +180,7 @@ sdf.validation = (function($) {
 			var el = $(this);
 			el.on('click', function(e) {
 
-				e.preventDefault();
+				// e.preventDefault();
 
 				customs.removeClass('selected');
 				labels.removeClass('selected');
