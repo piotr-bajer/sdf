@@ -131,7 +131,7 @@ class UCSalesforce extends Salesforce {
 				if(!empty($info['hearabout-extra'])) {
 
 					if(!isset($this->contact->Referred_By__c)) {
-						$id = search_salesforce(SearchBy::NAME,
+						$id = parent::search_salesforce(SearchBy::NAME,
 								$info['hearabout-extra']);
 
 						$this->contact->Referred_By__c = $id;
