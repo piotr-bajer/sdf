@@ -118,7 +118,9 @@ class SDF {
 
 	private function required_fields() {
 		$fields = array(
-			'donation',
+			'annual-value',
+			'monthly-value',
+			'amount-to-use',
 			'first-name',
 			'last-name',
 			'email',
@@ -176,12 +178,12 @@ class SDF {
 
 	private function set_recurrence() {
 		if(array_key_exists('one-time', $this->data)
-				&& !empty($this->data['one-time'])) {
+				&& $this->data['one-time'] == 'on') {
 
 			$recurrence = 'Single donation';
 			$type = \SDF\RecurrenceTypes::ONE_TIME;
 		} else {
-			if(strpos($this->data['donation'], 'annual') !== false) {
+			if(strpos($this->data['amount-to-use'], 'annual') !== false) {
 				$recurrence = 'Annual';
 				$type = \SDF\RecurrenceTypes::ANNUAL;
 			} else {
@@ -195,30 +197,34 @@ class SDF {
 	}
 
 	private function set_amount() {
-		if(array_key_exists('annual-custom', $this->data)) {
-			$donated_value = $this->data['annual-custom'];
-			unset($this->data['annual-custom']);
-		} elseif(array_key_exists('monthly-custom', $this->data)) {
-			$donated_value = $this->data['monthly-custom'];
-			unset($this->data['monthly-custom']);
-		} else {
-			$donation = explode('-', $this->data['donation']);
-			$donated_value = array_pop($donation);
-			unset($this->data['donation']);
-		}
-		
-		if(!is_numeric($donated_value)) {
-			// replace anything not numeric with nothing
-			$donated_value = preg_replace('/[^\d]/i', '', $donated_value);
-		}
+		$donated_value =
+				self::get_cents($this->data[$this->data['amount-to-use']]);
 
-		if($donated_value <= 50) {
+		if($donated_value <= 50) { // cents
 			sdf_message_handler(\SDF\MessageTypes::ERROR,
 					'Invalid request. Donation amount too small.');
 		}
 
 		$this->data['amount-cents'] = $donated_value;
 		$this->data['amount-string'] = money_format('%.2n', $donated_value / 100);  
+	}
+
+	private function get_cents($value_string) {
+		if(strpos($value_string, '.') !== false) {
+			// this value is in dollars
+			$donated_value = 100 * intval($value_string);
+		} else {
+			$ex = explode('.', $value_string);
+			$donated_value = 100 * intval($ex[0]);
+			$donated_value += intval($ex[1]);
+		}
+
+		if(!is_numeric($donated_value)) {
+			sdf_message_handler(\SDF\MessageTypes::ERROR,
+					'Unable to parse donation amount.');
+		}
+
+		return $donated_value;
 	}
 
 } // end class sdf_data
