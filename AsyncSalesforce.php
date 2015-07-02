@@ -57,7 +57,7 @@ class AsyncSalesforce extends Salesforce {
 
 			self::new_donation($info);
 			self::send_email($info);
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			sdf_message_handler(MessageTypes::LOG,
 					__FUNCTION__ . ' : General failure in AsyncSalesforce. ' 
 					. $e->faultstring);
@@ -112,7 +112,7 @@ class AsyncSalesforce extends Salesforce {
 					}
 				}
 
-			} catch(Exception $e) {
+			} catch(\Exception $e) {
 				// It's okay if there's no donations returned here,
 				// though our calculation will be wrong
 				sdf_message_handler(MessageTypes::LOG,
@@ -228,7 +228,7 @@ class AsyncSalesforce extends Salesforce {
 
 		try {
 			parent::$connection->create(array($donation), 'Donation__c');
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			sdf_message_handler(MessageTypes::LOG,
 					__FUNCTION__ . ' : ' . $e->faultstring);
 		}
@@ -248,7 +248,7 @@ class AsyncSalesforce extends Salesforce {
 					$template = self::$DONOR_SINGLE_TEMPLATE; break;
 		}
 
-		$donor_email = new SingleEmailMessage();
+		$donor_email = new \SingleEmailMessage();
 		$donor_email->setTemplateId($template);
 		$donor_email->setTargetObjectId($this->contact->Id);
 		$donor_email->setReplyTo(get_option('sf_email_reply_to'));
@@ -256,7 +256,7 @@ class AsyncSalesforce extends Salesforce {
 
 		try {
 			parent::$connection->sendSingleEmail(array($donor_email));
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			sdf_message_handler(MessageTypes::LOG,
 					__FUNCTION__ . ' : Donor email failure! ' 
 					. $e->faultstring);
@@ -273,7 +273,7 @@ Email: {$this->contact->Email}
 Location: {$this->contact->MailingCity}, {$this->contact->MailingState}
 EOF;
 
-		$spark_email = new SingleEmailMessage();
+		$spark_email = new \SingleEmailMessage();
 		$spark_email->setSenderDisplayName('Spark Donations');
 		$spark_email->setPlainTextBody($body);
 		$spark_email->setSubject('New Donation Alert');
@@ -282,7 +282,7 @@ EOF;
 
 		try {
 			parent::$connection->sendSingleEmail(array($spark_email));
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			sdf_message_handler(MessageTypes::LOG,
 					__FUNCTION__ . ' : Alert email failure! ' 
 					. $e->faultstring);
