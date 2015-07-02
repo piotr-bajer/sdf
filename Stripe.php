@@ -92,8 +92,6 @@ class Stripe {
 				$recurrence = 'month';
 			}
 
-			$cents = $this->amount * 100;
-
 			$new_plan = array(
 				'id' => $plan_id,
 				'currency' => 'USD',
