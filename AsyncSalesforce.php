@@ -17,7 +17,6 @@ class AsyncSalesforce extends Salesforce {
 	private static $DONOR_SINGLE_TEMPLATE = '00X50000001VaHS';
 	private static $DONOR_MONTHLY_TEMPLATE = '00X50000001eVEX';
 	private static $DONOR_ANNUAL_TEMPLATE = '00X50000001eVEc';
-	// private static $RECURRING_TEMPLATE = '00X50000001fRwu';
 
 	public function init(&$info) {
 		try {
@@ -61,6 +60,8 @@ class AsyncSalesforce extends Salesforce {
 			sdf_message_handler(MessageTypes::LOG,
 					__FUNCTION__ . ' : General failure in AsyncSalesforce. ' 
 					. $e->faultstring);
+
+			parent::emergency_email($info, $e->faultstring);
 		}
 	}
 

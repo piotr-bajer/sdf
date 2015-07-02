@@ -140,7 +140,7 @@ class Salesforce {
 	// so we don't lose the user data.
 	// XXX untested?
 	protected function emergency_email(&$info, &$error_message) {
-		$body = "Something went wrong, and this contact was not inserted into Salesforce.\n"
+		$body = "Something went wrong, and this info was not inserted into Salesforce.\n"
 			. "Here is the contact info:\n"
 			. strval($info)
 			. "\n\nAnd here's the error message:\n"
