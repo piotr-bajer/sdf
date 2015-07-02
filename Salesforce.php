@@ -108,10 +108,11 @@ class Salesforce {
 	}
 
 	// This function removes empty fields from the contact object
+	// must be called from context with contact property
 	protected function cleanup() {
-		foreach(self::$contact as $property => $value) {
+		foreach($this->contact as $property => $value) {
 			if(is_null($value)) {
-				unset(self::$contact->$property);
+				unset($this->contact->$property);
 			}
 		}
 	}
