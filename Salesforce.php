@@ -89,7 +89,7 @@ class Salesforce {
 
 	// Searches SalesForce for a contact object,
 	// Returns their ID or null
-	private function search_salesforce($search, $needle) {
+	protected function search_salesforce($search, $needle) {
 		if($search == SearchBy::EMAIL) {
 			$query = 'FIND {"' 
 					. $needle . '"} IN EMAIL FIELDS RETURNING CONTACT(ID)';
