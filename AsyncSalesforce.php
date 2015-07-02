@@ -8,7 +8,7 @@ namespace SDF;
 require_once WP_PLUGIN_DIR . '/sdf/types.php';
 require_once WP_PLUGIN_DIR . '/sdf/message.php';
 
-class AsyncSalesforce extends \SDF\Salesforce {
+class AsyncSalesforce extends Salesforce {
 
 	private $donations;
 	protected $contact;
@@ -126,7 +126,7 @@ class AsyncSalesforce extends \SDF\Salesforce {
 
 	private function description(&$info) {
 		// Get the recurrence string from the invoice data
-		$invoice = json_decode($info['invoice']);
+		$invoice = json_decode($info['invoice'], true);
 
 		// This means the user is signed up for recurring donations
 		if($invoice['lines']['data'][0]['type'] == 'subscription') {

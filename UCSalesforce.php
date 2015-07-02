@@ -1,6 +1,6 @@
 <?php
 /*
-	Do unconditional update of contact info in salesforce.
+	Do UnConditional update of contact info in salesforce.
 */
 
 namespace SDF;
@@ -8,7 +8,7 @@ namespace SDF;
 require_once WP_PLUGIN_DIR . '/sdf/types.php';
 require_once WP_PLUGIN_DIR . '/sdf/message.php';
 
-class UCSalesforce extends \SDF\Salesforce {
+class UCSalesforce extends Salesforce {
 
 	protected $contact;
 
