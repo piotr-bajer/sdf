@@ -6,12 +6,6 @@
 * be updated in Salesforce.
 */
 
-// steps
-// get and unwrap json from stripe
-// based on which type of event it is:
-// look up the customer in salesforce
-// update their info and write back
-
 // we need the wordpress options stuff to be loaded
 function find_wordpress_base_path() {
     $dir = dirname(__FILE__);

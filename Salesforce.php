@@ -21,7 +21,7 @@ require_once WP_PLUGIN_DIR . '/sdf/message.php';
 class Salesforce {
 
 	protected static $connection;
-	private static $DATE_FORMAT = 'Y-m-d';
+	protected static $DATE_FORMAT = 'Y-m-d';
 
 	// This function is public to allow verification from settings page
 	// just like the Stripe API

@@ -8,7 +8,7 @@ namespace SDF;
 require_once WP_PLUGIN_DIR . '/sdf/types.php';
 require_once WP_PLUGIN_DIR . '/sdf/message.php';
 
-class AsyncSalesforce extends \SDF\Salesforce {
+class AsyncSalesforce extends Salesforce {
 
 	private $donations;
 	protected $contact;
