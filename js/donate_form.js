@@ -149,6 +149,9 @@ sdf.validation = (function($) {
 					.attr('value', self.to_int(el.text()))
 					.attr('required', '');
 
+				$('#amount-to-use', self.elems.form)
+					.attr('value', el.attr('data-target-id'));
+
 				el.addClass('selected');
 
 			});
@@ -170,6 +173,9 @@ sdf.validation = (function($) {
 					.show()
 					.attr('required', '')
 					.focus();
+
+				$('#amount-to-use', self.elems.form)
+					.attr('value', el.attr('data-target-id'));
 
 				el.addClass('selected');
 

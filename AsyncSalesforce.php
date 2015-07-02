@@ -126,7 +126,7 @@ class AsyncSalesforce extends \SDF\Salesforce {
 
 	private function description(&$info) {
 		// Get the recurrence string from the invoice data
-		$invoice = json_decode($info['invoice']);
+		$invoice = json_decode($info['invoice'], true);
 
 		// This means the user is signed up for recurring donations
 		if($invoice['lines']['data'][0]['type'] == 'subscription') {
