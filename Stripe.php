@@ -39,7 +39,8 @@ class Stripe {
 	// This function is public since we use it to test keys input to
 	// the options page.
 	public static function api($input = null) {
-		require_once(WP_PLUGIN_DIR . '/sdf/lib/stripe/lib/Stripe.php');
+		require_once WP_PLUGIN_DIR . '/sdf/lib/stripe/lib/Stripe.php';
+
 		if(!empty($input)) {
 			\Stripe::setApiKey($input);
 		} else {

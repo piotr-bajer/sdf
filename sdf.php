@@ -55,7 +55,8 @@ class SDF {
 		// get the plan details attached to this charge
 		$stripe = new \SDF\Stripe();
 		$stripe->api();
-		$info['invoice'] = \Stripe\Stripe\Invoice::retrieve($info['invoice-id']);
+
+		$info['invoice'] = \Stripe_Invoice::retrieve($info['invoice-id']);
 
 		// send it to salesforce
 		$salesforce = new \SDF\AsyncSalesforce();
