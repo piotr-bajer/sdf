@@ -55,8 +55,8 @@ class AsyncSalesforce extends Salesforce {
 			parent::cleanup();
 			parent::upsert();
 
-			self::new_donation();
-			self::send_email();
+			self::new_donation($info);
+			self::send_email($info);
 		} catch(Exception $e) {
 			sdf_message_handler(MessageTypes::LOG,
 					__FUNCTION__ . ' : General failure in AsyncSalesforce. ' 
