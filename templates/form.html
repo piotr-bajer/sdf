@@ -7,32 +7,32 @@
 		<div id="gift_amount_field">
 			<fieldset class="donation-fieldset">
 				<legend>Make an annual gift:</legend>
-
-				<a class="amount-label annual button-look">$75</a>
-				<a class="amount-label annual button-look">$100</a>
-				<a class="amount-label annual button-look">$250</a>
-				<a class="amount-label annual button-look">$500</a>
-				<a class="amount-label annual button-look">$1000</a>
-				<a class="amount-label annual button-look">$2500</a>
-
-				<a class="custom-amount-label annual button-look">Custom amount</a>
+				<a data-target-id="annual-value" class="amount-label annual button-look">$75</a>
+				<a data-target-id="annual-value" class="amount-label annual button-look">$100</a>
+				<a data-target-id="annual-value" class="amount-label annual button-look">$250</a>
+				<a data-target-id="annual-value" class="amount-label annual button-look">$500</a>
+				<a data-target-id="annual-value" class="amount-label annual button-look">$1000</a>
+				<a data-target-id="annual-value" class="amount-label annual button-look">$2500</a>
+				<a data-target-id="annual-value" for="annual-value" class="custom-amount-label annual button-look">Custom amount</a>
+				<input class="amount-input" data-regex-name="custom_amount" type="text"
+					name="annual-value" id="annual-value" style="display: none;" value="50">
 			</fieldset>
 			<fieldset class="donation-fieldset">
 				<legend>Or, make a monthly gift:</legend>
-
-				<a class="amount-label monthly button-look">$5</a>
-				<a class="amount-label monthly button-look">$10</a>
-				<a class="selected amount-label monthly button-look">$20</a>
-				<a class="amount-label monthly button-look">$50</a>
-				<a class="amount-label monthly button-look">$100</a>
-				<a class="amount-label monthly button-look">$200</a>
-
-				<a class="custom-amount-label monthly button-look">Custom amount</a>
+				<a data-target-id="monthly-value" class="amount-label monthly button-look">$5</a>
+				<a data-target-id="monthly-value" class="amount-label monthly button-look">$10</a>
+				<a data-target-id="monthly-value" class="selected amount-label monthly button-look">$20</a>
+				<a data-target-id="monthly-value" class="amount-label monthly button-look">$50</a>
+				<a data-target-id="monthly-value" class="amount-label monthly button-look">$100</a>
+				<a data-target-id="monthly-value" class="amount-label monthly button-look">$200</a>
+				<a data-target-id="monthly-value" class="custom-amount-label monthly button-look">Custom amount</a>
+				<input class="amount-input" type="text" name="monthly-value"
+					id="monthly-value" data-regex-name="custom_amount" style="display:
+					none;" value="20" required>
 			</fieldset>
 
 			<input type="checkbox" name="one-time" id="one-time">
 			<label id="one-time-label" for="one-time">No thanks, I only want to make a one-time gift of the amount above.</label>
-
 
 		</div>
 
@@ -408,6 +408,8 @@
 		</span>
 		<!-- In order for validation to work, each of these error IDs must be the same
 		as the id of the input it is validating with the 'invalid-' prefix -->
+		<span id="invalid-monthly-value" class="sdf-error-msg" style="display:none;">A custom amount needs to be provided.</span>
+		<span id="invalid-annual-value" class="sdf-error-msg" style="display:none;">A custom amount needs to be provided.</span>
 		<span id="invalid-first-name" class="sdf-error-msg" style="display:none;">Name is required.</span>
 		<span id="invalid-last-name" class="sdf-error-msg" style="display:none;">Last name is required.</span>
 		<span id="invalid-birthday-month" class="sdf-error-msg" style="display:none;">Please enter a valid month. Format: MM</span>

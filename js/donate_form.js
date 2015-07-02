@@ -56,7 +56,6 @@ sdf.validation = (function($) {
 		submit: {},
 		loading: {},
 		error_container: {},
-		saved: [], // save array of elements to revive
 	};
 
 	self.spinner = {
@@ -85,51 +84,6 @@ sdf.validation = (function($) {
 		console.log("Error: " + e.message + ". From: " + e.from);
 	}
 
-	self.amount_validate = function() {
-		return false;
-	}
-
-	self.activate_custom_amount = function(el) {
-		var input_id = el.attr('for');
-		if (typeof self.elems.saved[input_id] !== 'undefined') {
-			el.after(self.elems.saved[input_id]);
-			$(self.elems.saved[input_id]).focus();
-		} else {
-			var new_input = document.createElement('input');
-			new_input.setAttribute('class', self.class_prefix + '-custom_amount amount');
-			new_input.setAttribute('placeholder', 'Custom amount');
-			new_input.setAttribute('required', '');
-			new_input.setAttribute('type', 'text');
-			new_input.setAttribute('id', input_id);
-			new_input.setAttribute('data-regex-name', 'custom_amount');
-			new_input.name = $(el).attr('for');
-			new_input = $(new_input);
-
-			// TODO: This code is not DRY (see setup_form_change_validate above).
-			// Maybe do something about this?
-			new_input.change(function (e) {
-				self.validate(self.elems.form);
-			});
-
-			el.after(new_input);
-			new_input.focus();
-		}
-	}
-
-	self.destroy_associated_input = function(el) {
-		// TODO: I probably shouldn't remove the element. DOM stuff is expensive.
-		// Maybe just convert this stuff to shows and hides? I am hesitant to do
-		// shows and hides because, again, I don't know what the backend is
-		// expecting. A hidden form element will still get submitted, a destroyed
-		// one will not.
-		var input_id = el.attr('for');
-		var to_remove = $('#' + input_id);
-		if (to_remove.exists()) {
-			self.elems.saved[input_id] = to_remove;
-			to_remove.remove();
-		} // else nothing to remove
-	}
-
 	self.attach_validation_to_form = function() {
 
 		if (!self.elems.form.exists()) {
@@ -149,6 +103,7 @@ sdf.validation = (function($) {
 		self.setup_submit_event();
 		self.setup_goto_error();
 		self.setup_close_errors_button();
+		$('#hearabout').change(self.hearabout_change);
 
 	}
 
@@ -184,31 +139,15 @@ sdf.validation = (function($) {
 
 				customs.removeClass('selected');
 				labels.removeClass('selected');
-				els.prop('checked', false);
 
-				// TODO: Really we should just have one input for the amount that gets
-				// populated by all of the label onclicks. This also works for the
-				// "custom" amount field. We could just use 2 inputs, one for annual
-				// and one for monthly, each targeted by their respected set of values.
-				// This way, when the user clicks "custom amount" it will be prefilled
-				// with the amount already selected, and instead of the destroying the
-				// element when we click a preset value, we just hide the input form
-				// element and populate it with the new data. But, it works as is and I
-				// don't want to screw with the input arrangements because that would
-				// entail touching the backend stuff to deal with newly arranged
-				// inputs.
+				// Hide all custom form inputs when any non-custom field is clicked.
+				self.hide_amount_inputs();
 
-				customs.each(function(idx) {
-					self.destroy_associated_input($(this));
-				});
-
-				// I don't think we need this because a label with the 'for' attribute
-				// will automatically mark its associated input as checked.
-				// On second thought, what if this function kills that action? Maybe I
-				// should keep this enabled.
-				// input.name = label.for
-				//$('#' + self.opts.ids.form + ' #' + el.attr('for'))
-					//.prop('checked', true);
+				// Get the inner text of the link targeting the custom input and set
+				// the value of the input to the inner text value of the link.
+				$('#' + el.attr("data-target-id"), self.elems.form)
+					.attr('value', self.to_int(el.text()))
+					.attr('required', '');
 
 				el.addClass('selected');
 
@@ -224,17 +163,32 @@ sdf.validation = (function($) {
 				// update labels and elements with selected and checked properties
 				customs.removeClass('selected');
 				labels.removeClass('selected');
-				els.prop('checked', false);
 
-				$.each(customs, function(idx) {
-					self.destroy_associated_input($(this));
-				});
-				self.activate_custom_amount(el);
+				self.hide_amount_inputs();
+
+				$('#' + el.attr('data-target-id'), self.elems.form )
+					.show()
+					.attr('required', '')
+					.focus();
 
 				el.addClass('selected');
 
 			});
 		});
+	}
+
+	self.hide_amount_inputs = function() {
+		$('.amount-input', self.elems.form).each(function(idx) {
+			var el = $(this);
+			el.removeAttr('required')
+				.removeClass('invalid')
+				.hide();
+			$('#invalid-' + el.attr('name')).hide();
+		});
+	}
+
+	self.to_int = function(str) {
+		return parseInt(str.replace(/^[^0-9]/g, ''));
 	}
 
 	self.setup_goto_error = function() {
@@ -425,7 +379,6 @@ sdf.validation = (function($) {
 			var el = $(this),
 				regex_data =  el.attr('data-regex-name');
 			if (typeof regex_data !== 'undefined') { // check regex
-
 				if (el.val().match(self.opts.regex[regex_data])) {
 					el.removeClass('invalid');
 					$('#invalid-' + $(el).attr('id')).hide();
@@ -434,9 +387,7 @@ sdf.validation = (function($) {
 					$('#invalid-' + $(el).attr('id')).show();
 					is_valid = false;
 				}
-
 			} else { // just check if blank
-
 				// IE doesn't support "".trim(). Fantastic.
 				if ($.trim(el.val()) !== '') {
 					el.removeClass('invalid');
@@ -446,9 +397,7 @@ sdf.validation = (function($) {
 					$('#invalid-' + $(el).attr('id')).show();
 					is_valid = false;
 				}
-
 			}
-
 		});
 
 		if (!self.has_errors()) {
@@ -464,13 +413,12 @@ sdf.validation = (function($) {
 		self.elems.submit = $('#' + self.opts.ids.submit);
 		self.elems.form = $('#' + self.opts.ids.form + ' form');
 		self.elems.error_container = $('#' + self.opts.ids.error_container);
+
 		try {
 			self.attach_validation_to_form();
 		} catch (e) {
 			self.log_error(e);
 		}
-
-		$('#hearabout').change(self.hearabout_change);
 	}
 
 	return { init:init }

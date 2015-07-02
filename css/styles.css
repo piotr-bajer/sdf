@@ -92,19 +92,20 @@ September 2013
 	color:red;
 	font-size: 1.5em;
 }
-#sdf_form label.button-look {
+#sdf_form .button-look {
 	padding:6px 8px;
 	border:1px solid #BBB;
 	background-color: #FFF;
 	-webkit-border-radius:8px;
 	-moz-border-radius:8px;
 	border-radius:8px;
-	margin:5px 10px;
+	margin: 5px 2px;
 	display:inline-block;
 	cursor: pointer;
 }
-#sdf_form label.selected {
+#sdf_form .selected {
 	background-color: #EF4AA8;
+	color: #ffffff;
 	position:relative;
 	padding:7px 9px;
 	-webkit-box-shadow:#000 1px 1px 3px;

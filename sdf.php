@@ -50,12 +50,12 @@ class SDF {
 	// this is an alternative entrypoint to the sdf class.
 	public function do_stripe_endpoint(&$info) {
 		setlocale(LC_MONETARY, 'en_US.UTF-8');
-		sdf_message_handler(MessageTypes::LOG, 'Endpoint request received.');
+		sdf_message_handler(\SDF\MessageTypes::LOG, 'Endpoint request received.');
 
 		// get the plan details attached to this charge
 		$stripe = new \SDF\Stripe();
 		$stripe->api();
-		$info['invoice'] = \Stripe\Invoice::retrieve($info['invoice-id']);
+		$info['invoice'] = \Stripe\Stripe\Invoice::retrieve($info['invoice-id']);
 
 		// send it to salesforce
 		$salesforce = new \SDF\AsyncSalesforce();
