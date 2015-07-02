@@ -254,15 +254,28 @@ sdf.validation = (function($) {
 		});
 	}
 
+	self.alert_handler = function(type, msg) {
+		var alert_el = document.getElementsByClassName('alert')[0];
+
+		while(alert_el.firstChild) {
+			alert_el.removeChild(alert_el.firstChild);
+		}
+
+		$('.alert').append(
+			'<p class="' + type + '">'
+				+ msg
+			+ '</p>');
+
+		alert_el.scrollIntoView();
+	} 
+
 	self.stripe_response_handler = function(status, response) {
 		var data = {};
 		response = (typeof response !== 'undefined') ? response : {};
 
 		if(response.error) {
 
-			$('.alert').append('<p class="error">' + response.error.message + '</p>');
-			document.getElementsByClassName('alert')[0].scrollIntoView();
-
+			self.alert_handler('error', response.error.message);
 			self.enable_submit();
 			self.hide_loading();
 
@@ -285,8 +298,7 @@ sdf.validation = (function($) {
 
 				data = JSON.parse(data);
 
-				$('.alert').append('<p class="'	+ data.type + '">' + data.message + '</p>').show();
-				document.getElementsByClassName('alert')[0].scrollIntoView();
+				self.alert_handler(data.type, data.message);
 
 				if(data.type == 'error') {
 					// don't clear error for now.
