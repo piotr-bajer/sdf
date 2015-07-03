@@ -22,7 +22,7 @@ class UCSalesforce extends Salesforce {
 			self::merge_contact($info);
 			parent::upsert();
 
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			sdf_message_handler(MessageTypes::LOG,
 					__FUNCTION__ . ' : ' . $e->faultstring);
 			
@@ -130,12 +130,10 @@ class UCSalesforce extends Salesforce {
 			if($info['hearabout'] == 'Friend') {
 				if(!empty($info['hearabout-extra'])) {
 
-					if(!isset($this->contact->Referred_By__c)) {
-						$id = parent::search_salesforce(SearchBy::NAME,
-								$info['hearabout-extra']);
+					$id = parent::search_salesforce(SearchBy::NAME,
+							$info['hearabout-extra']);
 
-						$this->contact->Referred_By__c = $id;
-					}
+					$this->contact->Referred_By__c = $id;
 				}
 			}
 		}
@@ -161,7 +159,7 @@ class UCSalesforce extends Salesforce {
 				$id = $created[0]->id;
 			}
 
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			// We can also keep this error suppressed
 			// because knowing the contact's company is not required.
 			sdf_message_handler(MessageTypes::LOG,

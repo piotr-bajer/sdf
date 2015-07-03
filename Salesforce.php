@@ -95,7 +95,7 @@ class Salesforce {
 					. $needle . '"} IN EMAIL FIELDS RETURNING CONTACT(ID)';
 		} elseif($search == SearchBy::NAME) {
 			$query = 'FIND {"' 
-					. $needle . '"} IN NAME FIELDS RETURNING CONTACT(ID)';
+					. $needle . '"} IN ALL FIELDS RETURNING CONTACT(ID)';
 		}
 		
 		$response = self::$connection->search($query);
@@ -129,9 +129,7 @@ class Salesforce {
 					array($this->contact), 'Contact'));
 
 			if(empty($response->success)) {
-				$e = new \Exception();
-				$e->faultstring = $response->errors[0]->message;
-				throw $e;
+				throw new \Exception($response->errors[0]->message, 1);
 			} 
 		}
 	}
