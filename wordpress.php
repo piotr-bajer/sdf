@@ -209,7 +209,7 @@ function sdf_print_email_settings_form() { ?>
 	<tr valign="top">
 		<th scope="row">
 			Notification addresses:<br>
-			<span id="note">(Separate emails with a comma and space)</span>
+			<span class="note">(Separate emails with a comma and space)</span>
 		</th>
 		<td>
 			<input class="sdf-wide" 
@@ -220,7 +220,10 @@ function sdf_print_email_settings_form() { ?>
 		</td>
 	</tr>
 	<tr valign="top">
-		<th scope="row">Reply-to:</th>
+		<th scope="row">
+			Reply-to:<br>
+			<span class="note">(Required)</span>
+		</th>
 		<td>
 			<input class="sdf-wide" 
 				type="text"
