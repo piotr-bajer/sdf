@@ -42,8 +42,8 @@ class SDF {
 		self::set_amount();
 		self::set_recurrence();
 
-		self::do_stripe();
 		self::do_init_salesforce();
+		self::do_stripe();
 	}
 
 
@@ -70,7 +70,9 @@ class SDF {
 
 		// send it to salesforce
 		$salesforce = new \SDF\AsyncSalesforce();
-		$salesforce->init($info);
+
+		// returns http code
+		return $salesforce->init($info);
 	}
 
 

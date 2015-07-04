@@ -44,7 +44,9 @@ if($event['type'] == 'charge.succeeded') {
 	);
 
 	// do the rest of the processing in the class
-	$sdf->do_stripe_endpoint($info);
+	$response_code = $sdf->do_stripe_endpoint($info);
+
+	http_response_code($response_code);
 }
 
 // this must be present or else the charge will be held

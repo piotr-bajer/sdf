@@ -27,6 +27,13 @@ class AsyncSalesforce extends Salesforce {
 			parent::api();
 			$this->contact = parent::get_contact($info['email']);
 
+			if(is_null($this->contact->Id)) {
+				// the contact hasn't been created yet?
+				sdf_message_handler(RecurrenceTypes::LOG, 'contact not ready');
+				// http status code 424 failed dependency
+				return 424;
+			}
+
 			// Get the other donations we need to know about
 			self::get_donations();
 
@@ -62,6 +69,9 @@ class AsyncSalesforce extends Salesforce {
 
 			parent::emergency_email($info, $msg);
 		}
+
+		// status code ok
+		return 200;
 	}
 
 
