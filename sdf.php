@@ -307,7 +307,7 @@ if(is_admin()) {
 add_action('template_redirect', 'sdf_template');
 add_action('wp_head', 'sdf_ajaxurl');
 
-// XXX not working
+$plugin = plugin_basename(__FILE__); 
 add_filter('plugin_action_links_' . $plugin, 'sdf_settings_link' );
 
 register_activation_hook(__FILE__, 'sdf_activate');

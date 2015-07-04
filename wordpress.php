@@ -454,6 +454,3 @@ function sdf_settings_link($links) {
 	array_unshift($links, $settings_link); 
 	return $links; 
 }
- 
-$plugin = plugin_basename(__FILE__); 
-
