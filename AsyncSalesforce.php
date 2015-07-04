@@ -254,37 +254,20 @@ class AsyncSalesforce extends Salesforce {
 		$donor_email->setReplyTo(get_option('sf_email_reply_to'));
 		$donor_email->setSenderDisplayName(self::$DISPLAY_NAME);
 
-		try {
-			// XXX does not throw exception...
-			/*
-Array
-(
-    [0] => stdClass Object
-        (
-            [errors] => Array
-                (
-                    [0] => stdClass Object
-                        (
-                            [message] => Invalid replyTo address : 
-                            [statusCode] => INVALID_EMAIL_ADDRESS
-                            [targetObjectId] => 
-                        )
 
-                )
+		$result = parent::$connection->sendSingleEmail(array($donor_email));
 
-            [success] => 
-        )
-
-)
-			*/
-			parent::$connection->sendSingleEmail(array($donor_email));
-		} catch(\Exception $e) {
+		$errors = array_pop($result)->errors; 
+		if(count($errors) > 0) {
 			sdf_message_handler(MessageTypes::LOG,
 					__FUNCTION__ . ' : Donor email failure! ' 
-					. $e->faultstring);
+					. $errors[0]->message);
 		}
 
+
 		// Alert email
+
+
 		$body = <<<EOF
 A donation has been made!
 
@@ -302,9 +285,11 @@ EOF;
 		$spark_email->setToAddresses(explode(', ', 
 				get_option('alert_email_list')));
 
-		try {
-			parent::$connection->sendSingleEmail(array($spark_email));
-		} catch(\Exception $e) {
+
+		$result = parent::$connection->sendSingleEmail(array($spark_email));
+
+		$errors = array_pop($result)->errors; 
+		if(count($errors) > 0) {
 			sdf_message_handler(MessageTypes::LOG,
 					__FUNCTION__ . ' : Alert email failure! ' 
 					. $e->faultstring);
