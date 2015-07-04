@@ -210,12 +210,14 @@ class SDF {
 				(float) $donated_value / 100);  
 	}
 
-	private function get_cents($value_string) {
-		if(strpos($value_string, '.') !== false) {
+	public function get_cents($value_string) {
+		$vs = preg_replace('/[^\d.]/', '', $value_string);
+
+		if(strpos($vs, '.') === false) {
 			// this value is in dollars
-			$donated_value = 100 * intval($value_string);
+			$donated_value = 100 * intval($vs);
 		} else {
-			$ex = explode('.', $value_string);
+			$ex = explode('.', $vs);
 			$donated_value = 100 * intval($ex[0]);
 			$donated_value += intval($ex[1]);
 		}

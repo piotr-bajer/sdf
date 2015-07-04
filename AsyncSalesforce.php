@@ -125,23 +125,29 @@ class AsyncSalesforce extends Salesforce {
 
 
 	private function description(&$info) {
-		// Get the recurrence string from the invoice data
-		$invoice = json_decode($info['invoice'], true);
 
-		// This means the user is signed up for recurring donations
-		if($invoice['lines']['data'][0]['type'] == 'subscription') {
-			if($invoice['lines']['data'][0]['plan']['interval'] == 'year') {
-				$info['recurrence-string'] = 'Annual';
-				$info['recurrence-type'] = RecurrenceTypes::ANNUAL;
-			} else {
-				$info['recurrence-string'] = 'Monthly';
-				$info['recurrence-type'] = RecurrenceTypes::MONTHLY;
-			}
-		} else {
+		if(is_null($info['invoice'])) {
 			$info['recurrence-string'] = 'One time';
 			$info['recurrence-type'] = RecurrenceTypes::ONE_TIME;
-		}
+		} else {
+			// Get the recurrence string from the invoice data
+			$invoice = json_decode($info['invoice'], true);
 
+			// This means the user is signed up for recurring donations
+			if($invoice['lines']['data'][0]['type'] == 'subscription') {
+				
+				$interval = $invoice['lines']['data'][0]['plan']['interval'];
+
+				if($interval == 'year') {
+					$info['recurrence-string'] = 'Annual';
+					$info['recurrence-type'] = RecurrenceTypes::ANNUAL;
+				} else if($interval == 'month') {
+					$info['recurrence-string'] = 'Monthly';
+					$info['recurrence-type'] = RecurrenceTypes::MONTHLY;
+				}
+			}
+		}
+		
 		$fmt = $info['recurrence-string'] . ' - %.2n - ' 
 				. date('n/d/y') . ' - Online donation from '
 				. home_url() . '.';
