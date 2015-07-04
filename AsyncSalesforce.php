@@ -29,7 +29,7 @@ class AsyncSalesforce extends Salesforce {
 
 			if(is_null($this->contact->Id)) {
 				// the contact hasn't been created yet?
-				sdf_message_handler(RecurrenceTypes::LOG, 'contact not ready');
+				sdf_message_handler(MessageTypes::LOG, 'contact not ready');
 				// http status code 424 failed dependency
 				return 424;
 			}
