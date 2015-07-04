@@ -95,6 +95,9 @@ class Salesforce {
 	// Searches SalesForce for a contact object,
 	// Returns their ID or null
 	protected function search_salesforce($search, $needle) {
+
+		$needle = self::sosl_reserved_chars($needle);
+
 		if($search == SearchBy::EMAIL) {
 			$query = 'FIND {"' 
 					. $needle . '"} IN EMAIL FIELDS RETURNING CONTACT(ID)';
@@ -110,6 +113,12 @@ class Salesforce {
 		} else {
 			return null;
 		}
+	}
+
+	private function sosl_reserved_chars($string) {
+		// ? & | ! { } [ ] ( ) ^ ~ * : \ " ' + -
+		$reg = '/(\?|&|\||!|\{|\}|\[|\]|\(|\)|\^|~|\*|:|\\|"|\'|\+|-)/';
+		return preg_replace($reg, "\\\\$1", $string);
 	}
 
 	// This function removes empty fields from the contact object
