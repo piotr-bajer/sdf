@@ -30,6 +30,12 @@ if($event['type'] == 'charge.succeeded') {
 	$email   = $event['data']['object']['receipt_email'];
 	$cents   = $event['data']['object']['amount'];
 	$invoice = $event['data']['object']['invoice'];
+
+	// Stripe seems to not handle certain email addresses,
+	// so we fall back to the charge description
+	if(is_null($email)) {
+		$email = $event['data']['object']['description'];
+	}
 	
 	$info = array(
 		'email'      => $email,
