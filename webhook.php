@@ -47,7 +47,6 @@ if($event['type'] == 'charge.succeeded') {
 	$response_code = $sdf->do_stripe_endpoint($info);
 
 	http_response_code($response_code);
-}
-
-// this must be present or else the charge will be held
-http_response_code(200); ?>
+} else {
+	http_response_code(200);
+} ?>
