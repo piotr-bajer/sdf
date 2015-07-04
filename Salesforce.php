@@ -145,7 +145,7 @@ class Salesforce {
 	protected function emergency_email(&$info, &$error_message) {
 		$body = "Something went wrong, and this info was not inserted into Salesforce.\n"
 			. "Here is the contact info:\n"
-			. strval($info)
+			. print_r($info, true);
 			. "\n\nAnd here's the error message:\n"
 			. $error_message;
 

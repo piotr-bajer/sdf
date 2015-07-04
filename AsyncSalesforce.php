@@ -55,11 +55,12 @@ class AsyncSalesforce extends Salesforce {
 			self::new_donation($info);
 			self::send_email($info);
 		} catch(\Exception $e) {
+			$msg = $e->getMessage();
 			sdf_message_handler(MessageTypes::LOG,
 					__FUNCTION__ . ' : General failure in AsyncSalesforce. ' 
-					. $e->faultstring);
+					. $msg);
 
-			parent::emergency_email($info, $e->faultstring);
+			parent::emergency_email($info, $msg);
 		}
 	}
 
