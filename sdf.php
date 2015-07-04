@@ -206,7 +206,8 @@ class SDF {
 		}
 
 		$this->data['amount-cents'] = $donated_value;
-		$this->data['amount-string'] = money_format('%.2n', $donated_value / 100);  
+		$this->data['amount-string'] = money_format('%.2n',
+				(float) $donated_value / 100);  
 	}
 
 	private function get_cents($value_string) {

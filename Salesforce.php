@@ -68,7 +68,12 @@ class Salesforce {
 					'Board_Member_Contact_Owner__c', // 61
 					'How_did_you_hear_about_Spark__c', // 66
 					'Total_paid_this_year__c',
-					'Referred_By__c'
+					'Referred_By__c',
+					'FirstName',
+					'LastName',
+					'Email',
+					'MailingCity',
+					'MailingState'
 				);
 
 				$fieldlist = implode(', ', $fields);

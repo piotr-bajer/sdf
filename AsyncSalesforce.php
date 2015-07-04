@@ -22,8 +22,9 @@ class AsyncSalesforce extends Salesforce {
 		try {
 
 			// We need this in a few places
-			$info['dollar-amount'] = $info['amount'] / 100;
-	
+			$info['dollar-amount'] = (float) $info['amount'] / 100;
+			$info['amount-string'] = money_format('%.2n', $info['dollar-amount']);
+
 			parent::api();
 			$this->contact = parent::get_contact($info['email']);
 
@@ -39,8 +40,6 @@ class AsyncSalesforce extends Salesforce {
 			// the donor is
 			self::recalc_sum($info);
 
-
-
 			// Directly update some fields
 			$this->contact->Payment_Type__c = 'Credit Card';
 			$this->contact->Paid__c = $info['dollar-amount'];
@@ -52,7 +51,7 @@ class AsyncSalesforce extends Salesforce {
 					date(parent::$DATE_FORMAT);
 
 			parent::cleanup();
-			parent::upsert();
+			// parent::upsert();
 
 			self::new_donation($info);
 			self::send_email($info);
@@ -256,6 +255,28 @@ class AsyncSalesforce extends Salesforce {
 		$donor_email->setSenderDisplayName(self::$DISPLAY_NAME);
 
 		try {
+			// XXX does not throw exception...
+			/*
+Array
+(
+    [0] => stdClass Object
+        (
+            [errors] => Array
+                (
+                    [0] => stdClass Object
+                        (
+                            [message] => Invalid replyTo address : 
+                            [statusCode] => INVALID_EMAIL_ADDRESS
+                            [targetObjectId] => 
+                        )
+
+                )
+
+            [success] => 
+        )
+
+)
+			*/
 			parent::$connection->sendSingleEmail(array($donor_email));
 		} catch(\Exception $e) {
 			sdf_message_handler(MessageTypes::LOG,
@@ -268,7 +289,7 @@ class AsyncSalesforce extends Salesforce {
 A donation has been made!
 
 Name: {$this->contact->FirstName} {$this->contact->LastName}
-Amount: ${$info['dollar-amount']}
+Amount: {$info['amount-string']}
 Recurrence: {$info['recurrence-string']}
 Email: {$this->contact->Email}
 Location: {$this->contact->MailingCity}, {$this->contact->MailingState}
