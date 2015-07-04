@@ -53,7 +53,7 @@ class SDF {
 		sdf_message_handler(\SDF\MessageTypes::LOG, 'Endpoint request received.');
 
 		// get the plan details attached to this charge
-		if(is_null($info['invoice-id'])) {}
+		if(is_null($info['invoice-id'])) {
 			$info['invoice'] = null;
 		} else {
 			try {
