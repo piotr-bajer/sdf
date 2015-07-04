@@ -53,10 +53,20 @@ class SDF {
 		sdf_message_handler(\SDF\MessageTypes::LOG, 'Endpoint request received.');
 
 		// get the plan details attached to this charge
-		$stripe = new \SDF\Stripe();
-		$stripe->api();
+		if(is_null($info['invoice-id'])) {}
+			$info['invoice'] = null;
+		} else {
+			try {
+				$stripe = new \SDF\Stripe();
+				$stripe->api();
 
-		$info['invoice'] = \Stripe_Invoice::retrieve($info['invoice-id']);
+				$info['invoice'] = \Stripe_Invoice::retrieve($info['invoice-id']);
+			} catch(\Stripe_Error $e) {
+				$body = $e->getJsonBody();
+				sdf_message_handler(\SDF\MessageTypes::LOG,
+						__FUNCTION__ . ' : ' . $body['error']['message']);
+			}
+		}
 
 		// send it to salesforce
 		$salesforce = new \SDF\AsyncSalesforce();

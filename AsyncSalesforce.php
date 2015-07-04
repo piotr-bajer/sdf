@@ -20,8 +20,7 @@ class AsyncSalesforce extends Salesforce {
 
 	public function init(&$info) {
 		try {
-
-			// We need this in a few places
+			// We need these in a few places
 			$info['dollar-amount'] = (float) $info['amount'] / 100;
 			$info['amount-string'] = money_format('%.2n', $info['dollar-amount']);
 
@@ -135,7 +134,7 @@ class AsyncSalesforce extends Salesforce {
 
 			// This means the user is signed up for recurring donations
 			if($invoice['lines']['data'][0]['type'] == 'subscription') {
-				
+
 				$interval = $invoice['lines']['data'][0]['plan']['interval'];
 
 				if($interval == 'year') {
