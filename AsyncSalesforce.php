@@ -51,7 +51,7 @@ class AsyncSalesforce extends Salesforce {
 					date(parent::$DATE_FORMAT);
 
 			parent::cleanup();
-			// parent::upsert();
+			parent::upsert();
 
 			self::new_donation($info);
 			self::send_email($info);
