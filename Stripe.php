@@ -96,7 +96,7 @@ class Stripe {
 				'id' => $plan_id,
 				'currency' => 'USD',
 				'interval' => $recurrence,
-				'amount' => $cents,
+				'amount' => $this->amount,
 				'name' => $this->amount_string . ' ' . $recurrence . 'ly gift'
 			);
 
