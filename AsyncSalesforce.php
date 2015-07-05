@@ -48,6 +48,7 @@ class AsyncSalesforce extends Salesforce {
 			self::recalc_sum($info);
 
 			// Directly update some fields
+			$this->contact->Paid_0__c = true;
 			$this->contact->Payment_Type__c = 'Credit Card';
 			$this->contact->Paid__c = $info['dollar-amount'];
 			$this->contact->Donation_Each__c = $this->data['amount'];
