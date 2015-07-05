@@ -170,7 +170,7 @@ sdf.validation = (function($) {
 				self.hide_amount_inputs();
 
 				$('#' + el.attr('data-target-id'), self.elems.form )
-					.show()
+					.css('display', 'inline-block')
 					.attr('required', '')
 					.focus();
 

@@ -102,6 +102,7 @@ September 2013
 	margin: 5px 2px;
 	display:inline-block;
 	cursor: pointer;
+	color: #000;
 }
 #sdf_form .selected {
 	background-color: #EF4AA8;
@@ -169,11 +170,10 @@ September 2013
 	margin-bottom: 12px;
 	background-color: white;
 }
-/*#sdf_form input.amount {
-	margin:5px 0 5px 10px;
-}*/
-#sdf_form input.js-custom-amount {
-	margin-left: 0;
+#sdf_form input.amount-input {
+	position: absolute;
+	margin: 0.6em;
+	width: 100px;
 }
 #sdf_form .address-padding {
 	margin-left: 165px;
