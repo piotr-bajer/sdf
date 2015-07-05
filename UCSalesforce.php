@@ -49,15 +49,15 @@ class UCSalesforce extends Salesforce {
 
 		// Setup their company
 		if(!isset($this->contact->AccountId)) {
-			if(!isset($info['company'])) {
-				$this->contact->AccountId = static::$FRIEND_OF_SPARK;
-			} else {
+			if(isset($info['company'])) {
 				$id = self::company($info['company']);
 				if(is_null($id)) {
 					$this->contact->AccountId = static::$FRIEND_OF_SPARK;
 				} else {
 					$this->contact->AccountId = $id;
 				}
+			} else {
+				$this->contact->AccountId = static::$FRIEND_OF_SPARK;
 			}
 		}
 
