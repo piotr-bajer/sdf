@@ -153,7 +153,7 @@ class UCSalesforce extends Salesforce {
 
 	// Find the company by name, or create a new company
 	private function company($name) {
-		$search = 'FIND {"' . $name	. '"} IN NAME FIELDS RETURNING Account(Id)';
+		$search = 'FIND {' . $name	. '} IN NAME FIELDS RETURNING Account(Id)';
 
 		try {
 			$records = parent::$connection->search($search);
