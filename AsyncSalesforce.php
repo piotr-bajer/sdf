@@ -167,16 +167,12 @@ class AsyncSalesforce extends Salesforce {
 		$desc = money_format($fmt, $info['dollar-amount']);
 		$info['desc'] = $desc;
 
-		// if(!empty($this->data['inhonorof'])) {
-		// 	$this->transaction .= ' In honor of: ' 
-		// 			. $this->data['inhonorof'];
+		// Just use the description in the donation line item
+		// if(isset($this->contact->Description)) {
+		// 	$this->contact->Description .= "\n" . $desc;
+		// } else {
+		// 	$this->contact->Description = $desc;
 		// }
-
-		if(isset($this->contact->Description)) {
-			$this->contact->Description .= "\n" . $desc;
-		} else {
-			$this->contact->Description = $desc;
-		}
 	}
 
 

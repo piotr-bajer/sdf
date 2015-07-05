@@ -110,6 +110,7 @@ class SDF {
 		$info['gender']          = $this->data['gender'];
 		$info['hearabout']       = $this->data['hearabout'];
 		$info['hearabout-extra'] = $this->data['hearabout-extra'];
+		$info['inhonorof']       = $this->data['inhonorof'];
 
 		return $info;
 	}

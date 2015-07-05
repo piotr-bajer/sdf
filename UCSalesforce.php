@@ -120,6 +120,7 @@ class UCSalesforce extends Salesforce {
 		}
 
 
+		// Referral field
 		if(!empty($info['hearabout'])) {
 			if(!isset($this->contact->How_did_you_hear_about_Spark__c)) {
 				$this->contact->How_did_you_hear_about_Spark__c =
@@ -135,6 +136,17 @@ class UCSalesforce extends Salesforce {
 
 					$this->contact->Referred_By__c = $id;
 				}
+			}
+		}
+
+		// In honor of
+		if(!empty($info['inhonorof'])) {
+			$desc = date(parent::$DATE_FORMAT) . ' donated in honor of: '
+					. $info['inhonorof'];
+			if(strlen($this->contact->Description) > 0) {
+				$this->contact->Description .= "\n" . $desc;
+			} else {
+				$this->contact->Description = $desc;
 			}
 		}
 	}
@@ -167,26 +179,4 @@ class UCSalesforce extends Salesforce {
 
 		return $id;
 	}
-
-
-	// Get the string describing hearabout and hearabout-extra
-	// This is a backup for referrals that are not other members
-	// of spark (like Events)
-	// Unused.
-	private function hdyh(&$info) {
-		$begin = "How did they hear about Spark? ";
-		if(isset($this->contact->How_did_you_hear_about_Spark__c)) {
-			if(isset($info['hearabout-extra'])
-						&& !empty($info['hearabout-extra'])) {
-
-				$str = $this->contact->How_did_you_hear_about_Spark__c
-						. ": " . $info['hearabout-extra'];
-						
-				return $begin . $str;
-			}
-			return $begin . $this->contact->How_did_you_hear_about_Spark__c;
-		}
-		return null;
-	}
-	
 } // end class ?>
