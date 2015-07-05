@@ -31,6 +31,7 @@ class AsyncSalesforce extends Salesforce {
 				// the contact hasn't been created yet?
 				sdf_message_handler(MessageTypes::LOG, 'contact not ready');
 				// http status code 424 failed dependency
+				// hopefully this means that stripe will try again soon
 				return 424;
 			}
 

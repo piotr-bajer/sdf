@@ -102,8 +102,8 @@ class Salesforce {
 			$query = 'FIND {"' 
 					. $needle . '"} IN EMAIL FIELDS RETURNING CONTACT(ID)';
 		} elseif($search == SearchBy::NAME) {
-			$query = 'FIND {"' 
-					. $needle . '"} IN ALL FIELDS RETURNING CONTACT(ID)';
+			$query = 'FIND {'
+					. $needle . '} IN NAME FIELDS RETURNING CONTACT(ID)';
 		}
 		
 		$response = self::$connection->search($query);
@@ -150,7 +150,6 @@ class Salesforce {
 
 	// This function is called if something goes wrong..
 	// so we don't lose the user data.
-	// XXX untested?
 	protected function emergency_email(&$info, &$error_message) {
 		$body = "Something went wrong, and this info was not inserted into Salesforce.\n"
 			. "Here is the contact info:\n"
