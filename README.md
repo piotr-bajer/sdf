@@ -16,7 +16,7 @@ The form markup is generated when the proper page slug is loaded. This is set to
 
 To deploy, set the `LIVEMODE` setting to 1 in the main file, sdf.php.
 
-You should have an SSL certificate set up. The page automatically redirects to https:// when not in `LIVEMODE`.
+You should have an SSL certificate set up. The page automatically redirects to https:// when in `LIVEMODE`.
 
 
 ---
