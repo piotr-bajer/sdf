@@ -96,16 +96,20 @@ class Salesforce {
 	// Returns their ID or null
 	protected function search_salesforce($search, $needle) {
 
-		$needle = self::sosl_reserved_chars($needle);
-
-		if($search == SearchBy::EMAIL) {
-			$query = 'FIND {"' 
-					. $needle . '"} IN EMAIL FIELDS RETURNING CONTACT(ID)';
-		} elseif($search == SearchBy::NAME) {
-			$query = 'FIND {'
-					. $needle . '} IN NAME FIELDS RETURNING CONTACT(ID)';
+		switch($search) {
+			case SearchBy::NAME:
+				$key = 'NAME';
+				break;
+			
+			case SearchBy::EMAIL:
+				$key = 'EMAIL';
+				break;
 		}
-		
+
+		$query = sprintf('FIND {%s} IN %s FIELDS RETURNING CONTACT(ID)',
+				self::sosl_reserved_chars($needle), $key);
+
+
 		$response = self::$connection->search($query);
 
 		if(count($response)) {
@@ -115,11 +119,33 @@ class Salesforce {
 		}
 	}
 
-	private function sosl_reserved_chars($string) {
+
+	public function sosl_reserved_chars($string) {
 		// ? & | ! { } [ ] ( ) ^ ~ * : \ " ' + -
-		$reg = '/(\?|&|\||!|\{|\}|\[|\]|\(|\)|\^|~|\*|:|\\|"|\'|\+|-)/';
-		return preg_replace($reg, "\\\\$1", $string);
+
+		$targets = array(
+			'\\', // has to be the first replacement, or it loops forever
+			'?', '&', '|', '!',
+			'{', '}', '[', ']',
+			'(', ')', '^', '~',
+			'*', ':', '"', "'",
+			'+', '-'
+		);
+
+		$replacements = array(
+			'\\\\',
+			'\?', '\&', '\|', '\!',
+			'\{', '\}', '\[', '\]',
+			'\(', '\)', '\^', '\~',
+			'\*', '\:', '\"', "\'",
+			'\+', '\-'
+		);
+
+		return str_replace($targets, $replacements, $string);
 	}
+
+
+
 
 	// This function removes empty fields from the contact object
 	// must be called from context with contact property

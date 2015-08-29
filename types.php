@@ -1,6 +1,6 @@
 <?php
 /**
- * Define some static types for the other classes
+ * Define some static "enum" types for the other classes
 */
 
 namespace SDF;
