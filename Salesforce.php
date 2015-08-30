@@ -95,28 +95,29 @@ class Salesforce {
 	// Searches SalesForce for a contact object,
 	// Returns their ID or null
 	protected function search_salesforce($search, $needle) {
+		if(strlen($needle) > 0) {
+			switch($search) {
+				case SearchBy::NAME:
+					$key = 'NAME';
+					break;
+				
+				case SearchBy::EMAIL:
+					$key = 'EMAIL';
+					break;
+			}
 
-		switch($search) {
-			case SearchBy::NAME:
-				$key = 'NAME';
-				break;
-			
-			case SearchBy::EMAIL:
-				$key = 'EMAIL';
-				break;
+			$query = sprintf('FIND {"%s"} IN %s FIELDS RETURNING CONTACT(ID)',
+					self::sosl_reserved_chars($needle), $key);
+
+
+			$response = self::$connection->search($query);
+
+			if(count($response)) {
+				return array_pop($response->searchRecords)->Id;
+			} 
 		}
 
-		$query = sprintf('FIND {%s} IN %s FIELDS RETURNING CONTACT(ID)',
-				self::sosl_reserved_chars($needle), $key);
-
-
-		$response = self::$connection->search($query);
-
-		if(count($response)) {
-			return array_pop($response->searchRecords)->Id;
-		} else {
-			return null;
-		}
+		return null;
 	}
 
 
@@ -145,6 +146,16 @@ class Salesforce {
 	}
 
 
+	protected function string_truncate(&$string, $length) {
+
+		if(strlen($string) > $length) {
+			return substr($string, 0, $length - 3) . '...';
+		} else {
+			return $string;
+		}
+	}
+
+
 
 
 	// This function removes empty fields from the contact object
@@ -157,20 +168,30 @@ class Salesforce {
 		}
 	}
 
+
+	protected function create($object, $object_name) {
+		if(!is_array($object)) {
+			$object = array($object);
+		}
+
+		$response = self::$connection->create($object, $object_name);
+
+		if(empty($response->success)) {
+			throw new \Exception($response->errors[0]->message, 1);
+		}
+	}
+
 	// Send the data to Salesforce
-	protected function upsert() {
+	protected function upsert_contact() {
 		if(isset($this->contact->Id)) {
 			// update on id.
 			self::$connection->update(array($this->contact), 'Contact');
 
 		} else {
-			// create new contact.
-			$response = array_pop(self::$connection->create(
-					array($this->contact), 'Contact'));
 
-			if(empty($response->success)) {
-				throw new \Exception($response->errors[0]->message, 1);
-			} 
+			// create new contact.
+			self::create(array($this->contact), 'Contact');
+
 		}
 	}
 

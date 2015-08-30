@@ -11,6 +11,7 @@ require_once WP_PLUGIN_DIR . '/sdf/types.php';
 class Stripe {
 	private $stripe_plan;
 	private $stripe_customer;
+	private $stripe_id;
 
 	private $amount;
 	private $amount_string;
@@ -32,7 +33,7 @@ class Stripe {
 		$this->recurrence_string = $data['recurrence-string'];
 
 		self::api();
-		self::invoice();
+		$this->stripe_id = self::invoice();
 	}
 
 
@@ -46,25 +47,47 @@ class Stripe {
 		} else {
 			\Stripe::setApiKey(get_option('stripe_api_secret_key'));
 		}
-		\Stripe::setApiVersion('2013-08-13');
+		\Stripe::setApiVersion('2015-08-19');
+	}
+
+	public function get_stripe_id() {
+		return $this->stripe_id;
+	}
+
+	// chunky and slow!
+	public function get_subscription_from_charge($charge) {
+		$charge_json_result = \Stripe\Charge::retrieve($charge);
+		$invoice_id = json_decode($charge_json_result, true)['invoice'];
+		
+		$invoice_json_result = \Stripe\Invoice::retrieve($invoice_id);
+		$invoice_items = json_decode($invoice_json_result, true)['lines']['data'];
+
+		foreach ($invoice_items as $item) {
+			if(strcmp($item['type'], 'subscription') === 0) {
+				return $item['subscription'];
+			}
+		}
 	}
 
 	private function invoice() {
 		if($this->recurrence_type == RecurrenceTypes::ONE_TIME) {
-			self::single_charge();
+			return self::single_charge();
 		} else {
-			self::recurring_charge();
+			return self::recurring_charge();
 		}
 	}
 
 	private function single_charge() {
 		try {
-			\Stripe_Charge::create(array(
+			$result = \Stripe_Charge::create(array(
 				'amount' => $this->amount,
 				'card' => $this->token,
 				'currency' => 'usd',
 				'description' => $this->email
 			));
+
+			return json_decode($result, true)['id'];
+
 		} catch(\Stripe_Error $e) {
 			$body = $e->getJsonBody();
 			sdf_message_handler(MessageTypes::ERROR,
@@ -75,7 +98,7 @@ class Stripe {
 	private function recurring_charge() {
 		self::plan();
 		self::stripe_customer();
-		self::subscribe();
+		return self::subscribe();
 	}
 
 	// We assume that the plan has been created, and try to retrieve it
@@ -136,8 +159,10 @@ class Stripe {
 	// sign up for the plan.
 	private function subscribe() {
 		try {
-			$this->stripe_customer->updateSubscription(
+			$result = $this->stripe_customer->updateSubscription(
 					array('plan' => $this->stripe_plan->id));
+
+			return json_decode($result, true)['id'];
 
 		} catch(\Stripe_Error $e) {
 			$body = $e->getJsonBody();

@@ -29,6 +29,7 @@ require_once WP_PLUGIN_DIR . '/sdf/AsyncSalesforce.php';
 class SDF {
 
 	private $data;
+	private $stripe;
 
 	public function begin($postdata) {
 		setlocale(LC_MONETARY, 'en_US.UTF-8');
@@ -42,8 +43,9 @@ class SDF {
 		self::set_amount();
 		self::set_recurrence();
 
-		self::do_init_salesforce();
+		// do stripe first, so that we can get an ID
 		self::do_stripe();
+		self::do_init_salesforce();
 	}
 
 
@@ -77,8 +79,10 @@ class SDF {
 
 
 	private function do_stripe() {
-		$stripe = new \SDF\Stripe();
-		$stripe->charge(self::get_stripe_details());
+		// we keep this instance of stripe referenced so we can get the ID
+		// of the charge or the subscription
+		$this->$stripe = new \SDF\Stripe();
+		$this->stripe->charge(self::get_stripe_details());
 	}
 
 	
@@ -111,6 +115,11 @@ class SDF {
 		$info['hearabout']       = $this->data['hearabout'];
 		$info['hearabout-extra'] = $this->data['hearabout-extra'];
 		$info['inhonorof']       = $this->data['inhonorof'];
+		
+		$info['stripe-id']       = $this->stripe->get_stripe_id();
+
+		// we're done with this now
+		unset($this->stripe);
 
 		return $info;
 	}
@@ -168,8 +177,8 @@ class SDF {
 				sdf_message_handler(\SDF\MessageTypes::LOG,
 						'Invalid hearabout category.');
 
-				unset($data['hearabout']);
-				unset($data['hearabout-extra']);
+				unset($this->data['hearabout']);
+				unset($this->data['hearabout-extra']);
 			}
 		}
 	}

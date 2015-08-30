@@ -7,15 +7,26 @@
 */
 
 // we need the wordpress options stuff to be loaded
+// this function assumes we are in some subdirectory of wordpress base
+// like wp-content/plugins/sdf/ ...
 function find_wordpress_base_path() {
-    $dir = dirname(__FILE__);
-    do {
-        if(file_exists($dir . "/wp-config.php")) {
-            return $dir;
-        }
-    } while($dir = realpath("$dir/.."));
+	$count = 0;
+	$dir = dirname(__FILE__);
+	
+	do {
+		if(file_exists($dir . "/wp-config.php")) {
+			return $dir;
+		}
 
-    return null;
+		if($count < 255) {
+			$count++;
+		} else {
+			throw new Exception("Wordpress base path not found", 1);
+		}
+
+	} while($dir = realpath("$dir/.."));
+
+	return null;
 }
 
 require_once find_wordpress_base_path() . "/wp-load.php";
@@ -26,10 +37,13 @@ $sdf = new SDF();
 $body = @file_get_contents('php://input');
 $event = json_decode($body, true);
 
-if($event['type'] == 'charge.succeeded') {
+if(strpos($event['type'], 'charge.') === 0) { // matches charge.*
+	$type    = $event['type'];
 	$email   = $event['data']['object']['receipt_email'];
 	$cents   = $event['data']['object']['amount'];
 	$invoice = $event['data']['object']['invoice'];
+
+	$charge  = $event['data']['object']['id'];
 
 	// Stripe seems to not handle certain email addresses,
 	// so we fall back to the charge description
@@ -38,8 +52,10 @@ if($event['type'] == 'charge.succeeded') {
 	}
 	
 	$info = array(
+		'type'       => $type,
 		'email'      => $email,
 		'amount'     => $cents,
+		'charge-id'  => $charge,
 		'invoice-id' => $invoice
 	);
 

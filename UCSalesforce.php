@@ -20,7 +20,9 @@ class UCSalesforce extends Salesforce {
 			parent::api();
 			$this->contact = parent::get_contact($info['email']);
 			self::merge_contact($info);
-			parent::upsert();
+			parent::upsert_contact();
+
+			self::create_pending_li($info);
 
 		} catch(\Exception $e) {
 			sdf_message_handler(MessageTypes::LOG,
@@ -153,7 +155,8 @@ class UCSalesforce extends Salesforce {
 
 	// Find the company by name, or create a new company
 	private function company($name) {
-		$search = 'FIND {"' . $name	. '"} IN NAME FIELDS RETURNING Account(Id)';
+		$search = sprintf('FIND {"%s"} IN NAME FIELDS RETURNING Account(Id)',
+				parent::sosl_reserved_chars($name));
 
 		try {
 			$records = parent::$connection->search($search);
@@ -178,5 +181,20 @@ class UCSalesforce extends Salesforce {
 		}
 
 		return $id;
+	}
+
+	// creates a donation line item with in-honor-of information
+	private function create_pending_li(&$info) {
+		$donation = new \stdClass();
+		$donation->Contact__c       = $this->contact->Id;
+		$donation->Donation_Date__c = date(parent::$DATE_FORMAT);
+		$donation->Type__c          = 'Membership';
+		$donation->Stripe_Status__c = 'Pending';
+		$donation->Stripe_Id__c     = $info['stripe-id'];
+
+		$donation->In_Honor_Of__c =
+				parent::string_truncate($info['in-honor-of'], 64);
+
+		parent::create(array($donation), 'Donation__c');
 	}
 } // end class ?>
