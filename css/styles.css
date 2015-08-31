@@ -148,13 +148,13 @@ September 2013
 	clear:left;
 	white-space: nowrap;
 }
-#sdf_form #one-time-label {
+#sdf_form #make-annual-label {
 	white-space: nowrap;
 	text-align: left;
 	width: 460px;
 	margin-bottom: 1em;
 }
-#sdf_form #one-time {
+#sdf_form #make-annual {
 	margin: 1px 0.5em 0px 0px;
 }
 #sdf_form fieldset {

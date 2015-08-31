@@ -6,7 +6,7 @@
 
 		<div id="gift_amount_field">
 			<fieldset class="donation-fieldset">
-				<legend>Make an annual gift:</legend>
+				<legend>Make a one-time gift:</legend>
 				<a data-target-id="annual-value" class="amount-label annual button-look">$75</a>
 				<a data-target-id="annual-value" class="amount-label annual button-look">$100</a>
 				<a data-target-id="annual-value" class="amount-label annual button-look">$250</a>
@@ -16,7 +16,14 @@
 				<a data-target-id="annual-value" for="annual-value" class="custom-amount-label annual button-look">Custom amount</a>
 				<input class="amount-input" data-regex-name="custom_amount" type="text"
 					name="annual-value" id="annual-value" style="display: none;" value="50">
+
 			</fieldset>
+
+			<input type="checkbox" name="make-annual" id="make-annual">
+			<label id="make-annual-label" for="make-annual">
+				Turn this donation into annual support for the Spark SF team.
+			</label>
+			
 			<fieldset class="donation-fieldset">
 				<legend>Or, make a monthly gift:</legend>
 				<a data-target-id="monthly-value" class="amount-label monthly button-look">$5</a>
@@ -32,8 +39,6 @@
 			</fieldset>
 
 			<input type="hidden" id="amount-to-use" name="amount-to-use" value="monthly-value">
-			<input type="checkbox" name="one-time" id="one-time">
-			<label id="one-time-label" for="one-time">No thanks, I only want to make a one-time gift of the amount above.</label>
 
 		</div>
 

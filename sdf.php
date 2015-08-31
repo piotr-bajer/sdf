@@ -199,18 +199,18 @@ class SDF {
 	}
 
 	private function set_recurrence() {
-		if(array_key_exists('one-time', $this->data)
-				&& $this->data['one-time'] == 'on') {
-
-			$recurrence = 'Single donation';
-			$type = \SDF\RecurrenceTypes::ONE_TIME;
+		if(strpos($this->data['amount-to-use'], 'monthly') !== false) {
+			$recurrence = 'Monthly';
+			$type = \SDF\RecurrenceTypes::MONTHLY;
 		} else {
-			if(strpos($this->data['amount-to-use'], 'annual') !== false) {
+			if(array_key_exists('make-annual', $this->data)
+					&& $this->data['make-annual'] == 'on') {
+
 				$recurrence = 'Annual';
 				$type = \SDF\RecurrenceTypes::ANNUAL;
 			} else {
-				$recurrence = 'Monthly';
-				$type = \SDF\RecurrenceTypes::MONTHLY;
+				$recurrence = 'One time';
+				$type = \SDF\RecurrenceTypes::ONE_TIME;
 			}
 		}
 
