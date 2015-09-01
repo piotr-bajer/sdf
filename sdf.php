@@ -241,7 +241,13 @@ class SDF {
 		} else {
 			$ex = explode('.', $vs);
 			$donated_value = 100 * intval($ex[0]);
-			$donated_value += intval($ex[1]);
+
+			if(intval($ex[1]) < 10 && strlen($ex[1]) == 1) {
+				$donated_value += 10 * intval($ex[1]);
+			} else {
+				$donated_value += intval($ex[1]);
+			}
+
 		}
 
 		if(!is_numeric($donated_value)) {
