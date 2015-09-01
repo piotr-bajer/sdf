@@ -27,23 +27,29 @@ class Salesforce {
 	// just like the Stripe API
 	public static function api($input = null) {
 		require_once(WP_PLUGIN_DIR
-				. '/sdf/lib/salesforce/soapclient/SforceEnterpriseClient.php');
+				. '/sdf/vendor/phpforce/soap-client/src/Phpforce/SoapClient/ClientBuilder.php');
 
-		$connection = new \SforceEnterpriseClient();
-		$connection->createConnection(
-				WP_PLUGIN_DIR . '/sdf/lib/salesforce/soapclient/sdf.wsdl.jsp.xml');
-
-		if(!empty($input)) {
-			// we expect the input to be a new token.
-			$connection->login(get_option('salesforce_username'),
-					get_option('salesforce_password') . $input);
+		if(is_null($input)) {
+			$token = get_option('salesforce_token');
 		} else {
-			$connection->login(get_option('salesforce_username'),
-					get_option('salesforce_password')
-					. get_option('salesforce_token'));
+			$token = $input;
 		}
 
-		self::$connection = clone $connection;
+		if(\LIVEMODE) {
+			$wsdl = '/sdf/config/enterprise.wsdl.xml';
+		} else {
+			$wsdl = '/sdf/config/test.enterprise.wsdl.xml';
+		}
+
+
+		$builder = new \Phpforce\SoapClient\ClientBuilder(
+			$wsdl,
+			get_option('salesforce_username'),
+			get_option('salesforce_password'),
+			$token			
+		);
+
+		self::$connection = $builder->build();
 	}
 
 	// This method queries the data in SalesForce using the provided email
