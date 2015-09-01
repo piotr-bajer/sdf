@@ -1,0 +1,19 @@
+{
+    "name": "schavery/SDF",
+    "description": "A wordpress plugin written for Spark SF",
+    "require": {
+        "stripe/stripe-php": "~3.2",
+        "phpforce/common": "@dev",
+        "phpforce/soap-client": "0.1.*"
+    },
+    "require-dev": {
+        "codeception/codeception": "*"
+    },
+    "license": "MIT?",
+    "authors": [
+        {
+            "name": "Steve Avery",
+            "email": "schavery@gmail.com"
+        }
+    ]
+}
