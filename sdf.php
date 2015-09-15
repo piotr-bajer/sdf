@@ -81,7 +81,7 @@ class SDF {
 	private function do_stripe() {
 		// we keep this instance of stripe referenced so we can get the ID
 		// of the charge or the subscription
-		$this->$stripe = new \SDF\Stripe();
+		$this->stripe = new \SDF\Stripe();
 		$this->stripe->charge(self::get_stripe_details());
 	}
 
