@@ -162,8 +162,6 @@ class Salesforce {
 	}
 
 
-
-
 	// This function removes empty fields from the contact object
 	// must be called from context with contact property
 	protected function cleanup() {

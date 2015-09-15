@@ -44,11 +44,11 @@ class Stripe {
 			. '/sdf/vendor/stripe/stripe-php/lib/Stripe.php';
 
 		if(!empty($input)) {
-			\Stripe::setApiKey($input);
+			\Stripe\Stripe::setApiKey($input);
 		} else {
-			\Stripe::setApiKey(get_option('stripe_api_secret_key'));
+			\Stripe\Stripe::setApiKey(get_option('stripe_api_secret_key'));
 		}
-		\Stripe::setApiVersion('2015-08-19');
+		\Stripe\Stripe::setApiVersion('2015-08-19');
 	}
 
 	public function get_stripe_id() {
