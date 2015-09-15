@@ -108,7 +108,7 @@ class Stripe {
 		$plan_id = strtolower($this->recurrence_string) . '-' . $this->amount;
 
 		try {
-			$plan = \Stripe_Plan::retrieve($plan_id);
+			$plan = \Stripe\Plan::retrieve($plan_id);
 		} catch(\Stripe\Error $e) {
 			if($this->recurrence_type == RecurrenceTypes::ANNUAL) {
 				$recurrence = 'year';
@@ -125,7 +125,7 @@ class Stripe {
 			);
 
 			try {
-				$plan = \Stripe_Plan::create($new_plan);
+				$plan = \Stripe\Plan::create($new_plan);
 			} catch(\Stripe\Error $e) {
 				$body = $e->getJsonBody();
 				sdf_message_handler(MessageTypes::LOG,
@@ -147,7 +147,7 @@ class Stripe {
 		);
 
 		try {
-			$customer = \Stripe_Customer::create($info);
+			$customer = \Stripe\Customer::create($info);
 		} catch(\Stripe\Error $e) {
 			$body = $e->getJsonBody();
 			sdf_message_handler(MessageTypes::ERROR,
