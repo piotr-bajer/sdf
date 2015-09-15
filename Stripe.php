@@ -80,7 +80,7 @@ class Stripe {
 
 	private function single_charge() {
 		try {
-			$result = \Stripe_Charge::create(array(
+			$result = \Stripe\Charge::create(array(
 				'amount' => $this->amount,
 				'card' => $this->token,
 				'currency' => 'usd',
@@ -89,7 +89,7 @@ class Stripe {
 
 			return json_decode($result, true)['id'];
 
-		} catch(\Stripe_Error $e) {
+		} catch(\Stripe\Error $e) {
 			$body = $e->getJsonBody();
 			sdf_message_handler(MessageTypes::ERROR,
 					$body['error']['message']);
@@ -109,7 +109,7 @@ class Stripe {
 
 		try {
 			$plan = \Stripe_Plan::retrieve($plan_id);
-		} catch(\Stripe_Error $e) {
+		} catch(\Stripe\Error $e) {
 			if($this->recurrence_type == RecurrenceTypes::ANNUAL) {
 				$recurrence = 'year';
 			} else {
@@ -126,7 +126,7 @@ class Stripe {
 
 			try {
 				$plan = \Stripe_Plan::create($new_plan);
-			} catch(\Stripe_Error $e) {
+			} catch(\Stripe\Error $e) {
 				$body = $e->getJsonBody();
 				sdf_message_handler(MessageTypes::LOG,
 						__FUNCTION__ . ' : ' . $body['error']['message']);
@@ -148,7 +148,7 @@ class Stripe {
 
 		try {
 			$customer = \Stripe_Customer::create($info);
-		} catch(\Stripe_Error $e) {
+		} catch(\Stripe\Error $e) {
 			$body = $e->getJsonBody();
 			sdf_message_handler(MessageTypes::ERROR,
 					$body['error']['message']);
@@ -165,7 +165,7 @@ class Stripe {
 
 			return json_decode($result, true)['id'];
 
-		} catch(\Stripe_Error $e) {
+		} catch(\Stripe\Error $e) {
 			$body = $e->getJsonBody();
 			sdf_message_handler(MessageTypes::ERROR,
 					$body['error']['message']);
