@@ -326,8 +326,8 @@ function sdf_stripe_secret_sanitize($input) {
 	if(strlen($input)) {
 		\SDF\Stripe::api($input);
 		try {
-			$count = Stripe_Plan::all()->count;
-		} catch(Stripe_Error $e) {
+			$count = \Stripe\Plan::all()->count;
+		} catch(\Stripe\Error $e) {
 			$message = $e->getJsonBody();
 			$message = $message['error']['message'];
 			add_settings_error(
