@@ -21,7 +21,7 @@ function find_wordpress_base_path() {
 		if($count < 255) {
 			$count++;
 		} else {
-			throw new Exception("Wordpress base path not found", 1);
+			throw new Exception("Wordpress base path not found");
 		}
 
 	} while($dir = realpath("$dir/.."));
@@ -29,7 +29,8 @@ function find_wordpress_base_path() {
 	return null;
 }
 
-require_once find_wordpress_base_path() . "/wp-load.php";
+// require_once find_wordpress_base_path() . "/wp-load.php";
+require_once '../wordpress/wp-load.php'; // XXX
 require_once 'sdf.php';
 $sdf = new SDF();
 

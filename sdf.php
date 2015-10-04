@@ -10,6 +10,8 @@
 
 define('LIVEMODE', 0);
 
+date_default_timezone_set('America/Los_Angeles');
+
 if(LIVEMODE) {
 	error_reporting(0);
 } else {
@@ -62,7 +64,7 @@ class SDF {
 				$stripe = new \SDF\Stripe();
 				$stripe->api();
 
-				$info['invoice'] = \Stripe_Invoice::retrieve($info['invoice-id']);
+				$info['invoice'] = \Stripe\Invoice::retrieve($info['invoice-id']);
 			} catch(\Stripe_Error $e) {
 				$body = $e->getJsonBody();
 				sdf_message_handler(\SDF\MessageTypes::LOG,
@@ -270,6 +272,7 @@ function sdf_parse() {
 	} else {
 		$sdf = new SDF();
 		$sdf->begin($_POST['data']);
+		// XXX brittle. shouldn't send success if we send emergency email.
 		unset($_POST['data']);
 		sdf_message_handler(\SDF\MessageTypes::SUCCESS,
 				'Thank you for your donation!');
@@ -318,11 +321,6 @@ function sdf_check_ssl() {
 			die();
 		}
 	}
-}
-
-// unused
-function sdf_noindex() {
-	echo '<META NAME="ROBOTS" CONTENT="NOINDEX, NOFOLLOW">';
 }
 
 // ****************************************************************************

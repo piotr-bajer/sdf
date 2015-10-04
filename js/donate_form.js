@@ -213,7 +213,10 @@ sdf.validation = (function($) {
 		if (!el.exists()) {
 			throw { message: "GotoElementNonExistent", from: "goto_element" }
 		}
-		$(window).scrollTop($(el).focus().position().top);
+		
+		if(spark.livemode) {
+			$(window).scrollTop($(el).focus().position().top);
+		}
 	}
 
 	self.setup_submit_event = function() {
@@ -265,8 +268,10 @@ sdf.validation = (function($) {
 			'<p class="' + type + '">'
 				+ msg
 			+ '</p>');
-
-		alert_el.scrollIntoView();
+		
+		if(spark.livemode) {
+			alert_el.scrollIntoView();	
+		}
 	} 
 
 	self.stripe_response_handler = function(status, response) {
@@ -306,10 +311,12 @@ sdf.validation = (function($) {
 
 				} else {
 					// send to confirmation page
-					setTimeout(function() {
-						window.location.href = window.location.protocol + '//'
-							+ window.location.hostname + '/donation-confirmation/';
-					}, 2500);
+					if(spark.livemode) {
+						setTimeout(function() {
+							window.location.href = window.location.protocol + '//'
+								+ window.location.hostname + '/donation-confirmation/';
+						}, 2500);
+					}
 				}
 			});
 		}

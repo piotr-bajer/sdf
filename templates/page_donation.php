@@ -51,6 +51,10 @@ get_header(); ?>
 		wp_enqueue_script('sdf_donate_form_js',
 				plugins_url('/sdf/js/donate_form.js?t='.time()));
 	}
+
+	wp_localize_script('sdf_donate_form_js', 'spark', array(
+		'livemode' => (bool) LIVEMODE
+	));
 ?>
 <script type="text/javascript">
 	Stripe.setPublishableKey("<?php echo get_option('stripe_api_public_key'); ?>");

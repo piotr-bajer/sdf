@@ -41,7 +41,7 @@ class Stripe {
 	// the options page.
 	public static function api($input = null) {
 		require_once WP_PLUGIN_DIR
-			. '/sdf/vendor/stripe/stripe-php/lib/Stripe.php';
+			. '/sdf/vendor/stripe/stripe-php/init.php';
 
 		if(!empty($input)) {
 			\Stripe\Stripe::setApiKey($input);
@@ -87,7 +87,7 @@ class Stripe {
 				'description' => $this->email
 			));
 
-			return json_decode($result, true)['id'];
+			return $result->id;
 
 		} catch(\Stripe\Error $e) {
 			$body = $e->getJsonBody();
@@ -109,7 +109,7 @@ class Stripe {
 
 		try {
 			$plan = \Stripe\Plan::retrieve($plan_id);
-		} catch(\Stripe\Error $e) {
+		} catch(\Stripe\Error\InvalidRequest $e) {
 			if($this->recurrence_type == RecurrenceTypes::ANNUAL) {
 				$recurrence = 'year';
 			} else {
@@ -163,7 +163,7 @@ class Stripe {
 			$result = $this->stripe_customer->updateSubscription(
 					array('plan' => $this->stripe_plan->id));
 
-			return json_decode($result, true)['id'];
+			return $result->id;
 
 		} catch(\Stripe\Error $e) {
 			$body = $e->getJsonBody();

@@ -10,12 +10,12 @@ require_once WP_PLUGIN_DIR . '/sdf/message.php';
 
 class AsyncSalesforce extends Salesforce {
 
-	private $valid_donations;
-	private $all_donations;
+	private $valid_donations = array();
+	private $all_donations = array();
 	private $subscription;
+	private $invoice;
 
 	protected $contact;
-	private $invoice;
 
 	private static $DISPLAY_NAME = 'Spark';
 	private static $DONOR_SINGLE_TEMPLATE = '00X50000001VaHS';
@@ -84,7 +84,6 @@ class AsyncSalesforce extends Salesforce {
 	}
 
 
-
 	// Find out how much the amount is for the year if it's monthly 
 	private function get_ext_amount($recurrence, $dollar_amount) {
 		if($recurrence == RecurrenceTypes::MONTHLY) {
@@ -104,20 +103,23 @@ class AsyncSalesforce extends Salesforce {
 
 		if($this->contact->Id !== null) {
 
+			$cutoff_date = new \DateTime();
+			$cutoff_date->setTime(0, 0, 0);
+
 			if(time() <= strtotime(date('Y') . '-01-04')) {
 				// in this case, we need to also check for donations 
 				// that occurred on the last day of the year, because
 				// we might have gotten the webhook call this late.
-				$cutoff_date = mktime(0, 0, 0, 12, 31, intval(date('Y')) - 1);
+				$cutoff_date->setDate(intval(date('Y')) - 1, 12, 31);
 			} else {	
 				// the first of the year
-				$cutoff_date = mktime(0, 0, 0, 1, 1);
+				$cutoff_date->setDate(intval(date('Y')), 1, 1);
 			}
 
 			// legible query
 			$query = 'SELECT 
 							(SELECT
-								Name, Amount__c, Donation_Date__c,
+								Id, Amount__c, Donation_Date__c,
 								 Stripe_Status__c, Stripe_Id__c, In_Honor_Of__c
 							FROM Donations__r)
 						FROM
@@ -127,24 +129,25 @@ class AsyncSalesforce extends Salesforce {
 
 			// shorten it up a bit
 			$query = preg_replace('/\s+/', ' ',
-					sprintf($query, $this->Contact->Id));
+					sprintf($query, $this->contact->Id));
 
 			try {
 
 				$response = parent::$connection->query($query);
-				$records = $response->records[0]->Donations__r->records;
+				$donations = $response->getQueryResult()->getRecord(0)->Donations__r;
+	
+				// we want the successes because that's how we count up
+				// the total donated this year.
+				// we want pending because that might be the target line item.
+				$status_list = array('Pending', 'Success', null);
 
-				foreach($records as $donation) {
-					$date = strtotime($donation->Donation_Date__c);
+				for($ii = 0; $ii < $donations->getSize(); $ii++) {
 
- 					// XXX what does --none-- look like? ''?
- 					// we want the successes because that's how we count up
- 					// the total donated this year.
-					// we want pending because that might be the target line item.
-					if(in_array($donation->Stripe_Status__c,
-							array('Pending', 'Success', ''), true)) {
-						
-						if($date >= $cutoff_date) {
+					$donation = $donations->getRecord($ii);
+
+					if(in_array($donation->Stripe_Status__c, $status_list, true)) {
+
+						if($donation->Donation_Date__c >= $cutoff_date) {
 							// donations from this calendar year
 
 							$valid_donations_list[] = get_object_vars($donation);
@@ -152,14 +155,13 @@ class AsyncSalesforce extends Salesforce {
 					}
 
 					$this->all_donations[] = get_object_vars($donation);
-
-				} // end foreach
+				}
 
 			} catch(\Exception $e) {
 				// It's okay if there's no donations returned here,
 				// though our calculation will be wrong
 				sdf_message_handler(MessageTypes::LOG,
-						__FUNCTION__ . ' : ' . $e->faultstring);
+						__FUNCTION__ . ' : ' . $e->getMessage());
 			}
 		}
 
@@ -167,6 +169,8 @@ class AsyncSalesforce extends Salesforce {
 	}
 
 	// Set $info['desc']
+	// Set $this->invoice
+	// Set $this->subscription
 	private function description(&$info) {
 
 		if(is_null($info['invoice'])) {
@@ -266,9 +270,10 @@ class AsyncSalesforce extends Salesforce {
 	private function update_or_create_donation(&$info) {
 
 		$dli_match_count = 0;
+
 		foreach($this->valid_donations as $dli) {
 
-			if(strcmp($dli['Stripe_Status__c'],'Pending') === 0) {
+			if(strcmp($dli['Stripe_Status__c'], 'Pending') === 0) {
 
 				// charge id, which would indicate a one-time donation
 				if(strcmp($dli['Stripe_Id__c'], $info['charge-id']) === 0) {
@@ -285,25 +290,28 @@ class AsyncSalesforce extends Salesforce {
 		
 				} else {
 
-					$invoice_li = $this->invoice['lines']['data'];
+					if($this->invoice) {
 
-					// there could be more than one subscription on an invoice?
-					foreach($invoice_li as $ili) {
-						if(strcmp($dli['Stripe_Id__c'], $ili['id']) === 0) {
-							
-							$dli_match_count++;
+						$invoice_li = $this->invoice['lines']['data'];
 
-							// we need this for the email:
-							if(strlen($dli['In_Honor_Of__c']) > 0) {
-								$info['honor'] = sprintf('In Honor of: %s',
-										$dli['In_Honor_Of__c']);
+						// there could be more than one subscription on an invoice?
+						foreach($invoice_li as $ili) {
+							if(strcmp($dli['Stripe_Id__c'], $ili['id']) === 0) {
+								
+								$dli_match_count++;
+
+								// we need this for the email:
+								if(strlen($dli['In_Honor_Of__c']) > 0) {
+									$info['honor'] = sprintf('In Honor of: %s',
+											$dli['In_Honor_Of__c']);
+								}
+
+								if(empty($info['honor'])) {
+									$this->find_previous_donation_honor($info);
+								}
+
+								$this->update_donation($info, $dli);
 							}
-
-							if(empty($info['honor'])) {
-								$this->find_previous_donation_honor($info);
-							}
-
-							$this->update_donation($info, $dli);
 						}
 					}
 				}
@@ -375,9 +383,8 @@ class AsyncSalesforce extends Salesforce {
 	}
 
 
-	// I made the decision to cut down on a few of the different types
-	// of charge that stripe exposes. This function maps them to the
-	// Stripe status picklist on the donation object.
+	// Maps the Stripe charge status names to custom field
+	// Stripe_status picklist on the donation object.
 	private function event_type_to_stripe_status($type, &$dispute = null) {
 		switch($type) {
 			case 'charge.dispute.create':
@@ -408,9 +415,6 @@ class AsyncSalesforce extends Salesforce {
 
 			case 'charge.refunded':
 				return 'Refunded';
-			
-			default: // XXX none type: --none--
-				return '';
 		}
 	}
 
@@ -428,22 +432,23 @@ class AsyncSalesforce extends Salesforce {
 					$template = self::$DONOR_SINGLE_TEMPLATE; break;
 		}
 
-		$donor_email = new \SingleEmailMessage();
-		$donor_email->setTemplateId($template);
-		$donor_email->setTargetObjectId($this->contact->Id);
-		$donor_email->setReplyTo(get_option('sf_email_reply_to'));
-		$donor_email->setSenderDisplayName(self::$DISPLAY_NAME);
+		$donor_email = new \Phpforce\SoapClient\Request\SingleEmailMessage();
+		$donor_email->templateId = $template;
+		$donor_email->targetObjectId = $this->contact->Id;
+		// XXX edit vendor code? neither of these work.
+		$donor_email->replyTo = get_option('sf_email_reply_to'); // XXX
+		$donor_email->senderDisplayName = self::$DISPLAY_NAME; // XXX
 
+		if(LIVEMODE) {
+			$result = parent::$connection->sendEmail(array($donor_email));
 
-		$result = parent::$connection->sendSingleEmail(array($donor_email));
-
-		$errors = array_pop($result)->errors; 
-		if(count($errors) > 0) {
-			sdf_message_handler(MessageTypes::LOG,
-					__FUNCTION__ . ' : Donor email failure! ' 
-					. $errors[0]->message);
+			$errors = array_pop($result)->getErrors();
+			if(count($errors) > 0) {
+				sdf_message_handler(MessageTypes::LOG,
+						__FUNCTION__ . ' : Donor email failure! ' 
+						. $errors[0]->message);
+			}
 		}
-
 
 		// Alert email
 
@@ -456,24 +461,25 @@ Recurrence: {$info['recurrence-string']}
 Email: {$this->contact->Email}
 Location: {$this->contact->MailingCity}, {$this->contact->MailingState}
 {$info['honor']}
+
 Salesforce Link: https://na32.salesforce.com/{$this->contact->Id}
 EOF;
 
-		$spark_email = new \SingleEmailMessage();
-		$spark_email->setSenderDisplayName('Spark Donations');
-		$spark_email->setPlainTextBody($body);
-		$spark_email->setSubject('New Donation Alert');
-		$spark_email->setToAddresses(explode(', ', 
-				get_option('alert_email_list')));
+		$spark_email = new \Phpforce\SoapClient\Request\SingleEmailMessage();
+		$spark_email->senderDisplayName = 'Spark Donations'; // XXX
+		$spark_email->plainTextBody = $body;
+		$spark_email->subject = 'New Donation Alert'; // XXX
+		$spark_email->toAddresses = explode(', ', get_option('alert_email_list'));
 
 
-		$result = parent::$connection->sendSingleEmail(array($spark_email));
+		$result = parent::$connection->sendEmail(array($spark_email));
 
-		$errors = array_pop($result)->errors; 
+		$errors = array_pop($result)->getErrors();
 		if(count($errors) > 0) {
+			// XXX
 			sdf_message_handler(MessageTypes::LOG,
 					__FUNCTION__ . ' : Alert email failure! ' 
-					. $e->faultstring);
+					. $e->getMessage());
 		}
 	}
 } // end class ?>

@@ -26,9 +26,9 @@ class UCSalesforce extends Salesforce {
 
 		} catch(\Exception $e) {
 			sdf_message_handler(MessageTypes::LOG,
-					__FUNCTION__ . ' : ' . $e->faultstring);
+					__FUNCTION__ . ' : ' . print_r($e, true));
 			
-			parent::emergency_email($info, $e->faultstring);
+			parent::emergency_email($info, $e->getMessage());
 		}
 	}
 
@@ -133,8 +133,16 @@ class UCSalesforce extends Salesforce {
 			if($info['hearabout'] == 'Friend') {
 				if(!empty($info['hearabout-extra'])) {
 
+
+					// XXX why is the name search no work?
+					
 					$id = parent::search_salesforce(SearchBy::NAME,
 							$info['hearabout-extra']);
+
+					// $response = self::$connection->search(
+					// 	sprintf('FIND {"%s*"} IN NAME FIELDS', parent::sosl_reserved_chars($info['hearabout-extra'])));
+					// print_r($response);
+					// exit();
 
 					$this->contact->Referred_By__c = $id;
 				}
@@ -155,32 +163,34 @@ class UCSalesforce extends Salesforce {
 
 	// Find the company by name, or create a new company
 	private function company($name) {
-		$search = sprintf('FIND {"%s"} IN NAME FIELDS RETURNING Account(Id)',
-				parent::sosl_reserved_chars($name));
+		if(strlen($name) > 0) {
+			$search = sprintf('FIND {"%s"} IN NAME FIELDS RETURNING Account(Id)',
+					parent::sosl_reserved_chars($name));
 
-		try {
-			$records = parent::$connection->search($search);
+			try {
+				$records = parent::$connection->search($search);
 
-			if(count($records->searchRecords)) {
-				$id = $records->searchRecords[0]->Id;
-			} else {
-				$company = new \stdClass();
-				$company->Name = $name;
+				if(count($records->searchRecords)) {
+					$id = $records->searchRecords[0]->Id;
+				} else {
+					$company = new \stdClass();
+					$company->Name = $name;
 
-				$created = static::$connection->create(
-						array($company), 'Account');
+					$created = static::$connection->create(
+							array($company), 'Account');
 
-				$id = $created[0]->id;
+					$id = $created[0]->id;
+				}
+
+			} catch(\Exception $e) {
+				// We can also keep this error suppressed
+				// because knowing the contact's company is not required.
+				sdf_message_handler(MessageTypes::LOG,
+						__FUNCTION__ . ' : ' . $e->getMessage());
 			}
 
-		} catch(\Exception $e) {
-			// We can also keep this error suppressed
-			// because knowing the contact's company is not required.
-			sdf_message_handler(MessageTypes::LOG,
-					__FUNCTION__ . ' : ' . $e->faultstring);
+			return $id;
 		}
-
-		return $id;
 	}
 
 	// creates a donation line item with in-honor-of information
@@ -193,8 +203,9 @@ class UCSalesforce extends Salesforce {
 		$donation->Stripe_Id__c     = $info['stripe-id'];
 
 		$donation->In_Honor_Of__c =
-				parent::string_truncate($info['in-honor-of'], 64);
+				parent::string_truncate($info['inhonorof'], 64);
 
 		parent::create(array($donation), 'Donation__c');
 	}
+
 } // end class ?>

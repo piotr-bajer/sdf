@@ -26,8 +26,7 @@ class Salesforce {
 	// This function is public to allow verification from settings page
 	// just like the Stripe API
 	public static function api($input = null) {
-		require_once(WP_PLUGIN_DIR
-				. '/sdf/vendor/phpforce/soap-client/src/Phpforce/SoapClient/ClientBuilder.php');
+		require_once(WP_PLUGIN_DIR . '/sdf/vendor/autoload.php');
 
 		if(is_null($input)) {
 			$token = get_option('salesforce_token');
@@ -36,11 +35,10 @@ class Salesforce {
 		}
 
 		if(\LIVEMODE) {
-			$wsdl = '/sdf/config/enterprise.wsdl.xml';
+			$wsdl = WP_PLUGIN_DIR . '/sdf/config/enterprise.wsdl.xml';
 		} else {
-			$wsdl = '/sdf/config/test.enterprise.wsdl.xml';
+			$wsdl = WP_PLUGIN_DIR . '/sdf/config/enterprise.wsdl.xml';
 		}
-
 
 		$builder = new \Phpforce\SoapClient\ClientBuilder(
 			$wsdl,
@@ -82,16 +80,18 @@ class Salesforce {
 					'MailingState'
 				);
 
-				$fieldlist = implode(', ', $fields);
 
-				$contact = array_pop(self::$connection->retrieve(
-						$fieldlist, 'Contact', array($id)));
+				$response = self::$connection->retrieve(
+						$fields, array($id), 'Contact');
+
+				$contact = array_pop($response);
 			}
 		} catch(\Exception $e) {
+
 			// We can catch this error here because
 			// we'll just use the form values everywhere
 			sdf_message_handler(MessageTypes::LOG,
-					__FUNCTION__ . ' : ' . $e->faultstring);
+					__FUNCTION__ . ' : ' . $e->getMessage());
 		}
 
 		$contact->Id = $id;
@@ -115,19 +115,18 @@ class Salesforce {
 			$query = sprintf('FIND {"%s"} IN %s FIELDS RETURNING CONTACT(ID)',
 					self::sosl_reserved_chars($needle), $key);
 
-
 			$response = self::$connection->search($query);
 
 			if(count($response)) {
-				return array_pop($response->searchRecords)->Id;
-			} 
+				return array_pop($response->searchRecords)->record->Id;
+			}
 		}
 
 		return null;
 	}
 
 
-	public function sosl_reserved_chars($string) {
+	protected function sosl_reserved_chars($string) {
 		// ? & | ! { } [ ] ( ) ^ ~ * : \ " ' + -
 
 		$targets = array(
@@ -179,9 +178,12 @@ class Salesforce {
 		}
 
 		$response = self::$connection->create($object, $object_name);
+		
+		$response = array_pop($response);
 
-		if(empty($response->success)) {
-			throw new \Exception($response->errors[0]->message, 1);
+		if(!$response->isSuccess()) {
+			throw new \Exception(sprintf('%s not created. %s', 
+					$object_name, $response->getErrors()));
 		}
 	}
 
@@ -190,7 +192,7 @@ class Salesforce {
 		if(isset($this->contact->Id)) {
 			// update on id.
 			self::$connection->update(array($this->contact), 'Contact');
-
+			
 		} else {
 
 			// create new contact.
@@ -208,14 +210,14 @@ class Salesforce {
 			. "\n\nAnd here's the error message:\n"
 			. $error_message;
 
-		$spark_email = new \SingleEmailMessage();
-		$spark_email->setSenderDisplayName('Spark Donations');
-		$spark_email->setToAddresses(explode(', ',
-		 		get_option('alert_email_list')));
-		$spark_email->setPlainTextBody($body);
-		$spark_email->setSubject('Salesforce Capture Alert');
+		$spark_email = new \Phpforce\SoapClient\Request\SingleEmailMessage();
+		$spark_email->senderDisplayName = 'Spark Donations'; // XXX
+		$spark_email->toAddresses = explode(', ',
+		 		get_option('alert_email_list'));
+		$spark_email->plainTextBody = $body;
+		$spark_email->subject = 'Salesforce Capture Alert'; // XXX
 
-		self::$connection->sendSingleEmail(array($spark_email));
+		self::$connection->sendEmail(array($spark_email));
 	}
 
 } // end class ?>
