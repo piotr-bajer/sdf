@@ -13,7 +13,6 @@ class AsyncSalesforce extends Salesforce {
 	private $valid_donations = array();
 	private $all_donations = array();
 	private $subscription;
-	private $invoice;
 
 	protected $contact;
 
@@ -31,12 +30,12 @@ class AsyncSalesforce extends Salesforce {
 			parent::api();
 			$this->contact = parent::get_contact($info['email']);
 
-			// XXX figure out if this contact has been called a bunch of times?
+			// XXX has contact been called a bunch of times?
 			if(is_null($this->contact->Id)) {
-				// the contact hasn't been created yet?
-				sdf_message_handler(MessageTypes::LOG, 'contact not ready');
+				sdf_message_handler(MessageTypes::LOG,
+						sprintf('Contact %s not found.', $info['email']));
+
 				// http status code 424 failed dependency
-				// hopefully this means that stripe will try again soon
 				return 424;
 			}
 
@@ -169,7 +168,6 @@ class AsyncSalesforce extends Salesforce {
 	}
 
 	// Set $info['desc']
-	// Set $this->invoice
 	// Set $this->subscription
 	private function description(&$info) {
 
@@ -178,12 +176,9 @@ class AsyncSalesforce extends Salesforce {
 			$info['recurrence-type'] = RecurrenceTypes::ONE_TIME;
 		} else {
 			// Get the recurrence string from the invoice data
-			$this->invoice = json_decode($info['invoice'], true);
-
-			unset($info['invoice']);
 
 			// This means the user is signed up for recurring donations
-			foreach($this->invoice['lines']['data'] as $ili) {
+			foreach($info['invoice']['lines']['data'] as $ili) {
 				if(strcmp($ili['type'],	'subscription') === 0) {
 
 					// we assume that the first line item is the most recent one
@@ -205,6 +200,7 @@ class AsyncSalesforce extends Salesforce {
 				}
 			}
 		}
+
 		$fmt = sprintf('%s - %s - %s - Online donation from %s.',
 				$info['recurrence-string'], '%.2n', date('n/d/y'), home_url());
 
@@ -290,9 +286,9 @@ class AsyncSalesforce extends Salesforce {
 		
 				} else {
 
-					if($this->invoice) {
+					if($info['invoice']) {
 
-						$invoice_li = $this->invoice['lines']['data'];
+						$invoice_li = $info['invoice']['lines']['data'];
 
 						// there could be more than one subscription on an invoice?
 						foreach($invoice_li as $ili) {

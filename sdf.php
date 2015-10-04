@@ -10,7 +10,9 @@
 
 define('LIVEMODE', 0);
 
+// cultural imperialism
 date_default_timezone_set('America/Los_Angeles');
+setlocale(LC_MONETARY, 'en_US.UTF-8');
 
 if(LIVEMODE) {
 	error_reporting(0);
@@ -34,7 +36,6 @@ class SDF {
 	private $stripe;
 
 	public function begin($postdata) {
-		setlocale(LC_MONETARY, 'en_US.UTF-8');
 
 		$this->data = $postdata;
 
@@ -53,37 +54,31 @@ class SDF {
 
 	// this is an alternative entrypoint to the sdf class.
 	public function do_stripe_endpoint(&$info) {
-		setlocale(LC_MONETARY, 'en_US.UTF-8');
-		sdf_message_handler(\SDF\MessageTypes::LOG, 'Endpoint request received.');
 
 		// get the plan details attached to this charge
-		if(is_null($info['invoice-id'])) {
-			$info['invoice'] = null;
-		} else {
-			try {
-				$stripe = new \SDF\Stripe();
-				$stripe->api();
+		$info['invoice'] = $this->get_stripe_invoice($info['invoice-id']);
 
-				$info['invoice'] = \Stripe\Invoice::retrieve($info['invoice-id']);
-			} catch(\Stripe_Error $e) {
-				$body = $e->getJsonBody();
-				sdf_message_handler(\SDF\MessageTypes::LOG,
-						__FUNCTION__ . ' : ' . $body['error']['message']);
-			}
+		if(is_null($info['email'])) {
+			$info['email'] = $this->get_stripe_customer($info['customer']);
 		}
-
+		
 		// send it to salesforce
 		$salesforce = new \SDF\AsyncSalesforce();
 
 		// returns http code
-		return $salesforce->init($info);
+		$status = $salesforce->init($info);
+
+		sdf_message_handler(\SDF\MessageTypes::LOG,
+				sprintf('Endpoint request, status: %d', $status));
+
+		return $status;
 	}
 
 
 	private function do_stripe() {
 		// we keep this instance of stripe referenced so we can get the ID
 		// of the charge or the subscription
-		$this->stripe = new \SDF\Stripe();
+		$this->make_stripe();
 		$this->stripe->charge(self::get_stripe_details());
 	}
 
@@ -96,6 +91,41 @@ class SDF {
 
 	// ************************************************************************
 
+	private function make_stripe() {
+		if(is_null($this->stripe)) {
+			$this->stripe = new \SDF\Stripe();
+			$this->stripe->api();
+		}
+	}
+
+	private function get_stripe_invoice($invoice_id) {
+		$invoice = null;
+		if(!is_null($invoice_id)) {
+			try {
+				$this->make_stripe();
+				$invoice = \Stripe\Invoice::retrieve($invoice_id);
+			} catch(\Stripe\Error\Base $e) {
+				sdf_message_handler(\SDF\MessageTypes::LOG,
+						__FUNCTION__ . ' : ' . $e);
+			}
+		}
+		return $invoice;
+	}
+
+	private function get_stripe_customer($cus_id) {
+		$email = null;
+		if(!is_null($cus_id)) {
+			try {
+				$this->make_stripe();
+				$customer = \Stripe\Customer::retrieve($cus_id);
+				$email = $customer['email'];
+			} catch(\Stripe\Error\Base $e) {
+				sdf_message_handler(\SDF\MessageTypes::LOG,
+						__FUNCTION__ . ' : ' . $e);
+			}
+		}
+		return $email;
+	}
 
 	private function get_sf_init_details() {
 		$info = array();

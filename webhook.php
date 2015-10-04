@@ -39,12 +39,13 @@ $body = @file_get_contents('php://input');
 $event = json_decode($body, true);
 
 if(strpos($event['type'], 'charge.') === 0) { // matches charge.*
-	$type    = $event['type'];
-	$email   = $event['data']['object']['receipt_email'];
-	$cents   = $event['data']['object']['amount'];
-	$invoice = $event['data']['object']['invoice'];
+	$type     = $event['type'];
+	$email    = $event['data']['object']['receipt_email'];
+	$customer = $event['data']['object']['customer']; // XXX
+	$cents    = $event['data']['object']['amount'];
+	$invoice  = $event['data']['object']['invoice'];
 
-	$charge  = $event['data']['object']['id'];
+	$charge   = $event['data']['object']['id'];
 
 	// Stripe seems to not handle certain email addresses,
 	// so we fall back to the charge description
@@ -56,6 +57,7 @@ if(strpos($event['type'], 'charge.') === 0) { // matches charge.*
 		'type'       => $type,
 		'email'      => $email,
 		'amount'     => $cents,
+		'customer'   => $customer,
 		'charge-id'  => $charge,
 		'invoice-id' => $invoice
 	);

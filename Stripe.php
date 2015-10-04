@@ -32,7 +32,6 @@ class Stripe {
 		$this->recurrence_type   = $data['recurrence-type'];
 		$this->recurrence_string = $data['recurrence-string'];
 
-		self::api();
 		$this->stripe_id = self::invoice();
 	}
 
@@ -57,11 +56,11 @@ class Stripe {
 
 	// chunky and slow!
 	public function get_subscription_from_charge($charge) {
-		$charge_json_result = \Stripe\Charge::retrieve($charge);
-		$invoice_id = json_decode($charge_json_result, true)['invoice'];
+		$charge = \Stripe\Charge::retrieve($charge);
+		$invoice_id = $charge['invoice'];
 		
-		$invoice_json_result = \Stripe\Invoice::retrieve($invoice_id);
-		$invoice_items = json_decode($invoice_json_result, true)['lines']['data'];
+		$invoice = \Stripe\Invoice::retrieve($invoice_id);
+		$invoice_items = $invoice['lines']['data'];
 
 		foreach ($invoice_items as $item) {
 			if(strcmp($item['type'], 'subscription') === 0) {
@@ -89,10 +88,8 @@ class Stripe {
 
 			return $result->id;
 
-		} catch(\Stripe\Error $e) {
-			$body = $e->getJsonBody();
-			sdf_message_handler(MessageTypes::ERROR,
-					$body['error']['message']);
+		} catch(\Stripe\Error\Base $e) {
+			sdf_message_handler(MessageTypes::ERROR, $e);
 		}
 	}
 
@@ -126,12 +123,11 @@ class Stripe {
 
 			try {
 				$plan = \Stripe\Plan::create($new_plan);
-			} catch(\Stripe\Error $e) {
-				$body = $e->getJsonBody();
+			} catch(\Stripe\Error\Base $e) {
 				sdf_message_handler(MessageTypes::LOG,
-						__FUNCTION__ . ' : ' . $body['error']['message']);
+						__FUNCTION__ . ' : ' . $e);
 				sdf_message_handler(MessageTypes::ERROR,
-						'Something\'s not right. Please try again.');
+						'Could not create new plan! Try again?');
 			}
 		}
 
@@ -148,10 +144,8 @@ class Stripe {
 
 		try {
 			$customer = \Stripe\Customer::create($info);
-		} catch(\Stripe\Error $e) {
-			$body = $e->getJsonBody();
-			sdf_message_handler(MessageTypes::ERROR,
-					$body['error']['message']);
+		} catch(\Stripe\Error\Base $e) {
+			sdf_message_handler(MessageTypes::ERROR, $e);
 		}
 
 		$this->stripe_customer = $customer;
@@ -165,10 +159,8 @@ class Stripe {
 
 			return $result->id;
 
-		} catch(\Stripe\Error $e) {
-			$body = $e->getJsonBody();
-			sdf_message_handler(MessageTypes::ERROR,
-					$body['error']['message']);
+		} catch(\Stripe\Error\Base $e) {
+			sdf_message_handler(MessageTypes::ERROR, $e);
 		}
 	}
 } // end class ?>
