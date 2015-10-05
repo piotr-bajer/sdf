@@ -61,7 +61,7 @@ class SDF {
 		if(is_null($info['email'])) {
 			$info['email'] = $this->get_stripe_customer($info['customer']);
 		}
-		
+
 		// send it to salesforce
 		$salesforce = new \SDF\AsyncSalesforce();
 

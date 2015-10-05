@@ -47,7 +47,7 @@ class Stripe {
 		} else {
 			\Stripe\Stripe::setApiKey(get_option('stripe_api_secret_key'));
 		}
-		\Stripe\Stripe::setApiVersion('2015-08-19');
+		\Stripe\Stripe::setApiVersion('2015-10-01');
 	}
 
 	public function get_stripe_id() {
@@ -56,16 +56,20 @@ class Stripe {
 
 	// chunky and slow!
 	public function get_subscription_from_charge($charge) {
-		$charge = \Stripe\Charge::retrieve($charge);
-		$invoice_id = $charge['invoice'];
-		
-		$invoice = \Stripe\Invoice::retrieve($invoice_id);
-		$invoice_items = $invoice['lines']['data'];
+		try {
+			$charge = \Stripe\Charge::retrieve($charge);
+			$invoice_id = $charge['invoice'];
+			
+			$invoice = \Stripe\Invoice::retrieve($invoice_id);
+			$invoice_items = $invoice['lines']['data'];
 
-		foreach ($invoice_items as $item) {
-			if(strcmp($item['type'], 'subscription') === 0) {
-				return $item['subscription'];
+			foreach ($invoice_items as $item) {
+				if(strcmp($item['type'], 'subscription') === 0) {
+					return $item['subscription'];
+				}
 			}
+		} catch(\Stripe\Error\InvalidRequest $e) {
+			return null;
 		}
 	}
 

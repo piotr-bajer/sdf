@@ -1,10 +1,16 @@
 {
     "name": "schavery/SDF",
     "description": "A wordpress plugin written for Spark SF",
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "http://github.com/schavery/soap-client"
+        }
+    ],
     "require": {
         "stripe/stripe-php": "~3.2",
         "phpforce/common": "@dev",
-        "phpforce/soap-client": "0.1.*"
+        "phpforce/soap-client": "dev-master"
     },
     "require-dev": {
         "codeception/codeception": "*",

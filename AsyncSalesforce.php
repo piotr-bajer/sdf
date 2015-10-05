@@ -70,12 +70,10 @@ class AsyncSalesforce extends Salesforce {
 			self::send_email($info);
 
 		} catch(\Exception $e) {
-			$msg = $e->getMessage();
 			sdf_message_handler(MessageTypes::LOG,
-					__FUNCTION__ . ' : General failure in AsyncSalesforce. ' 
-					. $msg);
+					__FUNCTION__ . ' : General failure in AsyncSalesforce. ' . $e);
 
-			parent::emergency_email($info, $msg);
+			parent::emergency_email($info, $e);
 		}
 
 		// status code ok
@@ -166,6 +164,7 @@ class AsyncSalesforce extends Salesforce {
 
 		$this->valid_donations = $valid_donations_list;
 	}
+
 
 	// Set $info['desc']
 	// Set $this->subscription
@@ -280,7 +279,7 @@ class AsyncSalesforce extends Salesforce {
 
 					// we need this for the email:
 					if(strlen($dli['In_Honor_Of__c']) > 0) {
-						$info['honor'] = sprintf('In Honor of: %s',
+						$info['honor'] = sprintf("In Honor of: %s\n",
 								$dli['In_Honor_Of__c']);
 					}
 		
@@ -298,7 +297,7 @@ class AsyncSalesforce extends Salesforce {
 
 								// we need this for the email:
 								if(strlen($dli['In_Honor_Of__c']) > 0) {
-									$info['honor'] = sprintf('In Honor of: %s',
+									$info['honor'] = sprintf("In Honor of: %s\n",
 											$dli['In_Honor_Of__c']);
 								}
 
@@ -337,7 +336,7 @@ class AsyncSalesforce extends Salesforce {
 								$dli['Stripe_Id__c']);
 
 						if(strcmp($old_subscription, $this->subscription) === 0) {
-							$info['honor'] = sprintf('In Honor of: %s',
+							$info['honor'] = sprintf("In Honor of: %s\n",
 									$dli['In_Honor_Of__c']);
 							return;
 						}
@@ -345,7 +344,7 @@ class AsyncSalesforce extends Salesforce {
 				}
 			}
 		}
-		$info['honor'] = '';
+		$info['honor'] = "\n";
 	}
 
 
@@ -355,11 +354,11 @@ class AsyncSalesforce extends Salesforce {
 		$donation->Amount__c = $info['dollar-amount'];
 		$donation->Stripe_Id__c = $info['charge-id'];
 		$donation->Description__c = parent::string_truncate($info['desc'], 255);
-		$donation->Stripe_Status__c =
-						self::event_type_to_stripe_status($info['type']);
+		$donation->Stripe_Status__c = 'Success';
 
 		parent::$connection->update(array($donation), 'Donation__c');
 	}
+
 
 	private function create_standard_donation(&$info) {
 		$donation = new \stdClass();
@@ -372,46 +371,9 @@ class AsyncSalesforce extends Salesforce {
 		$donation->Donation_Date__c = date(parent::$DATE_FORMAT);
 		// there is no in-honor-of info here. :(
 
-		$donation->Stripe_Status__c =
-				self::event_type_to_stripe_status($info['type']);
+		$donation->Stripe_Status__c = 'Success';
 
 		parent::create(array($donation), 'Donation__c');
-	}
-
-
-	// Maps the Stripe charge status names to custom field
-	// Stripe_status picklist on the donation object.
-	private function event_type_to_stripe_status($type, &$dispute = null) {
-		switch($type) {
-			case 'charge.dispute.create':
-			case 'charge.dispute.updated':
-			case 'charge.dispute.closed':
-				if(is_null($dispute)) {
-					return 'Disputed';
-				} else {
-					// We only need this for the dispute.closed type
-					if($dispute['status'] == 'won') {
-						return 'Success';
-					} elseif($dispute['status'] == 'lost') {
-						return 'Chargedback';
-					}
-				}
-
-			case 'charge.disputed.funds_withdrawn':
-				return 'Chargedback';
-
-			case 'charge.captured':
-			case 'charge.succeeded':
-			case 'charge.dispute.funds_reinstated':
-			case 'charge.updated': // ??? XXX not sure.
-				return 'Success';
-
-			case 'charge.failed':
-				return 'Failed';
-
-			case 'charge.refunded':
-				return 'Refunded';
-		}
 	}
 
 
@@ -435,7 +397,7 @@ class AsyncSalesforce extends Salesforce {
 		$donor_email->replyTo = get_option('sf_email_reply_to'); // XXX
 		$donor_email->senderDisplayName = self::$DISPLAY_NAME; // XXX
 
-		if(LIVEMODE) {
+		// if(LIVEMODE) {
 			$result = parent::$connection->sendEmail(array($donor_email));
 
 			$errors = array_pop($result)->getErrors();
@@ -444,7 +406,7 @@ class AsyncSalesforce extends Salesforce {
 						__FUNCTION__ . ' : Donor email failure! ' 
 						. $errors[0]->message);
 			}
-		}
+		// }
 
 		// Alert email
 
@@ -457,7 +419,6 @@ Recurrence: {$info['recurrence-string']}
 Email: {$this->contact->Email}
 Location: {$this->contact->MailingCity}, {$this->contact->MailingState}
 {$info['honor']}
-
 Salesforce Link: https://na32.salesforce.com/{$this->contact->Id}
 EOF;
 
@@ -472,7 +433,6 @@ EOF;
 
 		$errors = array_pop($result)->getErrors();
 		if(count($errors) > 0) {
-			// XXX
 			sdf_message_handler(MessageTypes::LOG,
 					__FUNCTION__ . ' : Alert email failure! ' 
 					. $e->getMessage());

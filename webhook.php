@@ -14,6 +14,11 @@ function find_wordpress_base_path() {
 	$dir = dirname(__FILE__);
 	
 	do {
+		// local development
+		if(file_exists('../wordpress/wp-load.php')) {
+			return realpath('../wordpress/');
+		}
+
 		if(file_exists($dir . "/wp-config.php")) {
 			return $dir;
 		}
@@ -29,43 +34,49 @@ function find_wordpress_base_path() {
 	return null;
 }
 
-// require_once find_wordpress_base_path() . "/wp-load.php";
-require_once '../wordpress/wp-load.php'; // XXX
+require_once find_wordpress_base_path() . "/wp-load.php";
 require_once 'sdf.php';
 $sdf = new SDF();
 
 // get and unwrap request
 $body = @file_get_contents('php://input');
 $event = json_decode($body, true);
+$response_code = 200;
 
 if(strpos($event['type'], 'charge.') === 0) { // matches charge.*
-	$type     = $event['type'];
-	$email    = $event['data']['object']['receipt_email'];
-	$customer = $event['data']['object']['customer']; // XXX
-	$cents    = $event['data']['object']['amount'];
-	$invoice  = $event['data']['object']['invoice'];
+	if(strpos($event['type'], 'charge.succeeded') === 0) {
+		$type     = $event['type'];
+		$email    = $event['data']['object']['receipt_email'];
+		$customer = $event['data']['object']['customer'];
+		$cents    = $event['data']['object']['amount'];
+		$invoice  = $event['data']['object']['invoice'];
 
-	$charge   = $event['data']['object']['id'];
+		$charge   = $event['data']['object']['id'];
 
-	// Stripe seems to not handle certain email addresses,
-	// so we fall back to the charge description
-	if(is_null($email)) {
-		$email = $event['data']['object']['description'];
+		// Stripe seems to not handle certain email addresses,
+		// so we fall back to the charge description
+		if(is_null($email)) {
+			$email = $event['data']['object']['description'];
+		}
+		// even still, we may have to look up the customer by their stripe id
+		
+		$info = array(
+			'type'       => $type,
+			'email'      => $email,
+			'amount'     => $cents,
+			'customer'   => $customer,
+			'charge-id'  => $charge,
+			'invoice-id' => $invoice,
+		);
+
+		// do the rest of the processing in the class
+		$response_code = $sdf->do_stripe_endpoint($info);
+	} else {
+		// this was some other kind of charge.
+		// Perhaps an email would be useful?
+		sdf_message_handler(\SDF\MessageTypes::LOG,
+				sprintf('Endpoint: Charge type: %s', $event['type']));
 	}
-	
-	$info = array(
-		'type'       => $type,
-		'email'      => $email,
-		'amount'     => $cents,
-		'customer'   => $customer,
-		'charge-id'  => $charge,
-		'invoice-id' => $invoice
-	);
+}
 
-	// do the rest of the processing in the class
-	$response_code = $sdf->do_stripe_endpoint($info);
-
-	http_response_code($response_code);
-} else {
-	http_response_code(200);
-} ?>
+http_response_code($response_code); ?>
