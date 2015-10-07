@@ -9964,7 +9964,7 @@ All Rights Reserved
             <complexType name="RelatedList">
                 <sequence>
                     <element name="accessLevelRequiredForCreate"    type="tns:ShareAccessLevel" nillable="true"/> 
- <element name="buttons"    type="tns:DescribeLayoutButton"  maxOccurs="unbounded" minOccurs="0" nillable="true"/> 
+                    <element name="buttons"    type="tns:DescribeLayoutButton"  maxOccurs="unbounded" minOccurs="0" nillable="true"/> 
                     <element name="columns"         type="tns:RelatedListColumn" maxOccurs="unbounded"/>
                     <element name="custom"          type="xsd:boolean"/>
                     <element name="field"           type="xsd:string" nillable="true"/>
