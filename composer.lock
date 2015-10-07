@@ -4,7 +4,7 @@
         "Read more about it at http://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
         "This file is @generated automatically"
     ],
-    "hash": "e98f0437dd3fe26331c993b21ad6bb02",
+    "hash": "2c9453d29b13ca424a37989324ae1818",
     "packages": [
         {
             "name": "phpforce/common",
@@ -53,16 +53,16 @@
         },
         {
             "name": "phpforce/soap-client",
-            "version": "dev-master",
+            "version": "0.1.0",
             "source": {
                 "type": "git",
-                "url": "https://github.com/schavery/soap-client.git",
-                "reference": "58086c61224e5ef0e25b93dfcb67ad0a136da645"
+                "url": "https://github.com/phpforce/soap-client.git",
+                "reference": "9a17e514794683bda9d9008a6672bbf36495b4d9"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/schavery/soap-client/zipball/58086c61224e5ef0e25b93dfcb67ad0a136da645",
-                "reference": "58086c61224e5ef0e25b93dfcb67ad0a136da645",
+                "url": "https://api.github.com/repos/phpforce/soap-client/zipball/9a17e514794683bda9d9008a6672bbf36495b4d9",
+                "reference": "9a17e514794683bda9d9008a6672bbf36495b4d9",
                 "shasum": ""
             },
             "require": {
@@ -83,6 +83,7 @@
                     "Phpforce\\SoapClient": "src"
                 }
             },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
@@ -101,10 +102,7 @@
                 "soap",
                 "web services"
             ],
-            "support": {
-                "source": "https://github.com/schavery/soap-client/tree/master"
-            },
-            "time": "2015-10-05 02:26:33"
+            "time": "2015-04-05 15:19:06"
         },
         {
             "name": "psr/log",
@@ -680,16 +678,16 @@
         },
         {
             "name": "myclabs/deep-copy",
-            "version": "1.3.1",
+            "version": "1.4.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/myclabs/DeepCopy.git",
-                "reference": "95d662954e06000cdf63ec9c9f0a6c598d9c5eb9"
+                "reference": "d8093b631a31628342d0703764935f8bac2c56b1"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/myclabs/DeepCopy/zipball/95d662954e06000cdf63ec9c9f0a6c598d9c5eb9",
-                "reference": "95d662954e06000cdf63ec9c9f0a6c598d9c5eb9",
+                "url": "https://api.github.com/repos/myclabs/DeepCopy/zipball/d8093b631a31628342d0703764935f8bac2c56b1",
+                "reference": "d8093b631a31628342d0703764935f8bac2c56b1",
                 "shasum": ""
             },
             "require": {
@@ -718,7 +716,7 @@
                 "object",
                 "object graph"
             ],
-            "time": "2015-07-19 19:57:13"
+            "time": "2015-10-05 15:07:09"
         },
         {
             "name": "phpdocumentor/reflection-docblock",
@@ -1937,8 +1935,7 @@
     "aliases": [],
     "minimum-stability": "stable",
     "stability-flags": {
-        "phpforce/common": 20,
-        "phpforce/soap-client": 20
+        "phpforce/common": 20
     },
     "prefer-stable": false,
     "prefer-lowest": false,

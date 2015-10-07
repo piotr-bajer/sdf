@@ -1,16 +1,10 @@
 {
     "name": "schavery/SDF",
     "description": "A wordpress plugin written for Spark SF",
-    "repositories": [
-        {
-            "type": "vcs",
-            "url": "http://github.com/schavery/soap-client"
-        }
-    ],
     "require": {
         "stripe/stripe-php": "~3.2",
         "phpforce/common": "@dev",
-        "phpforce/soap-client": "dev-master"
+        "phpforce/soap-client": "0.1.*"
     },
     "require-dev": {
         "codeception/codeception": "*",
@@ -22,6 +16,10 @@
         {
             "name": "Steve Avery",
             "email": "schavery@gmail.com"
+        },
+        {
+            "name": "Alex Luecke",
+            "email": "alex.james.luecke@gmail.com"
         }
     ]
 }
