@@ -50,18 +50,17 @@ class UCSalesforce extends Salesforce {
 		$this->contact->Active_Member__c = true;
 
 		// Setup their company
-		if(!isset($this->contact->AccountId)) {
-			if(isset($info['company'])) {
-				$id = self::company($info['company']);
-				if(is_null($id)) {
-					$this->contact->AccountId = static::$FRIEND_OF_SPARK;
-				} else {
-					$this->contact->AccountId = $id;
-				}
-			} else {
+		if(isset($info['company'])) {
+			$id = self::company($info['company']);
+			if(is_null($id)) {
 				$this->contact->AccountId = static::$FRIEND_OF_SPARK;
+			} else {
+				$this->contact->AccountId = $id;
 			}
+		} else {
+			$this->contact->AccountId = static::$FRIEND_OF_SPARK;
 		}
+
 
 		// Name
 		// We just blindly take whatever the contact submits.
@@ -132,31 +131,12 @@ class UCSalesforce extends Salesforce {
 			// Set referral if it's potentially a contact.
 			if($info['hearabout'] == 'Friend') {
 				if(!empty($info['hearabout-extra'])) {
-
-
-					// XXX why is the name search no work?
 					
 					$id = parent::search_salesforce(SearchBy::NAME,
 							$info['hearabout-extra']);
 
-					// $response = self::$connection->search(
-					// 	sprintf('FIND {"%s*"} IN NAME FIELDS', parent::sosl_reserved_chars($info['hearabout-extra'])));
-					// print_r($response);
-					// exit();
-
 					$this->contact->Referred_By__c = $id;
 				}
-			}
-		}
-
-		// In honor of
-		if(!empty($info['inhonorof'])) {
-			$desc = date(parent::$DATE_FORMAT) . ' donated in honor of: '
-					. $info['inhonorof'];
-			if(strlen($this->contact->Description) > 0) {
-				$this->contact->Description .= "\n" . $desc;
-			} else {
-				$this->contact->Description = $desc;
 			}
 		}
 	}
@@ -171,7 +151,7 @@ class UCSalesforce extends Salesforce {
 				$records = parent::$connection->search($search);
 
 				if(count($records->searchRecords)) {
-					$id = $records->searchRecords[0]->Id;
+					$id = $records->searchRecords[0]->record->Id;
 				} else {
 					$company = new \stdClass();
 					$company->Name = $name;

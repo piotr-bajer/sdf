@@ -34,14 +34,8 @@ class Salesforce {
 			$token = $input;
 		}
 
-		if(\LIVEMODE) {
-			$wsdl = WP_PLUGIN_DIR . '/sdf/config/enterprise.wsdl.xml';
-		} else {
-			$wsdl = WP_PLUGIN_DIR . '/sdf/config/enterprise.wsdl.xml';
-		}
-
 		$builder = new \Phpforce\SoapClient\ClientBuilder(
-			$wsdl,
+			WP_PLUGIN_DIR . '/sdf/config/enterprise.wsdl.xml',
 			get_option('salesforce_username'),
 			get_option('salesforce_password'),
 			$token			
@@ -112,7 +106,7 @@ class Salesforce {
 					break;
 			}
 
-			$query = sprintf('FIND {"%s"} IN %s FIELDS RETURNING CONTACT(ID)',
+			$query = sprintf('FIND {%s} IN %s FIELDS RETURNING CONTACT(ID)',
 					self::sosl_reserved_chars($needle), $key);
 
 			$response = self::$connection->search($query);
