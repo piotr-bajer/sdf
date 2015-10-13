@@ -188,10 +188,9 @@ class Salesforce {
 			self::$connection->update(array($this->contact), 'Contact');
 			
 		} else {
-
 			// create new contact.
+			unset($this->contact->Id);
 			self::create(array($this->contact), 'Contact');
-
 		}
 	}
 

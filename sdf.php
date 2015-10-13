@@ -78,7 +78,7 @@ class SDF {
 	private function do_stripe() {
 		// we keep this instance of stripe referenced so we can get the ID
 		// of the charge or the subscription
-		static::make_stripe($this->stripe);
+		$this->stripe = static::make_stripe($this->stripe);
 		$this->stripe->charge(self::get_stripe_details());
 	}
 
@@ -103,7 +103,7 @@ class SDF {
 		$invoice = null;
 		if(!is_null($invoice_id)) {
 			try {
-				static::make_stripe($this->stripe);
+				$this->stripe = static::make_stripe($this->stripe);
 				$invoice = \Stripe\Invoice::retrieve($invoice_id);
 			} catch(\Stripe\Error\Base $e) {
 				sdf_message_handler(\SDF\MessageTypes::LOG,
@@ -117,7 +117,7 @@ class SDF {
 		$email = null;
 		if(!is_null($cus_id)) {
 			try {
-				static::make_stripe($this->stripe);
+				$this->stripe = static::make_stripe($this->stripe);
 				$customer = \Stripe\Customer::retrieve($cus_id);
 				$email = $customer['email'];
 			} catch(\Stripe\Error\Base $e) {
