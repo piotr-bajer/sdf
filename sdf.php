@@ -1,4 +1,4 @@
-<?php
+a<?php
 /*
 	Plugin Name: Spark Donation Form
 	Plugin URI:
@@ -78,7 +78,7 @@ class SDF {
 	private function do_stripe() {
 		// we keep this instance of stripe referenced so we can get the ID
 		// of the charge or the subscription
-		$this->make_stripe();
+		static::make_stripe($this->stripe);
 		$this->stripe->charge(self::get_stripe_details());
 	}
 
@@ -91,10 +91,11 @@ class SDF {
 
 	// ************************************************************************
 
-	private function make_stripe() {
-		if(is_null($this->stripe)) {
-			$this->stripe = new \SDF\Stripe();
-			$this->stripe->api();
+	public static function make_stripe($ctx = null) {
+		if(is_null($ctx)) {
+			$ctx = new \SDF\Stripe();
+			$ctx->api();
+			return $ctx;
 		}
 	}
 
@@ -102,7 +103,7 @@ class SDF {
 		$invoice = null;
 		if(!is_null($invoice_id)) {
 			try {
-				$this->make_stripe();
+				static::make_stripe($this->stripe);
 				$invoice = \Stripe\Invoice::retrieve($invoice_id);
 			} catch(\Stripe\Error\Base $e) {
 				sdf_message_handler(\SDF\MessageTypes::LOG,
@@ -116,7 +117,7 @@ class SDF {
 		$email = null;
 		if(!is_null($cus_id)) {
 			try {
-				$this->make_stripe();
+				static::make_stripe($this->stripe);
 				$customer = \Stripe\Customer::retrieve($cus_id);
 				$email = $customer['email'];
 			} catch(\Stripe\Error\Base $e) {
@@ -303,7 +304,6 @@ function sdf_parse() {
 		$sdf = new SDF();
 		$sdf->begin($_POST['data']);
 		// XXX brittle. shouldn't send success if we send emergency email.
-		unset($_POST['data']);
 		sdf_message_handler(\SDF\MessageTypes::SUCCESS,
 				'Thank you for your donation!');
 	}
@@ -325,7 +325,7 @@ function sdf_template() {
 
 
 function sdf_theme_redirect($url) {
-	global $post, $wp_query;
+	global $wp_query;
 	if(have_posts()) {
 		include($url);
 		die();

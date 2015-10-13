@@ -34,7 +34,7 @@ function find_wordpress_base_path() {
 	return null;
 }
 
-require_once find_wordpress_base_path() . "/wp-load.php";
+require_once find_wordpress_base_path() . "/wp-load.php"; // XXX outputs 'a'?
 require_once 'sdf.php';
 $sdf = new SDF();
 

@@ -20,7 +20,9 @@ function sdf_message_handler($type, $message) {
 		case \SDF\MessageTypes::LOG: $type = 'log'; break;
 	}
 
-	$logmessage = time() . ' - ' . $type . ' - ' . $message . PHP_EOL;
+	$logmessage = sprintf('%s - %s - %s%s',
+			date('D, d M Y H:i:s'), $type, $message, PHP_EOL);
+
 	file_put_contents(WP_PLUGIN_DIR . '/sdf/sdf.log', $logmessage, FILE_APPEND);
 
 	// send data to the requestor

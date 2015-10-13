@@ -96,7 +96,7 @@ class AsyncSalesforce extends Salesforce {
 	// Find the donations for our contact, so that we can determine their
 	// donor level
 	private function get_donations() {
-		$donations_list = array();
+		$valid_donations_list = array();
 
 		if($this->contact->Id !== null) {
 
@@ -180,8 +180,7 @@ class AsyncSalesforce extends Salesforce {
 			foreach($info['invoice']['lines']['data'] as $ili) {
 				if(strcmp($ili['type'],	'subscription') === 0) {
 
-					// we assume that the first line item is the most recent one
-					// and the only relevant subscription.
+					// We can get the subscription ID from this line item
 					$this->subscription = $ili['id'];
 
 					$interval = $ili['plan']['interval'];
@@ -326,12 +325,16 @@ class AsyncSalesforce extends Salesforce {
 	private function find_previous_donation_honor(&$info) {
 
 		if(isset($this->subscription)) {
-			$stripe = new Stripe();
-			$stripe->api();
+			$stripe = \SDF::make_stripe();
 			
+			// It could be any donation
 			foreach($this->all_donations as $dli) {
+				// We only care if it has in honor of data
 				if(strlen($dli['In_Honor_Of__c']) > 0) {
+					// This shouldn't be null if in honor of is present
 					if(strlen($dli['Stripe_Id__c']) > 0) {
+						// now we can try to fetch the 
+						// subscription id from that charge
 						$old_subscription =	$stripe->get_subscription_from_charge(
 								$dli['Stripe_Id__c']);
 
@@ -391,13 +394,13 @@ class AsyncSalesforce extends Salesforce {
 		}
 
 		$donor_email = new \Phpforce\SoapClient\Request\SingleEmailMessage();
-		$donor_email->templateId = $template;
 		$donor_email->targetObjectId = $this->contact->Id;
-		// XXX edit vendor code? neither of these work.
-		$donor_email->replyTo = get_option('sf_email_reply_to'); // XXX
-		$donor_email->senderDisplayName = self::$DISPLAY_NAME; // XXX
+		$donor_email->replyTo = get_option('sf_email_reply_to');
+		$donor_email->senderDisplayName = self::$DISPLAY_NAME;
+		$donor_email->templateId = $template;
+		
 
-		// if(LIVEMODE) {
+		if(LIVEMODE) {
 			$result = parent::$connection->sendEmail(array($donor_email));
 
 			$errors = array_pop($result)->getErrors();
@@ -406,9 +409,9 @@ class AsyncSalesforce extends Salesforce {
 						__FUNCTION__ . ' : Donor email failure! ' 
 						. $errors[0]->message);
 			}
-		// }
+		}
 
-		// Alert email
+		// Alert email //////////////////////////////////////////////
 
 		$body = <<<EOF
 A donation has been made!
@@ -423,11 +426,10 @@ Salesforce Link: https://na32.salesforce.com/{$this->contact->Id}
 EOF;
 
 		$spark_email = new \Phpforce\SoapClient\Request\SingleEmailMessage();
-		$spark_email->senderDisplayName = 'Spark Donations'; // XXX
-		$spark_email->plainTextBody = $body;
-		$spark_email->subject = 'New Donation Alert'; // XXX
 		$spark_email->toAddresses = explode(', ', get_option('alert_email_list'));
-
+		$spark_email->senderDisplayName = 'Spark Donations';
+		$spark_email->subject = 'New Donation Alert';
+		$spark_email->plainTextBody = $body;
 
 		$result = parent::$connection->sendEmail(array($spark_email));
 

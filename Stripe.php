@@ -65,7 +65,7 @@ class Stripe {
 
 			foreach ($invoice_items as $item) {
 				if(strcmp($item['type'], 'subscription') === 0) {
-					return $item['subscription'];
+					return $item['id'];
 				}
 			}
 		} catch(\Stripe\Error\InvalidRequest $e) {
@@ -119,6 +119,9 @@ class Stripe {
 
 			$new_plan = array(
 				'id' => $plan_id,
+				// 'id' => 'steve-plan-3',
+				// 'name' => 'Steve Plan 3',
+				// 'interval' => 'day',
 				'currency' => 'USD',
 				'interval' => $recurrence,
 				'amount' => $this->amount,
@@ -131,7 +134,7 @@ class Stripe {
 				sdf_message_handler(MessageTypes::LOG,
 						__FUNCTION__ . ' : ' . $e);
 				sdf_message_handler(MessageTypes::ERROR,
-						'Could not create new plan! Try again?');
+						'Something went wrong! Try again?');
 			}
 		}
 
