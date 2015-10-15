@@ -1,4 +1,4 @@
-a<?php
+<?php
 /*
 	Plugin Name: Spark Donation Form
 	Plugin URI:

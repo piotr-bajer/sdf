@@ -204,11 +204,11 @@ class Salesforce {
 			. $error_message;
 
 		$spark_email = new \Phpforce\SoapClient\Request\SingleEmailMessage();
-		$spark_email->senderDisplayName = 'Spark Donations'; // XXX
+		$spark_email->subject = 'Salesforce Capture Alert';
+		$spark_email->senderDisplayName = 'Spark Donations';
 		$spark_email->toAddresses = explode(', ',
 		 		get_option('alert_email_list'));
 		$spark_email->plainTextBody = $body;
-		$spark_email->subject = 'Salesforce Capture Alert'; // XXX
 
 		self::$connection->sendEmail(array($spark_email));
 	}
