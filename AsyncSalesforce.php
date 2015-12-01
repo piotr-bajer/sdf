@@ -276,10 +276,14 @@ class AsyncSalesforce extends Salesforce {
 					// update donation with amount and success.
 					$this->update_donation($info, $dli);
 
-					// we need this for the email:
+					// we need these for the email:
 					if(strlen($dli['In_Honor_Of__c']) > 0) {
 						$info['honor'] = sprintf("In Honor of: %s\n",
 								$dli['In_Honor_Of__c']);
+					}
+
+					if(strlen($dli['Referred_by__c']) > 0) {
+						$info['referral'] = $dli['Referred_by__c'];
 					}
 		
 				} else {
@@ -420,7 +424,9 @@ Name: {$this->contact->FirstName} {$this->contact->LastName}
 Amount: {$info['amount-string']}
 Recurrence: {$info['recurrence-string']}
 Email: {$this->contact->Email}
+Phone: {$this->contact->Phone}
 Location: {$this->contact->MailingCity}, {$this->contact->MailingState}
+Referred by: {$info['referral']}
 {$info['honor']}
 Salesforce Link: https://na32.salesforce.com/{$this->contact->Id}
 EOF;

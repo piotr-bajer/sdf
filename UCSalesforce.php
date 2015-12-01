@@ -123,9 +123,10 @@ class UCSalesforce extends Salesforce {
 
 		// Referral field
 		if(!empty($info['hearabout'])) {
-			if(!isset($this->contact->How_did_you_hear_about_Spark__c)) {
-				$this->contact->How_did_you_hear_about_Spark__c =
-						ucfirst($info['hearabout']);
+			$info['referral'] = ucfirst($info['hearabout']);
+
+			if(!isset($this->contact->How_did_you_hear_about_Spark__c)) {	
+				$this->contact->How_did_you_hear_about_Spark__c = $info['referral'];
 			}
 
 			// Set referral if it's potentially a contact.
@@ -137,6 +138,11 @@ class UCSalesforce extends Salesforce {
 
 					$this->contact->Referred_By__c = $id;
 				}
+			}
+
+			// Get the extra data if it's there
+			if(!empty($info['hearabout-extra'])) {
+				$info['referral'] .= ': ' . $info['hearabout-extra'];
 			}
 		}
 	}
@@ -181,6 +187,7 @@ class UCSalesforce extends Salesforce {
 		$donation->Type__c          = 'Membership';
 		$donation->Stripe_Status__c = 'Pending';
 		$donation->Stripe_Id__c     = $info['stripe-id'];
+		$donation->Referred_by__c   = parent::string_truncate($info['referral']);
 
 		$donation->In_Honor_Of__c =
 				parent::string_truncate($info['inhonorof'], 64);
