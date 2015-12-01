@@ -71,7 +71,8 @@ class Salesforce {
 					'LastName',
 					'Email',
 					'MailingCity',
-					'MailingState'
+					'MailingState',
+					'Phone'
 				);
 
 
