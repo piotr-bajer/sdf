@@ -4,7 +4,7 @@
 	Plugin URI:
 	Description: Create and integrate a form with payment processing and CRM
 	Author: Steve Avery
-	Version: 2.2
+	Version: 2.2.1
 	Author URI: https://stevenavery.com/
 */
 
@@ -134,7 +134,7 @@ class SDF {
 		$info['first-name']      = $this->data['first-name'];
 		$info['last-name']       = $this->data['last-name'];
 		$info['email']           = $this->data['email'];
-		$info['phone']           = $this->data['tel'];
+		$info['tel']             = $this->data['tel'];
 		$info['address1']        = $this->data['address1'];
 		$info['address2']        = $this->data['address2'];
 		$info['city']            = $this->data['city'];
