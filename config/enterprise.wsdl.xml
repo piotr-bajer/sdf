@@ -10665,30 +10665,33 @@ All Rights Reserved
             </complexType>
 
             <complexType name="SingleEmailMessage">
-                <complexContent>
-                    <extension base="tns:Email">
-                        <sequence>
-                            <element name="bccAddresses"        minOccurs="0" maxOccurs="25" type="xsd:string" nillable="true"/>
-                            <element name="ccAddresses"         minOccurs="0" maxOccurs="25" type="xsd:string" nillable="true"/>
-                            <element name="charset"             type="xsd:string" nillable="true"/>
-                            <element name="documentAttachments" minOccurs="0" maxOccurs="unbounded" type="tns:ID" />
-                            <element name="entityAttachments"   minOccurs="0" maxOccurs="unbounded" type="tns:ID" />
-                            <element name="fileAttachments"     minOccurs="0" maxOccurs="unbounded" type="tns:EmailFileAttachment"/>
-                            <element name="htmlBody"            type="xsd:string" nillable="true"/>
-                            <element name="inReplyTo"           minOccurs="0" type="xsd:string" nillable="true"/>
-                            <element name="optOutPolicy"        type="tns:SendEmailOptOutPolicy" nillable="true"/>
-                            <element name="orgWideEmailAddressId" minOccurs="0" maxOccurs="1" type="tns:ID" nillable="true"/>
-                            <element name="plainTextBody"       type="xsd:string" nillable="true"/>
-                            <element name="references"          minOccurs="0" type="xsd:string" nillable="true"/>
-                            <element name="targetObjectId"      type="tns:ID" nillable="true"/>
-                            <element name="templateId"          type="tns:ID" nillable="true"/>
-                            <element name="toAddresses"         minOccurs="0" maxOccurs="100" type="xsd:string" nillable="true"/>
-                            <element name="treatBodiesAsTemplate" type="xsd:boolean" nillable="true" />
-                            <element name="treatTargetObjectAsRecipient" type="xsd:boolean" nillable="true" />
-                            <element name="whatId"              type="tns:ID" nillable="true"/>
-                        </sequence>
-                    </extension>
-                </complexContent>
+                <sequence>
+                    <element name="bccSender"          type="xsd:boolean" nillable="true"/>
+                    <element name="emailPriority"      type="tns:EmailPriority" nillable="true"/>
+                    <element name="replyTo"            type="xsd:string" nillable="true"/>
+                    <element name="saveAsActivity"     type="xsd:boolean" nillable="true"/>
+                    <element name="senderDisplayName"  type="xsd:string" nillable="true"/>
+                    <element name="subject"            type="xsd:string" nillable="true"/>
+                    <element name="useSignature"       type="xsd:boolean" nillable="true"/>
+                    <element name="bccAddresses"        minOccurs="0" maxOccurs="25" type="xsd:string" nillable="true"/>
+                    <element name="ccAddresses"         minOccurs="0" maxOccurs="25" type="xsd:string" nillable="true"/>
+                    <element name="charset"             type="xsd:string" nillable="true"/>
+                    <element name="documentAttachments" minOccurs="0" maxOccurs="unbounded" type="tns:ID" />
+                    <element name="entityAttachments"   minOccurs="0" maxOccurs="unbounded" type="tns:ID" />
+                    <element name="fileAttachments"     minOccurs="0" maxOccurs="unbounded" type="tns:EmailFileAttachment"/>
+                    <element name="htmlBody"            type="xsd:string" nillable="true"/>
+                    <element name="inReplyTo"           minOccurs="0" type="xsd:string" nillable="true"/>
+                    <element name="optOutPolicy"        type="tns:SendEmailOptOutPolicy" nillable="true"/>
+                    <element name="orgWideEmailAddressId" minOccurs="0" maxOccurs="1" type="tns:ID" nillable="true"/>
+                    <element name="plainTextBody"       type="xsd:string" nillable="true"/>
+                    <element name="references"          minOccurs="0" type="xsd:string" nillable="true"/>
+                    <element name="targetObjectId"      type="tns:ID" nillable="true"/>
+                    <element name="templateId"          type="tns:ID" nillable="true"/>
+                    <element name="toAddresses"         minOccurs="0" maxOccurs="100" type="xsd:string" nillable="true"/>
+                    <element name="treatBodiesAsTemplate" type="xsd:boolean" nillable="true" />
+                    <element name="treatTargetObjectAsRecipient" type="xsd:boolean" nillable="true" />
+                    <element name="whatId"              type="tns:ID" nillable="true"/>
+                </sequence>
             </complexType>
 
             <complexType name="SendEmailResult">
