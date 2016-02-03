@@ -22,6 +22,7 @@ class Salesforce {
 
 	protected static $connection;
 	protected static $DATE_FORMAT = 'Y-m-d';
+	private $emergency_email_sent = false;
 
 	// This function is public to allow verification from settings page
 	// just like the Stripe API
@@ -42,6 +43,10 @@ class Salesforce {
 		);
 
 		self::$connection = $builder->build();
+	}
+
+	public function has_emergency_email_been_sent() {
+		return $emergency_email_sent;
 	}
 
 	// This method queries the data in SalesForce using the provided email
@@ -186,12 +191,17 @@ class Salesforce {
 	protected function upsert_contact() {
 		if(isset($this->contact->Id)) {
 			// update on id.
-			self::$connection->update(array($this->contact), 'Contact');
+			$response = self::$connection->update(array($this->contact), 'Contact');
 			
 		} else {
 			// create new contact.
 			unset($this->contact->Id);
-			self::create(array($this->contact), 'Contact');
+			$response = self::create(array($this->contact), 'Contact');
+		}
+
+		if(!$response->isSuccess()) {
+			throw new \Exception(sprintf('Contact %s not updated. %s', 
+					$this->contact->Email, $response->getErrors()));
 		}
 	}
 
@@ -212,6 +222,7 @@ class Salesforce {
 		$spark_email->plainTextBody = $body;
 
 		self::$connection->sendEmail(array($spark_email));
+		$emergency_email_sent = true;
 	}
 
 } // end class ?>

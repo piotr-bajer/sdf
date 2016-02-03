@@ -4,7 +4,7 @@
 	Plugin URI:
 	Description: Create and integrate a form with payment processing and CRM
 	Author: Steve Avery
-	Version: 2.2.1
+	Version: 2.2.2
 	Author URI: https://stevenavery.com/
 */
 
@@ -34,6 +34,7 @@ class SDF {
 
 	private $data;
 	private $stripe;
+	private $emergency_email_sent = false;
 
 	public function begin($postdata) {
 
@@ -86,6 +87,7 @@ class SDF {
 	private function do_init_salesforce() {
 		$salesforce = new \SDF\UCSalesforce();
 		$salesforce->init(self::get_sf_init_details());
+		$emergency_email_sent = $salesforce->has_emergency_email_been_sent();
 	}
 
 
@@ -303,9 +305,16 @@ function sdf_parse() {
 	} else {
 		$sdf = new SDF();
 		$sdf->begin($_POST['data']);
-		// XXX brittle. shouldn't send success if we send emergency email.
-		sdf_message_handler(\SDF\MessageTypes::SUCCESS,
+		
+		if(!$emergency_email_sent) {
+			sdf_message_handler(\SDF\MessageTypes::SUCCESS,
 				'Thank you for your donation!');
+		} else {
+			sdf_message_handler(\SDF\MessageTypes::ERROR,
+				'Something went wrong, but we\'re not sure what.'
+				. sprintf(' Please get in contact at %s', get_option('sf_email_reply_to'));
+		}
+		
 	}
 	
 	die(); // prevent trailing 0 from admin-ajax.php
