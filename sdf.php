@@ -4,7 +4,7 @@
 	Plugin URI:
 	Description: Create and integrate a form with payment processing and CRM
 	Author: Steve Avery
-	Version: 2.2.2
+	Version: 2.3
 	Author URI: https://stevenavery.com/
 */
 
