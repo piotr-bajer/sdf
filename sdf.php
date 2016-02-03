@@ -310,9 +310,12 @@ function sdf_parse() {
 			sdf_message_handler(\SDF\MessageTypes::SUCCESS,
 				'Thank you for your donation!');
 		} else {
+			$email = get_option('sf_email_reply_to');
 			sdf_message_handler(\SDF\MessageTypes::ERROR,
-				'Something went wrong, but we\'re not sure what.'
-				. sprintf(' Please get in contact at %s', get_option('sf_email_reply_to'));
+					sprintf('Something went wrong, but we\'re not sure what.'
+					. ' <a href="mailto:%s?subject=Spark Donation Error" target="_blank">'
+					. 'Please get in contact</a> to make sure your donation went through.'
+					, $email);
 		}
 		
 	}
