@@ -103,7 +103,11 @@ class UCSalesforce extends Salesforce {
 		}
 	
 		// Every contact needs an 'Owner'
-		$this->contact->Board_Member_Contact_Owner__c = 'Amanda Brock';
+		$this->contact->Owner = 'Shannon Farley';
+
+		if(!isset($this->contact->Board_Member_Contact_Owner__c)) {
+			$this->contact->Board_Member_Contact_Owner__c = 'Amanda Brock';
+		}
 	
 		// Birth month and year
 		if(!empty($info['birthday-month']) 
