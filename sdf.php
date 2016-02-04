@@ -4,11 +4,11 @@
 	Plugin URI:
 	Description: Create and integrate a form with payment processing and CRM
 	Author: Steve Avery
-	Version: 2.3
+	Version: 2.3.1
 	Author URI: https://stevenavery.com/
 */
 
-define('LIVEMODE', 0);
+define('LIVEMODE', 1);
 
 // cultural imperialism
 date_default_timezone_set('America/Los_Angeles');
