@@ -315,7 +315,7 @@ function sdf_parse() {
 					sprintf('Something went wrong, but we\'re not sure what.'
 					. ' <a href="mailto:%s?subject=Spark Donation Error" target="_blank">'
 					. 'Please get in contact</a> to make sure your donation went through.'
-					, $email);
+					, $email));
 		}
 		
 	}

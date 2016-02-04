@@ -103,8 +103,6 @@ class UCSalesforce extends Salesforce {
 		}
 	
 		// Every contact needs an 'Owner'
-		$this->contact->Owner = 'Shannon Farley';
-
 		if(!isset($this->contact->Board_Member_Contact_Owner__c)) {
 			$this->contact->Board_Member_Contact_Owner__c = 'Amanda Brock';
 		}
@@ -189,7 +187,7 @@ class UCSalesforce extends Salesforce {
 		$donation->Type__c          = 'Membership';
 		$donation->Stripe_Status__c = 'Pending';
 		$donation->Stripe_Id__c     = $info['stripe-id'];
-		$donation->Referred_by__c   = parent::string_truncate($info['referral']);
+		$donation->Referred_by__c   = parent::string_truncate($info['referral'], 255);
 
 		$donation->In_Honor_Of__c =
 				parent::string_truncate($info['inhonorof'], 64);

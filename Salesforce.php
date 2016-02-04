@@ -199,6 +199,8 @@ class Salesforce {
 			$response = self::create(array($this->contact), 'Contact');
 		}
 
+		$response = array_pop($response);
+
 		if(!$response->isSuccess()) {
 			throw new \Exception(sprintf('Contact %s not updated. %s', 
 					$this->contact->Email, $response->getErrors()));

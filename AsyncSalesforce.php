@@ -115,7 +115,8 @@ class AsyncSalesforce extends Salesforce {
 			$query = 'SELECT 
 							(SELECT
 								Id, Amount__c, Donation_Date__c,
-								 Stripe_Status__c, Stripe_Id__c, In_Honor_Of__c
+								 Stripe_Status__c, Stripe_Id__c,
+								 In_Honor_Of__c, Referred_by__c
 							FROM Donations__r)
 						FROM
 							Contact
@@ -281,7 +282,8 @@ class AsyncSalesforce extends Salesforce {
 					}
 
 					if(strlen($dli['Referred_by__c']) > 0) {
-						$info['referral'] = $dli['Referred_by__c'];
+						$info['referral'] = sprintf("Referred by: %s\n",
+								$dli['Referred_by__c']);
 					}
 		
 				} else {
@@ -300,10 +302,16 @@ class AsyncSalesforce extends Salesforce {
 								if(strlen($dli['In_Honor_Of__c']) > 0) {
 									$info['honor'] = sprintf("In Honor of: %s\n",
 											$dli['In_Honor_Of__c']);
+								} else {
+									// assuming that the referrer wont be set if there's
+									// no honor
+									$this->find_previous_donation_extras($info);
 								}
 
-								if(empty($info['honor'])) {
-									$this->find_previous_donation_honor($info);
+
+								if(strlen($dli['Referred_by__c']) > 0) {
+									$info['referral'] = sprintf("Referred by: %s\n",
+											$dli['Referred_by__c']);
 								}
 
 								$this->update_donation($info, $dli);
@@ -324,7 +332,7 @@ class AsyncSalesforce extends Salesforce {
 	}
 
 
-	private function find_previous_donation_honor(&$info) {
+	private function find_previous_donation_extras(&$info) {
 
 		if(isset($this->subscription)) {
 			$stripe = \SDF::make_stripe();
@@ -343,6 +351,15 @@ class AsyncSalesforce extends Salesforce {
 						if(strcmp($old_subscription, $this->subscription) === 0) {
 							$info['honor'] = sprintf("In Honor of: %s\n",
 									$dli['In_Honor_Of__c']);
+
+							// we should be pretty confident if this is the donation
+							// that was the first in the series, whatever referrer
+							// info was set there would be accurate
+							if(strlen($dli['Referred_by__c']) > 0) {
+								$info['referral'] = sprintf("Referred by: %s\n",
+										$dli['Referred_by__c']);
+							}
+
 							return;
 						}
 					}
@@ -414,7 +431,6 @@ class AsyncSalesforce extends Salesforce {
 		}
 
 		// Alert email //////////////////////////////////////////////
-
 		$body = <<<EOF
 A donation has been made!
 
@@ -424,8 +440,7 @@ Recurrence: {$info['recurrence-string']}
 Email: {$this->contact->Email}
 Phone: {$this->contact->Phone}
 Location: {$this->contact->MailingCity}, {$this->contact->MailingState}
-Referred by: {$info['referral']}
-{$info['honor']}
+{$info['referral']}{$info['honor']}
 Salesforce Link: https://na32.salesforce.com/{$this->contact->Id}
 EOF;
 
