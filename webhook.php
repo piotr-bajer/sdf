@@ -12,29 +12,31 @@
 function find_wordpress_base_path() {
 	$count = 0;
 	$dir = dirname(__FILE__);
-	
-	do {
-		// local development
-		if(file_exists('../wordpress/wp-load.php')) {
-			return realpath('../wordpress/');
-		}
 
-		if(file_exists($dir . "/wp-config.php")) {
-			return $dir;
-		}
+	// local development
+	if(file_exists('../wordpress/wp-load.php')) {
+		return realpath('../wordpress/wp-load.php');
+	}
 
-		if($count < 255) {
-			$count++;
+	// default wordpress location
+	if(file_exists('../../../wp-config.php')) {
+		return realpath('../../../wp-load.php');
+	}
+
+	while($count < 255) {
+		// otherwise we'll head for the moon
+		if(file_exists($dir . '/wp-load.php')) {
+			return $dir . '/wp-load.php';
 		} else {
-			throw new Exception("Wordpress base path not found");
+			$count++;
+			$dir = realpath("$dir/..");
 		}
+	}
 
-	} while($dir = realpath("$dir/.."));
-
-	return null;
+	throw new Exception('Wordpress base path not found');
 }
 
-require_once find_wordpress_base_path() . "/wp-load.php"; // XXX outputs 'a'?
+require_once find_wordpress_base_path();
 require_once 'sdf.php';
 $sdf = new SDF();
 

@@ -325,8 +325,7 @@ class AsyncSalesforce extends Salesforce {
 		if($dli_match_count === 0) {
 			// this donation is part of a subscription,
 			// and is not the first donation. Completely async!
-			$this->find_previous_donation_honor($info);
-			
+			$this->find_previous_donation_extras($info);
 			$this->create_standard_donation($info);
 		}
 	}
@@ -366,7 +365,6 @@ class AsyncSalesforce extends Salesforce {
 				}
 			}
 		}
-		$info['honor'] = "\n";
 	}
 
 
