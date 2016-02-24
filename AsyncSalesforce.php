@@ -131,6 +131,10 @@ class AsyncSalesforce extends Salesforce {
 
 				$response = parent::$connection->query($query);
 				$donations = $response->getQueryResult()->getRecord(0)->Donations__r;
+
+				if(is_null($donations)) {
+					return;
+				}
 	
 				// we want the successes because that's how we count up
 				// the total donated this year.

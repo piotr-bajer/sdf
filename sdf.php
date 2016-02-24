@@ -4,7 +4,7 @@
 	Plugin URI:
 	Description: Create and integrate a form with payment processing and CRM
 	Author: Steve Avery
-	Version: 2.3.2
+	Version: 2.3.3
 	Author URI: https://stevenavery.com/
 */
 
@@ -15,7 +15,7 @@ date_default_timezone_set('America/Los_Angeles');
 setlocale(LC_MONETARY, 'en_US.UTF-8');
 
 if(LIVEMODE) {
-	error_reporting(0);
+	ini_set('display_errors', 0);
 } else {
 	error_reporting(E_ERROR | E_WARNING | E_PARSE);
 }
