@@ -6,7 +6,7 @@
 require_once WP_PLUGIN_DIR . '/sdf/types.php';
 
 function sdf_message_handler($type, $message) {
-	// type = (ERROR | SUCCESS | LOG)
+	// type = (ERROR | SUCCESS | LOG | DEBUG)
 	// all messages are written to sdf.log
 	// rotated every six months
 	// success and error messages are passed as an object to the waiting js
@@ -14,10 +14,15 @@ function sdf_message_handler($type, $message) {
 	// data.type = error | success
 	// data.message = message
 
+	if($type > LOGLEVEL) {
+		return;
+	}
+
 	switch($type) {
 		case \SDF\MessageTypes::ERROR: $type = 'error'; break;
 		case \SDF\MessageTypes::SUCCESS: $type = 'success'; break;
 		case \SDF\MessageTypes::LOG: $type = 'log'; break;
+		case \SDF\MessageTypes::DEBUG: $type = 'debug'; break;
 	}
 
 	$logmessage = sprintf('%s - %s - %s%s',
@@ -26,7 +31,7 @@ function sdf_message_handler($type, $message) {
 	file_put_contents(WP_PLUGIN_DIR . '/sdf/sdf.log', $logmessage, FILE_APPEND);
 
 	// send data to the requestor
-	if($type != 'log') {
+	if($type == 'error' || $type  == 'success') {
 		ob_clean();
 		$data = array(
 			'type' => $type,

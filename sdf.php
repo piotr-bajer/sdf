@@ -9,6 +9,7 @@
 */
 
 define('LIVEMODE', 1);
+define('LOGLEVEL', \SDF\MessageTypes::DEBUG);
 
 // cultural imperialism
 date_default_timezone_set('America/Los_Angeles');
