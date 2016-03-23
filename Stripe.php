@@ -24,6 +24,8 @@ class Stripe {
 
 	// entrypoint
 	public function charge(&$data) {
+		sdf_message_handler(MessageTypes::DEBUG, 'Entered Stripe class');
+
 		$this->amount            = $data['amount-cents'];
 		$this->amount_string     = $data['amount-string'];
 		$this->token             = $data['token'];
@@ -82,6 +84,8 @@ class Stripe {
 	}
 
 	private function single_charge() {
+		sdf_message_handler(MessageTypes::DEBUG, 'Doing a single charge');
+
 		try {
 			$result = \Stripe\Charge::create(array(
 				'amount' => $this->amount,
@@ -89,6 +93,10 @@ class Stripe {
 				'currency' => 'usd',
 				'description' => $this->email
 			));
+
+			sdf_message_handler(MessageTypes::DEBUG,
+					sprintf('Single charge created, amount: %d (cents), id: %s',
+						$result->amount, $result->id));
 
 			return $result->id;
 
@@ -98,6 +106,7 @@ class Stripe {
 	}
 
 	private function recurring_charge() {
+		sdf_message_handler(MessageTypes::DEBUG, 'Creating a recurring charge');
 		self::plan();
 		self::stripe_customer();
 		return self::subscribe();
@@ -109,8 +118,17 @@ class Stripe {
 		$plan_id = strtolower($this->recurrence_string) . '-' . $this->amount;
 
 		try {
+			sdf_message_handler(MessageTypes::DEBUG,
+					'Attempting to get plan from Stripe');
+
 			$plan = \Stripe\Plan::retrieve($plan_id);
+
+			sdf_message_handler(MessageTypes::DEBUG, 'Plan found');
+
 		} catch(\Stripe\Error\InvalidRequest $e) {
+
+			sdf_message_handler(MessageTypes::DEBUG, 'Plan not found');
+
 			if($this->recurrence_type == RecurrenceTypes::ANNUAL) {
 				$recurrence = 'year';
 			} else {
@@ -119,9 +137,6 @@ class Stripe {
 
 			$new_plan = array(
 				'id' => $plan_id,
-				// 'id' => 'steve-plan-3',
-				// 'name' => 'Steve Plan 3',
-				// 'interval' => 'day',
 				'currency' => 'USD',
 				'interval' => $recurrence,
 				'amount' => $this->amount,
@@ -129,6 +144,9 @@ class Stripe {
 			);
 
 			try {
+				sdf_message_handler(MessageTypes::DEBUG,
+						'Attempting to create new plan');
+
 				$plan = \Stripe\Plan::create($new_plan);
 			} catch(\Stripe\Error\Base $e) {
 				sdf_message_handler(MessageTypes::LOG,
@@ -138,11 +156,16 @@ class Stripe {
 			}
 		}
 
+		sdf_message_handler(MessageTypes::DEBUG,
+				sprintf('Plan id is: %s', $plan->id));
+
 		$this->stripe_plan = $plan;
 	}
 
 	// Create the basic customer
 	private function stripe_customer() {
+		sdf_message_handler(MessageTypes::DEBUG,
+				sprintf('Creating Stripe customer: %s', $this->email));
 		$info = array(
 			'card' => $this->token,
 			'email' => $this->email,
@@ -156,13 +179,23 @@ class Stripe {
 		}
 
 		$this->stripe_customer = $customer;
+
+		sdf_message_handler(MessageTypes::DEBUG,
+				sprintf('Stripe customer created: %s', $customer->id));
 	}
 
 	// sign up for the plan.
 	private function subscribe() {
+		sdf_message_handler(MessageTypes::DEBUG,
+				'Signing the customer up for the plan');
+
 		try {
 			$result = $this->stripe_customer->updateSubscription(
 					array('plan' => $this->stripe_plan->id));
+
+			sdf_message_handler(MessageTypes::DEBUG,
+					sprintf('Signed up customer %s for plan %s, subscription id: %s',
+						$result->customer, $result->plan->id, $result->id));
 
 			return $result->id;
 

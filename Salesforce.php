@@ -27,6 +27,8 @@ class Salesforce {
 	// This function is public to allow verification from settings page
 	// just like the Stripe API
 	public static function api($input = null) {
+		sdf_message_handler(MessageTypes::DEBUG, 'Loading up Salesforce library');
+
 		require_once(WP_PLUGIN_DIR . '/sdf/vendor/autoload.php');
 
 		if(is_null($input)) {
@@ -34,6 +36,8 @@ class Salesforce {
 		} else {
 			$token = $input;
 		}
+
+		sdf_message_handler(MessageTypes::DEBUG, 'Building Salesforce connection');
 
 		$builder = new \Phpforce\SoapClient\ClientBuilder(
 			WP_PLUGIN_DIR . '/sdf/config/enterprise.wsdl.xml',
@@ -51,6 +55,8 @@ class Salesforce {
 
 	// This method queries the data in SalesForce using the provided email
 	protected function get_contact($email = null) {
+		sdf_message_handler(MessageTypes::DEBUG,
+				'Attempting to retrieve Salesforce contact data');
 
 		$contact = new \stdClass();
 		$id = null;
@@ -85,6 +91,11 @@ class Salesforce {
 						$fields, array($id), 'Contact');
 
 				$contact = array_pop($response);
+
+				sdf_message_handler(MessageTypes::DEBUG,
+						sprintf('Got Salesforce contact %s', $contact->Id));
+			} else {
+				sdf_message_handler(MessageTypes::DEBUG, 'No Salesforce contact available');
 			}
 		} catch(\Exception $e) {
 
@@ -115,11 +126,21 @@ class Salesforce {
 			$query = sprintf('FIND {%s} IN %s FIELDS RETURNING CONTACT(ID)',
 					self::sosl_reserved_chars($needle), $key);
 
+			sdf_message_handler(MessageTypes::DEBUG,
+					sprintf('Searching Salesforce with SOQL query: %s', $query));
+
 			$response = self::$connection->search($query);
 
 			if(count($response)) {
+				sdf_message_handler(MessageTypes::DEBUG,
+						sprintf('%d result(s) found', count($response->searchRecords)));
+
 				return array_pop($response->searchRecords)->record->Id;
 			}
+
+			sdf_message_handler(MessageTypes::DEBUG, 'No results found');
+		} else {
+			sdf_message_handler(MessageTypes::DEBUG, 'Needle was empty');
 		}
 
 		return null;
@@ -173,29 +194,51 @@ class Salesforce {
 
 
 	protected function create($object, $object_name) {
-		if(!is_array($object)) {
-			$object = array($object);
+		$response = null;
+
+		try {
+			if(!is_array($object)) {
+				$object = array($object);
+			}
+
+			$response = self::$connection->create($object, $object_name);
+
+		} catch(\Exception $e) {
+			sdf_message_handler(MessageTypes::DEBUG,
+					sprintf('Caught exception creating %s, raising', $object_name));
+			throw $e;
 		}
 
-		$response = self::$connection->create($object, $object_name);
-		
 		$response = array_pop($response);
 
 		if(!$response->isSuccess()) {
 			throw new \Exception(sprintf('%s not created. %s', 
 					$object_name, $response->getErrors()));
 		}
+
+		return $response;
 	}
 
 	// Send the data to Salesforce
 	protected function upsert_contact() {
 		if(isset($this->contact->Id)) {
-			// update on id.
-			$response = self::$connection->update(array($this->contact), 'Contact');
+			sdf_message_handler(MessageTypes::DEBUG,
+					sprintf('Attempting to update contact %s', $this->contact->Id));
+
+			try {
+				// update on id.
+				$response = self::$connection->update(array($this->contact), 'Contact');
+			} catch(\Exception $e) {
+				sdf_message_handler(MessageTypes::DEBUG,
+						'Caught exception updating contact, raising');
+				throw $e;
+			}
 			
 		} else {
+			sdf_message_handler(MessageTypes::DEBUG, 'Attempting to create new contact');
+
 			// create new contact.
-			unset($this->contact->Id);
+			unset($this->contact->Id); // Id field cannot be present
 			$response = self::create(array($this->contact), 'Contact');
 		}
 

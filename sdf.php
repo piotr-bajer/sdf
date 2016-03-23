@@ -1,10 +1,10 @@
 <?php
 /*
 	Plugin Name: Spark Donation Form
-	Plugin URI:
+	Plugin URI: https://github.com/schavery/sdf
 	Description: Create and integrate a form with payment processing and CRM
 	Author: Steve Avery
-	Version: 2.3.3
+	Version: 2.4
 	Author URI: https://stevenavery.com/
 */
 
@@ -38,6 +38,8 @@ class SDF {
 	private $emergency_email_sent = false;
 
 	public function begin($postdata) {
+		sdf_message_handler(\SDF\MessageTypes::DEBUG,
+				'Entered SDF class. Beginning data validation');
 
 		$this->data = $postdata;
 
@@ -48,9 +50,14 @@ class SDF {
 		self::set_amount();
 		self::set_recurrence();
 
+		sdf_message_handler(\SDF\MessageTypes::DEBUG, 'Data validation complete');
+
 		// do stripe first, so that we can get an ID
 		self::do_stripe();
 		self::do_init_salesforce();
+
+		sdf_message_handler(\SDF\MessageTypes::DEBUG,
+				'Done with synchronous donation processing. Next message should be success.');
 	}
 
 
@@ -80,26 +87,43 @@ class SDF {
 	private function do_stripe() {
 		// we keep this instance of stripe referenced so we can get the ID
 		// of the charge or the subscription
+
+		sdf_message_handler(\SDF\MessageTypes::DEBUG, 'Beginning to do Stripe');
+
 		$this->stripe = static::make_stripe($this->stripe);
 		$this->stripe->charge(self::get_stripe_details());
+
+		sdf_message_handler(\SDF\MessageTypes::DEBUG, 'Finished doing Stripe');
 	}
 
 	
 	private function do_init_salesforce() {
+		sdf_message_handler(\SDF\MessageTypes::DEBUG, 'Beginning to do Salesforce');
+
 		$salesforce = new \SDF\UCSalesforce();
 		$salesforce->init(self::get_sf_init_details());
 		$emergency_email_sent = $salesforce->has_emergency_email_been_sent();
+
+		sdf_message_handler(\SDF\MessageTypes::DEBUG, 'Finished doing Salesforce');		
 	}
 
 
 	// ************************************************************************
 
 	public static function make_stripe($ctx = null) {
+		sdf_message_handler(\SDF\MessageTypes::DEBUG,
+				'Checking for Stripe instance');
+
 		if(is_null($ctx)) {
+			sdf_message_handler(\SDF\MessageTypes::DEBUG,
+					'Creating instance of Stripe class.');
+
 			$ctx = new \SDF\Stripe();
 			$ctx->api();
 			return $ctx;
 		}
+
+		sdf_message_handler(\SDF\MessageTypes::DEBUG, 'Using existing Stripe instance');
 	}
 
 	private function get_stripe_invoice($invoice_id) {
@@ -132,6 +156,7 @@ class SDF {
 	}
 
 	private function get_sf_init_details() {
+		sdf_message_handler(\SDF\MessageTypes::DEBUG, 'Copying Salesforce required data');
 		$info = array();
 
 		$info['first-name']      = $this->data['first-name'];
@@ -161,6 +186,8 @@ class SDF {
 	}
 
 	private function get_stripe_details() {
+		sdf_message_handler(\SDF\MessageTypes::DEBUG, 'Copying Stripe required data');
+
 		$info = array();
 
 		$info['amount-cents']      = $this->data['amount-cents'];
@@ -175,6 +202,7 @@ class SDF {
 	}
 
 	private function required_fields() {
+		sdf_message_handler(\SDF\MessageTypes::DEBUG, 'Checking required fields');
 		$fields = array(
 			'annual-value',
 			'monthly-value',
@@ -200,6 +228,8 @@ class SDF {
 	}
 
 	private function hearabout_category() {
+		sdf_message_handler(\SDF\MessageTypes::DEBUG,
+				'Checking for how the donor heard about us');
 		$cats = array(
 			'Renewing Membership',
 			'Friend',
@@ -220,6 +250,7 @@ class SDF {
 	}
 
 	private function check_email() {
+		sdf_message_handler(\SDF\MessageTypes::DEBUG, 'Checking email');
 		$this->data['email'] = filter_var(
 				$this->data['email'], FILTER_SANITIZE_EMAIL);
 		if(!filter_var($this->data['email'], FILTER_VALIDATE_EMAIL)) {
@@ -227,6 +258,8 @@ class SDF {
 			sdf_message_handler(\SDF\MessageTypes::ERROR,
 					'Invalid email address.');
 		}
+		sdf_message_handler(\SDF\MessageTypes::DEBUG,
+				sprintf('email is: %s', $this->data['email']));
 	}
 
 	private function set_full_name() {
@@ -235,6 +268,7 @@ class SDF {
 	}
 
 	private function set_recurrence() {
+		sdf_message_handler(\SDF\MessageTypes::DEBUG, 'Getting donation recurrence');
 		if(strpos($this->data['amount-to-use'], 'monthly') !== false) {
 			$recurrence = 'Monthly';
 			$type = \SDF\RecurrenceTypes::MONTHLY;
@@ -252,9 +286,13 @@ class SDF {
 
 		$this->data['recurrence-type'] = $type;
 		$this->data['recurrence-string'] = $recurrence;
+
+		sdf_message_handler(\SDF\MessageTypes::DEBUG,
+				sprintf('Donation recurrence is: %s', $this->data['recurrence-string']));
 	}
 
 	private function set_amount() {
+		sdf_message_handler(\SDF\MessageTypes::DEBUG, 'Getting donation amount');
 		$donated_value =
 				self::get_cents($this->data[$this->data['amount-to-use']]);
 
@@ -265,7 +303,10 @@ class SDF {
 
 		$this->data['amount-cents'] = $donated_value;
 		$this->data['amount-string'] = money_format('%.2n',
-				(float) $donated_value / 100);  
+				(float) $donated_value / 100);
+
+		sdf_message_handler(\SDF\MessageTypes::DEBUG,
+				sprintf('Donation amount is: %d cents', $this->data['amount-cents']));
 	}
 
 	public function get_cents($value_string) {
@@ -304,6 +345,7 @@ function sdf_parse() {
 				__FUNCTION__ . ' No data received');
 
 	} else {
+		sdf_message_handler(\SDF\MessageTypes::DEBUG, 'sdf_parse begin');
 		$sdf = new SDF();
 		$sdf->begin($_POST['data']);
 		
