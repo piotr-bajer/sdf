@@ -58,19 +58,28 @@ class Stripe {
 
 	// chunky and slow!
 	public function get_subscription_from_charge($charge) {
+		sdf_message_handler(MessageTypes::DEBUG, 'Attempting to look up Stripe subscription id for previous charge');
+
 		try {
 			$charge = \Stripe\Charge::retrieve($charge);
 			$invoice_id = $charge['invoice'];
+
+			sdf_message_handler(MessageTypes::DEBUG, 'Got the charge object');
 			
 			$invoice = \Stripe\Invoice::retrieve($invoice_id);
 			$invoice_items = $invoice['lines']['data'];
 
+			sdf_message_handler(MessageTypes::DEBUG, 'Got the invoice object');
+
 			foreach ($invoice_items as $item) {
 				if(strcmp($item['type'], 'subscription') === 0) {
+					sdf_message_handler(MessageTypes::DEBUG, 'Found a subscription');
+
 					return $item['id'];
 				}
 			}
 		} catch(\Stripe\Error\InvalidRequest $e) {
+			sdf_message_handler(MessageTypes::DEBUG, 'Caught an exception; giving up on finding subscription');
 			return null;
 		}
 	}

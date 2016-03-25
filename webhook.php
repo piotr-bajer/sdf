@@ -45,40 +45,38 @@ $body = @file_get_contents('php://input');
 $event = json_decode($body, true);
 $response_code = 200;
 
-if(strpos($event['type'], 'charge.') === 0) { // matches charge.*
-	if(strpos($event['type'], 'charge.succeeded') === 0) {
-		$type     = $event['type'];
-		$email    = $event['data']['object']['receipt_email'];
-		$customer = $event['data']['object']['customer'];
-		$cents    = $event['data']['object']['amount'];
-		$invoice  = $event['data']['object']['invoice'];
+sdf_message_handler(\SDF\MessageTypes::DEBUG,
+			sprintf('Stripe webhook with type: %s', $event['type']));
 
-		$charge   = $event['data']['object']['id'];
+if(strpos($event['type'], 'charge.succeeded') === 0) {
+	$type     = $event['type'];
+	$email    = $event['data']['object']['receipt_email'];
+	$customer = $event['data']['object']['customer'];
+	$cents    = $event['data']['object']['amount'];
+	$invoice  = $event['data']['object']['invoice'];
 
-		// Stripe seems to not handle certain email addresses,
-		// so we fall back to the charge description
-		if(is_null($email)) {
-			$email = $event['data']['object']['description'];
-		}
-		// even still, we may have to look up the customer by their stripe id
-		
-		$info = array(
-			'type'       => $type,
-			'email'      => $email,
-			'amount'     => $cents,
-			'customer'   => $customer,
-			'charge-id'  => $charge,
-			'invoice-id' => $invoice,
-		);
+	$charge   = $event['data']['object']['id'];
 
-		// do the rest of the processing in the class
-		$response_code = $sdf->do_stripe_endpoint($info);
-	} else {
-		// this was some other kind of charge.
-		// Perhaps an email would be useful?
-		sdf_message_handler(\SDF\MessageTypes::LOG,
-				sprintf('Endpoint: Charge type: %s', $event['type']));
+	// Stripe seems to not handle certain email addresses,
+	// so we fall back to the charge description
+	if(is_null($email)) {
+		sdf_message_handler(\SDF\MessageTypes::LOG, 'Stripe webhook was missing email');
+
+		$email = $event['data']['object']['description'];
 	}
+	// even still, we may have to look up the customer by their stripe id
+
+	$info = array(
+		'type'       => $type,
+		'email'      => $email,
+		'amount'     => $cents,
+		'customer'   => $customer,
+		'charge-id'  => $charge,
+		'invoice-id' => $invoice,
+	);
+
+	// do the rest of the processing in the class
+	$response_code = $sdf->do_stripe_endpoint($info);
 }
 
 http_response_code($response_code); ?>

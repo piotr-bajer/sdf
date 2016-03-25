@@ -185,10 +185,19 @@ class Salesforce {
 	// This function removes empty fields from the contact object
 	// must be called from context with contact property
 	protected function cleanup() {
+		sdf_message_handler(MessageTypes::DEBUG, 'Attempting to clean extra fields from contact');
+
+		$null_count = 0;
 		foreach($this->contact as $property => $value) {
 			if(is_null($value)) {
 				unset($this->contact->$property);
+				$null_count++;
 			}
+		}
+
+		if($null_count > 0) {
+			sdf_message_handler(MessageTypes::DEBUG,
+					sprintf('%d null fields removed', $null_count));
 		}
 	}
 

@@ -22,10 +22,15 @@ class AsyncSalesforce extends Salesforce {
 	private static $DONOR_ANNUAL_TEMPLATE = '00X50000001eVEc';
 
 	public function init(&$info) {
+		sdf_message_handler(MessageTypes::DEBUG, 'Entered AsyncSalesforce class');
+
 		try {
 			// We need these in a few places
 			$info['dollar-amount'] = (float) $info['amount'] / 100;
 			$info['amount-string'] = money_format('%.2n', $info['dollar-amount']);
+
+			sdf_message_handler(MessageTypes::DEBUG,
+					sprintf('Stripe webhook request has charge amount of %d', $info['amount']));
 
 			parent::api();
 			$this->contact = parent::get_contact($info['email']);
@@ -42,6 +47,8 @@ class AsyncSalesforce extends Salesforce {
 			// Get the other donations we need to know about
 			self::get_donations();
 
+			sdf_message_handler(MessageTypes::DEBUG, 'Finished getting donation items');
+
 			// add a new line in the description
 			// do this before calculating sum, so that
 			// we know the recurrence type
@@ -51,6 +58,7 @@ class AsyncSalesforce extends Salesforce {
 			// the donor is
 			self::recalc_sum($info);
 
+			sdf_message_handler(MessageTypes::DEBUG, 'Setting some other donor data up');
 			// Directly update some fields
 			$this->contact->Paid__c = $info['dollar-amount'];
 			$this->contact->Paid_0__c = true;
@@ -65,6 +73,8 @@ class AsyncSalesforce extends Salesforce {
 
 			parent::cleanup();
 			parent::upsert_contact();
+
+			sdf_message_handler(MessageTypes::DEBUG, 'Finished updating donor contact');
 
 			self::update_or_create_donation($info);
 			self::send_email($info);
@@ -94,6 +104,8 @@ class AsyncSalesforce extends Salesforce {
 	// Find the donations for our contact, so that we can determine their
 	// donor level
 	private function get_donations() {
+		sdf_message_handler(MessageTypes::DEBUG, 'Attempting to get donation items for this donor');
+
 		$valid_donations_list = array();
 
 		if($this->contact->Id !== null) {
@@ -110,6 +122,9 @@ class AsyncSalesforce extends Salesforce {
 				// the first of the year
 				$cutoff_date->setDate(intval(date('Y')), 1, 1);
 			}
+
+			sdf_message_handler(MessageTypes::DEBUG,
+					sprintf('Cutoff date for the donation items is %s', $cutoff_date->format('Y-m-d H:i:s')));
 
 			// legible query
 			$query = 'SELECT 
@@ -133,13 +148,20 @@ class AsyncSalesforce extends Salesforce {
 				$donations = $response->getQueryResult()->getRecord(0)->Donations__r;
 
 				if(is_null($donations)) {
+					sdf_message_handler(MessageTypes::DEBUG,
+							sprintf('Got no results from donations query: %s', $query));
 					return;
 				}
+
+				sdf_message_handler(MessageTypes::DEBUG,
+						sprintf('Got %d donations from query', $donations->getSize()));
 	
 				// we want the successes because that's how we count up
 				// the total donated this year.
 				// we want pending because that might be the target line item.
 				$status_list = array('Pending', 'Success', null);
+				$too_old_count = 0;
+				$incorrect_status_count = 0;
 
 				for($ii = 0; $ii < $donations->getSize(); $ii++) {
 
@@ -151,10 +173,27 @@ class AsyncSalesforce extends Salesforce {
 							// donations from this calendar year
 
 							$valid_donations_list[] = get_object_vars($donation);
+						} else {
+							$too_old_count++;
 						}
+					} else {
+						$incorrect_status_count++;
 					}
 
 					$this->all_donations[] = get_object_vars($donation);
+				}
+
+				sdf_message_handler(MessageTypes::DEBUG,
+						sprintf('Finished processing donation items, %d valid donations found', count($valid_donations_list)));
+
+				if($too_old_count > 0) {
+					sdf_message_handler(MessageTypes::DEBUG,
+							sprintf('%d donations were too old', $too_old_count));
+				}
+
+				if($incorrect_status_count > 0) {
+					sdf_message_handler(MessageTypes::DEBUG,
+							sprintf('%d donations had a status that was unexpected', $incorrect_status_count));
 				}
 
 			} catch(\Exception $e) {
@@ -172,16 +211,27 @@ class AsyncSalesforce extends Salesforce {
 	// Set $info['desc']
 	// Set $this->subscription
 	private function description(&$info) {
+		sdf_message_handler(MessageTypes::DEBUG, 'Attempting to determine recurrence type of this donation');
 
 		if(is_null($info['invoice'])) {
+			sdf_message_handler(MessageTypes::DEBUG, 'No invoice id was present with webhook request, indicating a one time charge');
+
 			$info['recurrence-string'] = 'One time';
 			$info['recurrence-type'] = RecurrenceTypes::ONE_TIME;
 		} else {
-			// Get the recurrence string from the invoice data
+			sdf_message_handler(MessageTypes::DEBUG,
+					sprintf('Searching %d line item(s) in the Stripe invoice', count($info['invoice']['lines']['data'])));
 
+			// Get the recurrence string from the invoice data
 			// This means the user is signed up for recurring donations
+			$ili_count = 0;
 			foreach($info['invoice']['lines']['data'] as $ili) {
+				$ili_count++;
+
 				if(strcmp($ili['type'],	'subscription') === 0) {
+
+					sdf_message_handler(\SDF\MessageTypes::DEBUG,
+							sprintf('Found a subscription line item, id: %s', $ili['id']));
 
 					// We can get the subscription ID from this line item
 					$this->subscription = $ili['id'];
@@ -196,10 +246,16 @@ class AsyncSalesforce extends Salesforce {
 						$info['recurrence-type'] = RecurrenceTypes::MONTHLY;
 					}
 
+					sdf_message_handler(\SDF\MessageTypes::DEBUG,
+							sprintf('Recurrence type for this subscription is: %s', $info['recurrence-string']));
+
 					// bail after first success.
 					break;
 				}
 			}
+
+			sdf_message_handler(\SDF\MessageTypes::DEBUG,
+					sprintf('Processed %d invoice line items', $ili_count));
 		}
 
 		$fmt = sprintf('%s - %s - %s - Online donation from %s.',
@@ -215,6 +271,7 @@ class AsyncSalesforce extends Salesforce {
 	// we want the TOTAL amount of donations for this calendar year
 	// and we want to know whether that passes the 75 dollar cutoff.
 	private function recalc_sum(&$info) {
+		sdf_message_handler(MessageTypes::DEBUG, 'Attempting to calculate sum of donations');
 		$sum = 0;
 
 		foreach($this->valid_donations as $donation) {
@@ -229,10 +286,15 @@ class AsyncSalesforce extends Salesforce {
 
 		$this->contact->Total_paid_this_year__c = $sum;
 
+		sdf_message_handler(MessageTypes::DEBUG,
+				sprintf('Contact donated $%01.2f this year', $sum));
+
 		// now we'll take into account the donations we expect
 		// for the rest of the year from this donor.
 		$sum += self::get_ext_amount($info['recurrence-type'],
 				$info['dollar_amount']);
+
+		sdf_message_handler(MessageTypes::DEBUG, 'Calculating donor level based on expected donations for this year');
 
 
 		if($sum >= 75) { 
@@ -259,14 +321,20 @@ class AsyncSalesforce extends Salesforce {
 			$level = 'Benefactor';
 		}
 
+		sdf_message_handler(MessageTypes::DEBUG,
+				sprintf('Setting donor level to %s', $level));
+
 		$this->contact->Member_Level__c = $level;
 	}
 
 
 	// Create the donation line item child object
 	private function update_or_create_donation(&$info) {
+		sdf_message_handler(MessageTypes::DEBUG, 'Attempting to update or create a donation line item for this payment');
 
-		$dli_match_count = 0;
+		$dli_match = false;
+		$non_pending_count = 0;
+		$invoice_line_items_check_count = 0;
 
 		foreach($this->valid_donations as $dli) {
 
@@ -274,10 +342,14 @@ class AsyncSalesforce extends Salesforce {
 
 				// charge id, which would indicate a one-time donation
 				if(strcmp($dli['Stripe_Id__c'], $info['charge-id']) === 0) {
-					$dli_match_count++;
+					sdf_message_handler(MessageTypes::DEBUG, 'Found matching Stripe charge id');
+
+					$dli_match = true;
 
 					// update donation with amount and success.
 					$this->update_donation($info, $dli);
+
+					sdf_message_handler(MessageTypes::DEBUG, 'Getting referrer and in-honor-of data stored in donation line item');
 
 					// we need these for the email:
 					if(strlen($dli['In_Honor_Of__c']) > 0) {
@@ -289,90 +361,156 @@ class AsyncSalesforce extends Salesforce {
 						$info['referral'] = sprintf("Referred by: %s\n",
 								$dli['Referred_by__c']);
 					}
+
+					// I think we can stop checking donations if we find one
+					break;
 		
-				} else {
+				} else { // if its not a charge id, it could be a subscription id
 
 					if($info['invoice']) {
 
-						$invoice_li = $info['invoice']['lines']['data'];
+						$invoice_lis = $info['invoice']['lines']['data'];
 
 						// there could be more than one subscription on an invoice?
-						foreach($invoice_li as $ili) {
+						$invoice_line_items_check_count++;
+						foreach($invoice_lis as $ili) {
+							
 							if(strcmp($dli['Stripe_Id__c'], $ili['id']) === 0) {
+
+								sdf_message_handler(MessageTypes::DEBUG, 'Found a matching subscription id');
 								
-								$dli_match_count++;
+								$dli_match = true;
+
+
+								$this->update_donation($info, $dli);
+
+								sdf_message_handler(MessageTypes::DEBUG, 'Getting referrer and in-honor-of data stored in donation line item');
 
 								// we need this for the email:
 								if(strlen($dli['In_Honor_Of__c']) > 0) {
 									$info['honor'] = sprintf("In Honor of: %s\n",
 											$dli['In_Honor_Of__c']);
-								} else {
-									// assuming that the referrer wont be set if there's
-									// no honor
-									$this->find_previous_donation_extras($info);
 								}
-
 
 								if(strlen($dli['Referred_by__c']) > 0) {
 									$info['referral'] = sprintf("Referred by: %s\n",
 											$dli['Referred_by__c']);
 								}
 
-								$this->update_donation($info, $dli);
+								// we don't need to keep looking at dlis, we've found and updated one
+								break 2;
 							}
 						}
 					}
 				}
+			} // end if pending
+			else {
+				$non_pending_count++;
 			}
+		} // end for each
+
+		if($non_pending_count > 0) {
+			sdf_message_handler(MessageTypes::DEBUG,
+					sprintf('Saw %d non-pending donation line items', $non_pending_count));
 		}
 
-		if($dli_match_count === 0) {
+		if($invoice_line_items_check_count > 0) {
+			$count = count($info['invoice']['lines']['data']);
+
+			sdf_message_handler(MessageTypes::DEBUG,
+					sprintf('Compared %d potential pending donations with %d Stripe invoice line items (%d total comparisons)', $invoice_line_items_check_count, $count, $invoice_line_items_check_count * $count));
+		}
+
+
+
+		if(!$dli_match) {
+			sdf_message_handler(MessageTypes::DEBUG, 'No previous donation line item to update');
 			// this donation is part of a subscription,
 			// and is not the first donation. Completely async!
 			$this->find_previous_donation_extras($info);
 			$this->create_standard_donation($info);
 		}
+
+		sdf_message_handler(MessageTypes::DEBUG, 'Finished updating or creating donation item');
 	}
 
 
 	private function find_previous_donation_extras(&$info) {
+		sdf_message_handler(MessageTypes::DEBUG, 'Searching previous donations to find extra data for alert email');
+
+		$no_extra_data_count = 0;
+		$no_stripe_id_count = 0;
+		$subscription_id_match_fail_count = 0;
+		$comparison_count = 0;
 
 		if(isset($this->subscription)) {
 			$stripe = \SDF::make_stripe();
 			
 			// It could be any donation
 			foreach($this->all_donations as $dli) {
+				$comparison_count++;
 				// We only care if it has in honor of data
 				if(strlen($dli['In_Honor_Of__c']) > 0) {
 					// This shouldn't be null if in honor of is present
 					if(strlen($dli['Stripe_Id__c']) > 0) {
+
 						// now we can try to fetch the 
 						// subscription id from that charge
 						$old_subscription =	$stripe->get_subscription_from_charge(
 								$dli['Stripe_Id__c']);
 
 						if(strcmp($old_subscription, $this->subscription) === 0) {
+
+							sdf_message_handler(MessageTypes::DEBUG, 'Found donation with matching subscription id and extra data');
+
 							$info['honor'] = sprintf("In Honor of: %s\n",
 									$dli['In_Honor_Of__c']);
 
-							// we should be pretty confident if this is the donation
-							// that was the first in the series, whatever referrer
-							// info was set there would be accurate
 							if(strlen($dli['Referred_by__c']) > 0) {
 								$info['referral'] = sprintf("Referred by: %s\n",
 										$dli['Referred_by__c']);
 							}
 
 							return;
+
+						} else {
+							$subscription_id_match_fail_count++;
 						}
+					} else {
+						$no_stripe_id_count++;
 					}
+				} else {
+					$no_extra_data_count++;
 				}
-			}
+			} // end for each
+		} else {
+			sdf_message_handler(MessageTypes::DEBUG, 'No subscription id to search on');
+			return;
+		}
+
+		sdf_message_handler(MessageTypes::DEBUG,
+				sprintf('Out of %d potential donations, %d were examined', count($this->all_donations), $comparison_count));
+
+		if($no_extra_data_count > 0) {
+			sdf_message_handler(MessageTypes::DEBUG,
+					sprintf('%d donations were rejected because they had no extra data', $no_extra_data_count));
+		}
+
+		if($no_stripe_id_count > 0) {
+			sdf_message_handler(MessageTypes::DEBUG,
+					sprintf('%d donations were rejected because they had no stripe id', $no_stripe_id_count));
+		}
+
+		if($subscription_id_match_fail_count > 0) {
+			sdf_message_handler(MessageTypes::DEBUG,
+					sprintf('%d donations were rejected because they were not a part of this subscription', $subscription_id_match_fail_count));
 		}
 	}
 
 
 	private function update_donation(&$info, &$donation_li) {
+		sdf_message_handler(MessageTypes::DEBUG, 'Attempting to update a pending donation in Salesforce');
+
 		$donation = (object) $donation_li;
 
 		$donation->Amount__c = $info['dollar-amount'];
@@ -380,11 +518,17 @@ class AsyncSalesforce extends Salesforce {
 		$donation->Description__c = parent::string_truncate($info['desc'], 255);
 		$donation->Stripe_Status__c = 'Success';
 
-		parent::$connection->update(array($donation), 'Donation__c');
+		$response = parent::$connection->update(array($donation), 'Donation__c');
+
+		if(!array_pop($response)->isSuccess()) {
+			throw new Exception('Could not update existing donation', 1);
+		}
+		sdf_message_handler(MessageTypes::DEBUG, 'Donation updated!');
 	}
 
 
 	private function create_standard_donation(&$info) {
+		sdf_message_handler(MessageTypes::DEBUG, 'Attempting to create new donation line item');
 		$donation = new \stdClass();
 
 		$donation->Type__c = 'Membership';
@@ -393,7 +537,9 @@ class AsyncSalesforce extends Salesforce {
 		$donation->Stripe_Id__c = $info['charge-id'];
 		$donation->Description__c = parent::string_truncate($info['desc'], 255);
 		$donation->Donation_Date__c = date(parent::$DATE_FORMAT);
-		// there is no in-honor-of info here. :(
+		// We might have the in honor of, but we dont really care to save it
+		// if this is not the first donation in a series.
+		// We should prefer to get the first donation in the series instead.
 
 		$donation->Stripe_Status__c = 'Success';
 
@@ -404,6 +550,7 @@ class AsyncSalesforce extends Salesforce {
 	// Send an email to the Spark team
 	// Send an email to our lovely donor
 	private function send_email(&$info) {
+		sdf_message_handler(MessageTypes::DEBUG, 'Attempting to send emails');
 
 		switch($info['recurrence-type']) {
 			case RecurrenceTypes::MONTHLY: 
@@ -430,6 +577,10 @@ class AsyncSalesforce extends Salesforce {
 						__FUNCTION__ . ' : Donor email failure! ' 
 						. $errors[0]->message);
 			}
+			sdf_message_handler(MessageTypes::DEBUG, 'Donor email sent');
+
+		} else {
+			sdf_message_handler(MessageTypes::DEBUG, 'Not sending email, not in live mode');
 		}
 
 		// Alert email //////////////////////////////////////////////
@@ -460,5 +611,8 @@ EOF;
 					__FUNCTION__ . ' : Alert email failure! ' 
 					. $e->getMessage());
 		}
+
+		sdf_message_handler(MessageTypes::DEBUG,
+				sprintf('Alert email sent to %d recipients', count($spark_email->toAddresses)));
 	}
 } // end class ?>

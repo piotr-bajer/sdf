@@ -63,12 +63,15 @@ class SDF {
 
 	// this is an alternative entrypoint to the sdf class.
 	public function do_stripe_endpoint(&$info) {
+		sdf_message_handler(\SDF\MessageTypes::DEBUG, 'Entered SDF class for endpoints');
 
 		// get the plan details attached to this charge
 		$info['invoice'] = $this->get_stripe_invoice($info['invoice-id']);
 
 		if(is_null($info['email'])) {
 			$info['email'] = $this->get_stripe_customer($info['customer']);
+		} else {
+			sdf_message_handler(\SDF\MessageTypes::DEBUG, 'Stripe customer email is available, no need to look it up');
 		}
 
 		// send it to salesforce
@@ -127,30 +130,46 @@ class SDF {
 	}
 
 	private function get_stripe_invoice($invoice_id) {
+		sdf_message_handler(\SDF\MessageTypes::DEBUG,
+				'Attempting to get Stripe invoice data');
+
 		$invoice = null;
 		if(!is_null($invoice_id)) {
 			try {
 				$this->stripe = static::make_stripe($this->stripe);
 				$invoice = \Stripe\Invoice::retrieve($invoice_id);
+
+				sdf_message_handler(\SDF\MessageTypes::DEBUG,
+						sprintf('Stripe invoice %s found', $invoice->id));
 			} catch(\Stripe\Error\Base $e) {
 				sdf_message_handler(\SDF\MessageTypes::LOG,
 						__FUNCTION__ . ' : ' . $e);
 			}
+		} else {
+			sdf_message_handler(\SDF\MessageTypes::DEBUG,
+					'Can\' retrieve Stripe invoice without an invoice id');
 		}
 		return $invoice;
 	}
 
 	private function get_stripe_customer($cus_id) {
+		sdf_message_handler(\SDF\MessageTypes::DEBUG, 'Attempting to look up Stripe customer email');
+
 		$email = null;
 		if(!is_null($cus_id)) {
 			try {
 				$this->stripe = static::make_stripe($this->stripe);
 				$customer = \Stripe\Customer::retrieve($cus_id);
 				$email = $customer['email'];
+
+				sdf_message_handler(\SDF\MessageTypes::DEBUG,
+						sprintf('Customer email retrieved: %s', $email));
 			} catch(\Stripe\Error\Base $e) {
 				sdf_message_handler(\SDF\MessageTypes::LOG,
 						__FUNCTION__ . ' : ' . $e);
 			}
+		} else {
+			sdf_message_handler(\SDF\MessageTypes::DEBUG, 'Cannot retrieve Stripe customer without customer id');
 		}
 		return $email;
 	}
