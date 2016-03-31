@@ -14,7 +14,7 @@ function sdf_message_handler($type, $message) {
 	// data.type = error | success
 	// data.message = message
 
-	if($type > LOGLEVEL) {
+	if($type > SDFLOGLEVEL) {
 		return;
 	}
 

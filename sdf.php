@@ -9,7 +9,6 @@
 */
 
 define('LIVEMODE', 1);
-define('LOGLEVEL', \SDF\MessageTypes::DEBUG);
 
 // cultural imperialism
 date_default_timezone_set('America/Los_Angeles');
@@ -30,6 +29,8 @@ require_once WP_PLUGIN_DIR . '/sdf/Stripe.php';
 require_once WP_PLUGIN_DIR . '/sdf/Salesforce.php';
 require_once WP_PLUGIN_DIR . '/sdf/UCSalesforce.php';
 require_once WP_PLUGIN_DIR . '/sdf/AsyncSalesforce.php';
+
+define('SDFLOGLEVEL', \SDF\MessageTypes::DEBUG);
 
 class SDF {
 
