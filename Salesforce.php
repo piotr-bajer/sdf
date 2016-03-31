@@ -218,14 +218,7 @@ class Salesforce {
 			throw $e;
 		}
 
-		$response = array_pop($response);
-
-		if(!$response->isSuccess()) {
-			throw new \Exception(sprintf('%s not created. %s', 
-					$object_name, $response->getErrors()));
-		}
-
-		return $response;
+		return array_pop($response); 
 	}
 
 	// Send the data to Salesforce
@@ -242,6 +235,8 @@ class Salesforce {
 						'Caught exception updating contact, raising');
 				throw $e;
 			}
+
+			$response = array_pop($response);
 			
 		} else {
 			sdf_message_handler(MessageTypes::DEBUG, 'Attempting to create new contact');
@@ -251,10 +246,12 @@ class Salesforce {
 			$response = self::create(array($this->contact), 'Contact');
 		}
 
-		$response = array_pop($response);
 
-		if(!$response->isSuccess()) {
-			throw new \Exception(sprintf('Contact %s not updated. %s', 
+		if(is_null($response)) {
+			throw new \Exception(sprintf(
+					'Contact %s not updated or created. Connection response is null', $this->contact->Email));
+		} else if(!$response->isSuccess()) {
+			throw new \Exception(sprintf('Contact %s not updated or created. %s', 
 					$this->contact->Email, $response->getErrors()));
 		}
 	}

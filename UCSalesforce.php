@@ -242,7 +242,14 @@ class UCSalesforce extends Salesforce {
 		$donation->In_Honor_Of__c =
 				parent::string_truncate($info['inhonorof'], 64);
 
-		parent::create(array($donation), 'Donation__c');
+		$r = parent::create(array($donation), 'Donation__c');
+
+		if(is_null($r)) {
+			sdf_message_handler(MessageTypes::DEBUG, 'Creating pending donation item failed, response was null');
+		} else if(!$r->isSuccess()) {
+			sdf_message_handler(MessageTypes::DEBUG,
+					sprintf('Creating pending donation item failed, %s',$r->getErrors()));
+		}
 	}
 
 } // end class ?>

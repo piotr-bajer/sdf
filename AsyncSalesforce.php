@@ -543,7 +543,14 @@ class AsyncSalesforce extends Salesforce {
 
 		$donation->Stripe_Status__c = 'Success';
 
-		parent::create(array($donation), 'Donation__c');
+		$r = parent::create(array($donation), 'Donation__c');
+
+		if(is_null($r)) {
+			sdf_message_handler(MessageTypes::DEBUG, 'Creating donation item failed, response was null');
+		} else if(!$r->isSuccess()) {
+			sdf_message_handler(MessageTypes::DEBUG,
+					sprintf('Creating donation item failed, %s',$r->getErrors()));
+		}
 	}
 
 
