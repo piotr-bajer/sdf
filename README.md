@@ -14,15 +14,10 @@ Several emails are generated at donation time, using templates from Salesforce. 
 
 The form markup is generated when the proper page slug is loaded. This is set to 'donate' as the default.
 
-To deploy, set the `LIVEMODE` setting to 1 in the main file, sdf.php.
-
-You should have an SSL certificate set up. The page automatically redirects to https:// when in `LIVEMODE`.
-
-
 ---
 
 
-Copyright (c) 2014,2015 Steven Avery, Spark SF.
+Copyright (c) 2014-2016 Steven Avery, Spark SF.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

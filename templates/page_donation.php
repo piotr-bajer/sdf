@@ -16,7 +16,7 @@ wp_enqueue_script('select-to-autocomplete',
 		plugins_url('/sdf/js/jquery.select-to-autocomplete.js'), 
 		array('jquery', 'jquery-ui'));
 
-if(LIVEMODE) {
+if(SDFLIVEMODE) {
 	wp_enqueue_style('sdf_style',
 			plugins_url('/sdf/css/styles.css'));
 } else {
@@ -44,7 +44,7 @@ get_header(); ?>
 </div><!-- #main -->
 
 <?php
-	if(LIVEMODE) {
+	if(SDFLIVEMODE) {
 		wp_enqueue_script('sdf_donate_form_js',
 				plugins_url('/sdf/js/donate_form.js'));
 	} else {
@@ -53,7 +53,7 @@ get_header(); ?>
 	}
 
 	wp_localize_script('sdf_donate_form_js', 'spark', array(
-		'livemode' => (bool) LIVEMODE
+		'livemode' => (bool) SDFLIVEMODE
 	));
 ?>
 <script type="text/javascript">

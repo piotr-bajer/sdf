@@ -8,13 +8,12 @@
 	Author URI: https://stevenavery.com/
 */
 
-define('LIVEMODE', 1);
 
 // cultural imperialism
 date_default_timezone_set('America/Los_Angeles');
 setlocale(LC_MONETARY, 'en_US.UTF-8');
 
-if(LIVEMODE) {
+if(SDFLIVEMODE) {
 	ini_set('display_errors', 0);
 } else {
 	error_reporting(E_ERROR | E_WARNING | E_PARSE);
@@ -418,7 +417,7 @@ function sdf_ajaxurl() { ?>
 
 
 function sdf_check_ssl() {
-	if(LIVEMODE) {
+	if(SDFLIVEMODE) {
 		if(!(isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on')) {
 			header('HTTP/1.1 301 Moved Permanently');
 			header('Location: https://' . $_SERVER['SERVER_NAME']

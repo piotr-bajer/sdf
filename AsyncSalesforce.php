@@ -568,7 +568,7 @@ class AsyncSalesforce extends Salesforce {
 		$donor_email->templateId = $template;
 		
 
-		if(LIVEMODE) {
+		if(SDFLIVEMODE) {
 			$result = parent::$connection->sendEmail(array($donor_email));
 
 			$errors = array_pop($result)->getErrors();
