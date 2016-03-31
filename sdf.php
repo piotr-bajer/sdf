@@ -8,6 +8,12 @@
 	Author URI: https://stevenavery.com/
 */
 
+$hostname = exec('hostname');
+if(strpos($hostname, 'bluehost.com') !== false) {
+	define('SDFLIVEMODE', 1);
+} else {
+	define('SDFLIVEMODE', 0);
+}
 
 // cultural imperialism
 date_default_timezone_set('America/Los_Angeles');
