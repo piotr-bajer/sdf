@@ -212,7 +212,7 @@ class UCSalesforce extends Salesforce {
 					$created = static::$connection->create(
 							array($company), 'Account');
 
-					$id = $created[0]->id;
+					$id = $created[0]->getId();
 				}
 
 			} catch(\Exception $e) {
