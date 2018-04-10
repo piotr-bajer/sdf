@@ -134,6 +134,15 @@ class UCSalesforce extends Salesforce {
 			$this->contact->Board_Member_Contact_Owner__c = 'Amanda Brock';
 
 			sdf_message_handler(MessageTypes::DEBUG, 'Setting board member contact owner');
+		} else {
+			// If they have a contact owner - dont try to update it
+			// even to the same value - it sometimes fails because
+			// "owner is inactive, cannot reparent record"
+			// even though Amanda's account is def not inactive.
+			// Unsetting the contact owner should be fine - they will retain
+			// the existing owner through an update.
+			unset($this->contact->Board_Member_Contact_Owner__c);
+			sdf_message_handler(MessageTypes::DEBUG, 'UNSETTING board member contact owner');
 		}
 	
 		// Birth month and year
