@@ -131,7 +131,7 @@ class UCSalesforce extends Salesforce {
 	
 		// Every contact needs an 'Owner'
 		if(!isset($this->contact->Board_Member_Contact_Owner__c)) {
-			$this->contact->Board_Member_Contact_Owner__c = 'Amanda Brock';
+			$this->contact->Board_Member_Contact_Owner__c = 'Donation Tracking Account';
 
 			sdf_message_handler(MessageTypes::DEBUG, 'Setting board member contact owner');
 		} else {
