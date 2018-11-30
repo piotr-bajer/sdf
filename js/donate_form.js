@@ -215,7 +215,7 @@ sdf.validation = (function($) {
 		}
 		
 		if(spark.livemode) {
-			$(window).scrollTop($(el).focus().position().top);
+			$(window).scrollTop($(el).focus().position().top - $('.c-header').height() - 20);
 		}
 	}
 
@@ -269,9 +269,7 @@ sdf.validation = (function($) {
 				+ msg
 			+ '</p>');
 		
-		if(spark.livemode) {
-			alert_el.scrollIntoView();	
-		}
+		self.goto_element($(alert_el));
 	} 
 
 	self.stripe_response_handler = function(status, response) {
